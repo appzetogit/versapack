@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import api, { publicConfigGetOnce } from "@food/api";
+import { resolveMediaUrl } from "../../../../../shared/utils/mediaUrl.js";
 
 const PromotionBannerCarousel = ({ zoneId: propZoneId }) => {
   const [banners, setBanners] = useState([]);
@@ -99,7 +100,7 @@ const PromotionBannerCarousel = ({ zoneId: propZoneId }) => {
               }}
             >
               <img 
-                src={banners[currentIndex]?.imageUrl} 
+                src={resolveMediaUrl(banners[currentIndex]?.imageUrl) || undefined} 
                 alt={banners[currentIndex]?.title || "Promotion"} 
                 className="w-full h-full object-cover"
               />

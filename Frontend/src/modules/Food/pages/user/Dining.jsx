@@ -13,6 +13,7 @@ import { useCart } from "@food/context/CartContext"
 import { diningAPI } from "@food/api"
 import PageNavbar from "@food/components/user/PageNavbar"
 import OptimizedImage from "@food/components/OptimizedImage"
+import { resolveMediaUrl } from "../../../../shared/utils/mediaUrl.js"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
@@ -401,7 +402,7 @@ export default function Dining() {
     diningHeroBanners.forEach((banner) => {
       if (!banner?.imageUrl) return
       const img = new window.Image()
-      img.src = banner.imageUrl
+      img.src = resolveMediaUrl(banner.imageUrl) || ""
     })
   }, [diningHeroBanners])
 
@@ -603,7 +604,7 @@ export default function Dining() {
                 {diningHeroBanners.map((banner, index) => (
                   <div key={banner.id} className="relative h-full w-full shrink-0">
                     <OptimizedImage
-                      src={banner.imageUrl}
+                      src={resolveMediaUrl(banner.imageUrl) || undefined}
                       alt={`Dining Banner ${index + 1}`}
                       className="w-full h-full"
                       objectFit="cover"
@@ -713,7 +714,7 @@ export default function Dining() {
                   <div className="absolute inset-x-0 bottom-0 h-[64%] overflow-hidden rounded-b-[18px]">
                     {category.imageUrl ? (
                       <OptimizedImage
-                        src={category.imageUrl}
+                        src={resolveMediaUrl(category.imageUrl) || undefined}
                         alt={category.name}
                         className="w-full h-full transition-transform duration-500 group-hover:scale-[1.03]"
                         objectFit="cover"

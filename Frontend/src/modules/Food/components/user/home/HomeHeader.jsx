@@ -10,6 +10,7 @@ import taxiIcon from "@food/assets/category-icons/taxi.png";
 import hotelIcon from "@food/assets/category-icons/hotel.png";
 import useNotificationInbox from "@food/hooks/useNotificationInbox";
 import { useSearchOverlay } from "../UserLayout";
+import { resolveMediaUrl } from "../../../../../shared/utils/mediaUrl.js";
 const ICON_MAP = {
   CheckCircle2,
   Tag,
@@ -211,7 +212,7 @@ export default function HomeHeader({
         bg: "bg-gray-100 dark:bg-gray-800",
         content: (
           <img 
-            src={banner.image || banner.imageUrl} 
+            src={resolveMediaUrl(banner.image || banner.imageUrl) || undefined} 
             alt={`Banner ${index + 1}`} 
             className="absolute inset-0 w-full h-full object-cover" 
           />

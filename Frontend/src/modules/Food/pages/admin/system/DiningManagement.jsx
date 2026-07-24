@@ -5,6 +5,7 @@ import { getModuleToken } from "@food/utils/auth"
 import { Input } from "@food/components/ui/input"
 import { Label } from "@food/components/ui/label"
 import { Button } from "@food/components/ui/button"
+import { resolveMediaUrl } from "../../../../../shared/utils/mediaUrl.js"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
@@ -284,7 +285,7 @@ export default function DiningManagement() {
                                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                         {categories.map(cat => (
                                             <div key={cat._id} className="border rounded-lg overflow-hidden group relative">
-                                                <img src={cat.imageUrl} alt={cat.name} className="w-full h-32 object-cover" />
+                                                <img src={resolveMediaUrl(cat.imageUrl) || undefined} alt={cat.name} className="w-full h-32 object-cover" />
                                                 <div className="p-3 bg-white">
                                                     <p className="font-medium text-slate-900">{cat.name}</p>
                                                 </div>
@@ -349,7 +350,7 @@ export default function DiningManagement() {
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         {banners.map(banner => (
                                             <div key={banner._id} className="border rounded-lg overflow-hidden group relative">
-                                                <img src={banner.imageUrl} alt={banner.title || "Dining banner"} className="w-full h-32 object-cover" />
+                                                <img src={resolveMediaUrl(banner.imageUrl) || undefined} alt={banner.title || "Dining banner"} className="w-full h-32 object-cover" />
                                                 <div className="p-3 bg-white">
                                                     {banner.ctaText && <p className="font-bold text-slate-900">{banner.ctaText}</p>}
                                                     {banner.title && <p className="text-sm text-slate-600">{banner.title}</p>}
