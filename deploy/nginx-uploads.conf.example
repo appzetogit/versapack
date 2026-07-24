@@ -1,0 +1,46 @@
+# Serve uploaded images directly from disk (Node only handles POST uploads).
+# Copy to: /etc/nginx/sites-available/your-app
+# Then: sudo ln -s /etc/nginx/sites-available/your-app /etc/nginx/sites-enabled/
+
+upstream switcheats_api {
+    server 127.0.0.1:5000;
+    keepalive 32;
+}
+
+server {
+    listen 80;
+    server_name api.yourdomain.com cdn.yourdomain.com;
+
+    client_max_body_size 6M;
+
+    # Static uploads — nginx serves files; backend is not involved for GET
+    location /uploads/ {
+        alias /var/www/uploads/;
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+        access_log off;
+
+        # Only allow image extensions
+        location ~* \.(jpg|jpeg|png|webp|gif)$ {
+            try_files $uri =404;
+        }
+
+        # Block everything else under /uploads/
+        return 404;
+    }
+
+    # API (upload POST + all other routes)
+    location /api/ {
+        proxy_pass http://switcheats_api;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Upload timeouts — prevent hung connections from tying up workers
+        proxy_connect_timeout 10s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+    }
+}

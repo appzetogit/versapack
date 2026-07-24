@@ -1,0 +1,41 @@
+# Serve uploaded images directly from disk (Node.js is NOT involved for GET requests).
+# Place this inside your server { } block on the VPS.
+
+    location /uploads/ {
+        alias /var/www/uploads/;
+        access_log off;
+        expires 30d;
+        add_header Cache-Control "public, max-age=2592000, immutable";
+        add_header X-Content-Type-Options nosniff;
+        add_header Cross-Origin-Resource-Policy "cross-origin" always;
+
+    # Only allow image files
+    location ~* \.(jpg|jpeg|png|webp|gif)$ {
+        try_files $uri =404;
+    }
+
+    # Block everything else (scripts, env files, etc.)
+    location ~ \.(php|sh|env|js|html)$ {
+        return 403;
+    }
+}
+
+# Optional: dedicated CDN subdomain (recommended for production)
+# server {
+#     listen 443 ssl http2;
+#     server_name cdn.yourdomain.com;
+#
+#     root /var/www/uploads;
+#     location / {
+#         expires 30d;
+#         add_header Cache-Control "public, max-age=2592000, immutable";
+#         try_files $uri =404;
+#     }
+# }
+
+# Upload API still goes to Node (POST only):
+# location /api/v1/uploads/ {
+#     proxy_pass http://127.0.0.1:5000;
+#     client_max_body_size 5m;
+#     proxy_read_timeout 60s;
+# }
