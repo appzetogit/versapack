@@ -6,6 +6,17 @@ const schema = z.object({
     referralRewardDelivery: z.number().min(0).optional(),
     referralLimitUser: z.number().min(0).optional(),
     referralLimitDelivery: z.number().min(0).optional(),
+    // Blank clears the link. Must be http(s) so we never hand the app a junk scheme.
+    referralLinkUser: z
+        .string()
+        .max(500)
+        .refine((v) => v === '' || /^https?:\/\/\S+$/i.test(v), 'referralLinkUser must be a valid http(s) URL')
+        .optional(),
+    referralLinkDelivery: z
+        .string()
+        .max(500)
+        .refine((v) => v === '' || /^https?:\/\/\S+$/i.test(v), 'referralLinkDelivery must be a valid http(s) URL')
+        .optional(),
     isActive: z.boolean().optional()
 });
 
@@ -15,6 +26,8 @@ export const validateReferralSettingsUpsertDto = (body) => {
         referralRewardDelivery: body?.referralRewardDelivery !== undefined ? Number(body.referralRewardDelivery) : undefined,
         referralLimitUser: body?.referralLimitUser !== undefined ? Number(body.referralLimitUser) : undefined,
         referralLimitDelivery: body?.referralLimitDelivery !== undefined ? Number(body.referralLimitDelivery) : undefined,
+        referralLinkUser: body?.referralLinkUser !== undefined ? String(body.referralLinkUser).trim() : undefined,
+        referralLinkDelivery: body?.referralLinkDelivery !== undefined ? String(body.referralLinkDelivery).trim() : undefined,
         isActive: body?.isActive !== undefined ? Boolean(body.isActive) : undefined
     };
 

@@ -7,20 +7,46 @@ import { FoodReferralLog } from '../../admin/models/referralLog.model.js';
 import { logger } from '../../../../utils/logger.js';
 import { config } from '../../../../config/env.js';
 
-/** Path on the web app that reads ?ref= and pre-fills the rider signup. */
+/** Fallback path when only an origin is configured (no {code} template). */
 const REFERRAL_SIGNUP_PATH = '/food/delivery/signup';
 
 /**
- * Build the shareable invite link. Returns '' when no usable public origin is configured
- * (or it still points at localhost) so the app shares the bare code rather than a dead URL.
+ * Build the shareable invite link from an admin-configured template.
+ *
+ * `template` comes from referral settings (referralLinkDelivery / referralLinkUser) and may
+ * contain {code}, so admins can point invites at a web signup OR a store listing:
+ *   https://suvio.example.com/food/delivery/signup?ref={code}
+ *   https://play.google.com/store/apps/details?id=com.example.app&referrer={code}
+ * With no {code}, ?ref=<code> is appended. A bare origin gets the signup path added.
+ *
+ * Returns '' when nothing usable is configured (or it still points at localhost), so the
+ * app shares the bare code rather than a dead URL.
  */
-const buildReferralLink = (referralCode) => {
-    const base = String(config.publicWebUrl || '').trim();
-    if (!base || !referralCode) return '';
-    if (!/^https?:\/\//i.test(base)) return '';
-    if (/localhost|127\.0\.0\.1/i.test(base)) return '';
-    return `${base}${REFERRAL_SIGNUP_PATH}?ref=${encodeURIComponent(String(referralCode))}`;
+export const buildReferralLinkFromTemplate = (template, referralCode, defaultPath = REFERRAL_SIGNUP_PATH) => {
+    const code = String(referralCode || '').trim();
+    if (!code) return '';
+
+    const raw = String(template || '').trim() || String(config.publicWebUrl || '').trim();
+    if (!raw) return '';
+    if (!/^https?:\/\//i.test(raw)) return '';
+    if (/localhost|127\.0\.0\.1/i.test(raw)) return '';
+
+    const encoded = encodeURIComponent(code);
+    if (raw.includes('{code}')) return raw.replace(/\{code\}/g, encoded);
+
+    // No placeholder: treat a path-less origin as needing the default signup path.
+    let base = raw.replace(/\/+$/, '');
+    try {
+        const u = new URL(base);
+        if (!u.pathname || u.pathname === '/') base = `${base}${defaultPath}`;
+    } catch {
+        return '';
+    }
+    return `${base}${base.includes('?') ? '&' : '?'}ref=${encoded}`;
 };
+
+const buildReferralLink = (referralCode, template) =>
+    buildReferralLinkFromTemplate(template, referralCode);
 
 const maskPhone = (phone) => {
     const p = String(phone || '').trim();
@@ -87,7 +113,10 @@ export const getDeliveryReferralStats = async (deliveryPartnerId) => {
         referralCode: String(partner?.referralCode || partner?._id || ''),
         // Ready-to-share URL. Empty string when no public origin is configured — the app
         // should then fall back to sharing referralCode alone.
-        referralLink: buildReferralLink(partner?.referralCode || partner?._id),
+        referralLink: buildReferralLink(
+            partner?.referralCode || partner?._id,
+            settingsDoc?.referralLinkDelivery,
+        ),
         referralCount: Number(partner?.referralCount) || 0,
         totalReferralEarnings,
         rewardAmount: reward,

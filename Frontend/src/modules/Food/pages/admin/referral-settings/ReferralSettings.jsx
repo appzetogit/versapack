@@ -14,6 +14,8 @@ export default function ReferralSettings() {
     referralRewardDelivery: "",
     referralLimitUser: "",
     referralLimitDelivery: "",
+    referralLinkUser: "",
+    referralLinkDelivery: "",
   })
 
   const fetchSettings = async () => {
@@ -27,6 +29,8 @@ export default function ReferralSettings() {
           referralRewardDelivery: s.referralRewardDelivery ?? "",
           referralLimitUser: s.referralLimitUser ?? "",
           referralLimitDelivery: s.referralLimitDelivery ?? "",
+          referralLinkUser: s.referralLinkUser ?? "",
+          referralLinkDelivery: s.referralLinkDelivery ?? "",
         })
       } else {
         setSettings({
@@ -34,6 +38,8 @@ export default function ReferralSettings() {
           referralRewardDelivery: "",
           referralLimitUser: "",
           referralLimitDelivery: "",
+          referralLinkUser: "",
+          referralLinkDelivery: "",
         })
       }
     } catch (e) {
@@ -56,6 +62,8 @@ export default function ReferralSettings() {
         referralRewardDelivery: settings.referralRewardDelivery === "" ? 0 : Number(settings.referralRewardDelivery),
         referralLimitUser: settings.referralLimitUser === "" ? 0 : Number(settings.referralLimitUser),
         referralLimitDelivery: settings.referralLimitDelivery === "" ? 0 : Number(settings.referralLimitDelivery),
+        referralLinkUser: String(settings.referralLinkUser || "").trim(),
+        referralLinkDelivery: String(settings.referralLinkDelivery || "").trim(),
         isActive: true,
       }
       const res = await adminAPI.createOrUpdateReferralSettings(body)
@@ -68,6 +76,8 @@ export default function ReferralSettings() {
             referralRewardDelivery: saved.referralRewardDelivery ?? "",
             referralLimitUser: saved.referralLimitUser ?? "",
             referralLimitDelivery: saved.referralLimitDelivery ?? "",
+            referralLinkUser: saved.referralLinkUser ?? "",
+            referralLinkDelivery: saved.referralLinkDelivery ?? "",
           })
         }
       } else {
@@ -86,6 +96,12 @@ export default function ReferralSettings() {
       .replace(/[^\d.]/g, "")
       .replace(/^0+(\d)/, "$1")
     setSettings((prev) => ({ ...prev, [key]: v }))
+  }
+
+  // Free-text fields (invite links). The numeric onChange above strips everything except
+  // digits and dots, which would mangle a URL down to "..." as you type.
+  const onChangeText = (key) => (e) => {
+    setSettings((prev) => ({ ...prev, [key]: String(e.target.value ?? "") }))
   }
 
   return (
@@ -154,6 +170,17 @@ export default function ReferralSettings() {
                   className="w-full border border-slate-200 rounded-lg px-3 py-2"
                   placeholder="e.g. 10"
                 />
+                <label className="block text-sm text-slate-600 mb-1 mt-3">Invite link</label>
+                <input
+                  value={settings.referralLinkUser}
+                  onChange={onChangeText("referralLinkUser")}
+                  className="w-full border border-slate-200 rounded-lg px-3 py-2"
+                  placeholder="https://play.google.com/store/apps/details?id=your.user.app&referrer={code}"
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                  Use <code>{"{code}"}</code> where the referral code goes. Leave blank to share
+                  the code only.
+                </p>
               </div>
 
               <div className="border border-slate-200 rounded-xl p-4">
@@ -174,6 +201,17 @@ export default function ReferralSettings() {
                   className="w-full border border-slate-200 rounded-lg px-3 py-2"
                   placeholder="e.g. 5"
                 />
+                <label className="block text-sm text-slate-600 mb-1 mt-3">Invite link</label>
+                <input
+                  value={settings.referralLinkDelivery}
+                  onChange={onChangeText("referralLinkDelivery")}
+                  className="w-full border border-slate-200 rounded-lg px-3 py-2"
+                  placeholder="https://play.google.com/store/apps/details?id=your.rider.app&referrer={code}"
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                  Use <code>{"{code}"}</code> where the referral code goes. Leave blank to share
+                  the code only.
+                </p>
               </div>
             </div>
           )}

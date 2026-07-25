@@ -4,6 +4,7 @@ import { FoodUser } from '../../../../core/users/user.model.js';
 import { FoodUserWallet } from '../models/userWallet.model.js';
 import { FoodReferralSettings } from '../../admin/models/referralSettings.model.js';
 import { FoodReferralLog } from '../../admin/models/referralLog.model.js';
+import { buildReferralLinkFromTemplate } from '../../delivery/services/deliveryReferral.service.js';
 
 export const getUserReferralStats = async (userId) => {
     const id = String(userId || '');
@@ -18,9 +19,16 @@ export const getUserReferralStats = async (userId) => {
     ]);
 
     return {
+        referralCode: String(user?.referralCode || user?._id || ''),
+        referralLink: buildReferralLinkFromTemplate(
+            settingsDoc?.referralLinkUser,
+            user?.referralCode || user?._id,
+            ''
+        ),
         referralCount: Number(user?.referralCount) || 0,
         totalReferralEarnings: Number(wallet?.referralEarnings) || 0,
-        rewardAmount: Math.max(0, Number(settingsDoc?.referralRewardUser) || 0)
+        rewardAmount: Math.max(0, Number(settingsDoc?.referralRewardUser) || 0),
+        referralLimit: Math.max(0, Number(settingsDoc?.referralLimitUser) || 0)
     };
 };
 
@@ -87,9 +95,16 @@ export const getUserReferralDetails = async (userId) => {
 
     return {
         stats: {
+            referralCode: String(user?.referralCode || user?._id || ''),
+            referralLink: buildReferralLinkFromTemplate(
+                settingsDoc?.referralLinkUser,
+                user?.referralCode || user?._id,
+                ''
+            ),
             referralCount: Number(user?.referralCount) || 0,
             totalReferralEarnings: Number(wallet?.referralEarnings) || 0,
             rewardAmount: Math.max(0, Number(settingsDoc?.referralRewardUser) || 0),
+            referralLimit: Math.max(0, Number(settingsDoc?.referralLimitUser) || 0),
             totalInvited,
             creditedCount,
             pendingCount,

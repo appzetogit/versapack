@@ -2277,6 +2277,8 @@ export async function upsertReferralSettings(body = {}) {
         if (body.referralRewardDelivery !== undefined) $set.referralRewardDelivery = Math.max(0, Number(body.referralRewardDelivery) || 0);
         if (body.referralLimitUser !== undefined) $set.referralLimitUser = Math.max(0, Number(body.referralLimitUser) || 0);
         if (body.referralLimitDelivery !== undefined) $set.referralLimitDelivery = Math.max(0, Number(body.referralLimitDelivery) || 0);
+        if (body.referralLinkUser !== undefined) $set.referralLinkUser = String(body.referralLinkUser || '').trim();
+        if (body.referralLinkDelivery !== undefined) $set.referralLinkDelivery = String(body.referralLinkDelivery || '').trim();
         if (body.isActive !== undefined) $set.isActive = Boolean(body.isActive);
 
         if (!Object.keys($set).length) return existing.toObject();
@@ -2289,6 +2291,8 @@ export async function upsertReferralSettings(body = {}) {
         referralRewardDelivery: Math.max(0, Number(body.referralRewardDelivery) || 0),
         referralLimitUser: Math.max(0, Number(body.referralLimitUser) || 0),
         referralLimitDelivery: Math.max(0, Number(body.referralLimitDelivery) || 0),
+        referralLinkUser: String(body.referralLinkUser || '').trim(),
+        referralLinkDelivery: String(body.referralLinkDelivery || '').trim(),
         isActive: body.isActive !== false
     });
     return created.toObject();
