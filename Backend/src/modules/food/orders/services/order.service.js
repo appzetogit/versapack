@@ -1483,6 +1483,11 @@ export async function updateOrderStatusRestaurant(
   }
 
   order.orderStatus = orderStatus;
+  // The acceptance window exists only to auto-cancel orders the restaurant never acted
+  // on. It was never cleared once they did, so expireUnacceptedOrders (which sweeps
+  // 'created' AND 'confirmed') later cancelled confirmed, actively-dispatching orders as
+  // "Not accepted by restaurant". Retire the deadline now that the restaurant has acted.
+  order.acceptanceDeadlineAt = null;
 
   const normalizedPaymentMethod = String(order.payment?.method || "cash").toLowerCase();
   const prevPaymentStatus = String(order.payment?.status || "cod_pending").toLowerCase();
