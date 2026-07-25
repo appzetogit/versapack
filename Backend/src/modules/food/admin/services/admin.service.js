@@ -5596,50 +5596,10 @@ export async function approveDeliveryPartner(id) {
         console.error('Failed to send delivery partner approval notification:', e);
     }
 
-    // Referral crediting: on approval, credit the referrer partner's pocket balance via DeliveryBonusTransaction.
-    try {
-        const referrerId = partner.referredBy ? String(partner.referredBy) : '';
-        if (referrerId && mongoose.Types.ObjectId.isValid(referrerId)) {
-            const already = await FoodReferralLog.findOne({ refereeId: partner._id, role: 'DELIVERY_PARTNER' }).lean();
-            if (!already) {
-                const settingsDoc = await FoodReferralSettings.findOne({ isActive: true }).sort({ createdAt: -1 }).lean();
-                const reward = Math.max(0, Number(settingsDoc?.referralRewardDelivery) || 0);
-                const limit = Math.max(0, Number(settingsDoc?.referralLimitDelivery) || 0);
-                const referrer = await FoodDeliveryPartner.findById(referrerId).select('_id referralCount status').lean();
-
-                if (referrer && referrer.status === 'approved' && reward > 0 && limit > 0 && Number(referrer.referralCount || 0) < limit) {
-                    const log = await FoodReferralLog.create({
-                        referrerId: referrer._id,
-                        refereeId: partner._id,
-                        role: 'DELIVERY_PARTNER',
-                        rewardAmount: reward,
-                        status: 'credited'
-                    });
-
-                    await Promise.all([
-                        FoodDeliveryPartner.updateOne({ _id: referrer._id }, { $inc: { referralCount: 1 } }),
-                        addDeliveryPartnerBonus(
-                            { deliveryPartnerId: String(referrer._id), amount: reward, reference: 'Referral bonus' },
-                            null
-                        )
-                    ]);
-                } else {
-                    await FoodReferralLog.create({
-                        referrerId: new mongoose.Types.ObjectId(referrerId),
-                        refereeId: partner._id,
-                        role: 'DELIVERY_PARTNER',
-                        rewardAmount: reward,
-                        status: 'rejected',
-                        reason: !referrer ? 'referrer_not_found' : reward <= 0 ? 'reward_disabled' : limit <= 0 ? 'limit_disabled' : 'limit_reached'
-                    });
-                }
-            }
-        }
-    } catch (e) {
-        // Never fail approval due to referral errors.
-        // eslint-disable-next-line no-console
-        console.warn('Referral crediting failed (delivery approval):', e?.message || e);
-    }
+    // Referral crediting deliberately does NOT happen here. Approval alone is not enough
+    // to earn the bonus — the referred rider must also complete one delivery. The reward is
+    // credited by creditDeliveryReferralOnFirstDelivery(), invoked from completeDelivery in
+    // modules/food/orders/services/order-delivery.service.js.
     return partner.toObject();
 }
 

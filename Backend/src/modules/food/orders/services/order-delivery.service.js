@@ -1028,6 +1028,14 @@ export async function completeDelivery(orderId, deliveryPartnerId, body = {}) {
     { $inc: { totalDeliveries: 1 } }
   ).catch((e) => logger.warn(`totalDeliveries increment failed: ${e?.message || e}`));
 
+  // Referral reward: pays the rider who referred THIS rider, once they complete their
+  // first delivery. Idempotent (unique index on referral log), never throws.
+  import('../../delivery/services/deliveryReferral.service.js')
+    .then(({ creditDeliveryReferralOnFirstDelivery }) =>
+      creditDeliveryReferralOnFirstDelivery(String(deliveryPartnerId)),
+    )
+    .catch((e) => logger.warn(`referral credit hook failed: ${e?.message || e}`));
+
   const ledgerKind =
     payMethod === 'cash' && prevPayStatus === 'cod_pending'
       ? 'cod_marked_paid_on_delivery'
