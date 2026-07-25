@@ -192,10 +192,44 @@ export const initSocket = async (server) => {
         // ─── Live Tracking Events ───────────────────────────────────────
 
         // Users / restaurants subscribe to an order's real-time tracking room.
-        socket.on('join-tracking', (orderId) => {
+        socket.on('join-tracking', async (orderId) => {
             if (!orderId) return;
             const role = socket.user?.role;
             if (role !== 'USER' && role !== 'RESTAURANT' && role !== 'DELIVERY_PARTNER') return;
+
+            // Role alone is NOT authorization: this room carries the rider's live GPS, so
+            // only the customer, the restaurant, and the assigned rider for THIS order may
+            // subscribe. Without this any authenticated user could track any order.
+            try {
+                const [{ FoodOrder }, { buildOrderIdentityFilter }] = await Promise.all([
+                    import('../modules/food/orders/models/order.model.js'),
+                    import('../modules/food/orders/services/order.helpers.js'),
+                ]);
+                const identity = buildOrderIdentityFilter(orderId);
+                if (!identity) return;
+                const order = await FoodOrder.findOne(identity)
+                    .select('userId restaurantId dispatch.deliveryPartnerId')
+                    .lean();
+                if (!order) return;
+
+                const me = String(userId || '');
+                const isParticipant =
+                    (role === 'USER' && String(order.userId || '') === me) ||
+                    (role === 'RESTAURANT' && String(order.restaurantId || '') === me) ||
+                    (role === 'DELIVERY_PARTNER' &&
+                        String(order.dispatch?.deliveryPartnerId || '') === me);
+
+                if (!isParticipant) {
+                    logger.warn(
+                        `join-tracking denied: ${role}:${me} is not a participant of order ${orderId}`,
+                    );
+                    return;
+                }
+            } catch (err) {
+                logger.warn(`join-tracking authorization failed: ${err?.message || err}`);
+                return;
+            }
+
             const room = roomNames.tracking(orderId);
             socket.join(room);
             logger.info(`Socket ${socket.id} (${role}:${userId}) joined tracking room ${room}`);
