@@ -410,19 +410,24 @@ export const updateDeliveryAvailability = async (userId, payload) => {
     if (!partner) {
         throw new ValidationError('Delivery partner not found');
     }
-    const { status, latitude, longitude } = payload || {};
+    // Accept both field spellings clients send: status/availabilityStatus, lat/lng
+    // or latitude/longitude, and numeric strings. Coordinates are coordinates.
+    const rawStatus = payload?.status ?? payload?.availabilityStatus;
+    const lat = Number(payload?.latitude ?? payload?.lat);
+    const lng = Number(payload?.longitude ?? payload?.lng);
+
     let validStatus = 'offline';
-    if (status === 'online' || status === true) validStatus = 'online';
-    else if (status === 'offline' || status === false) validStatus = 'offline';
-    
+    if (rawStatus === 'online' || rawStatus === true || rawStatus === 'true') validStatus = 'online';
+    else if (rawStatus === 'offline' || rawStatus === false || rawStatus === 'false') validStatus = 'offline';
+
     partner.availabilityStatus = validStatus;
-    if (typeof latitude === 'number' && typeof longitude === 'number') {
+    if (Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180) {
         partner.lastLocation = {
             type: 'Point',
-            coordinates: [longitude, latitude]
+            coordinates: [lng, lat]
         };
-        partner.lastLat = latitude;
-        partner.lastLng = longitude;
+        partner.lastLat = lat;
+        partner.lastLng = lng;
         partner.lastLocationAt = new Date();
     }
     await partner.save();
