@@ -832,16 +832,20 @@ export async function confirmReachedDropDelivery(orderId, deliveryPartnerId) {
     order.orderStatus ||
     '';
 
+  // Never regenerate an OTP the customer may already be displaying. It is issued at
+  // pickup (getDropOtpUser exposes it from 'picked_up' onwards), so re-rolling it here
+  // invalidated the code the customer reads out — the rider then got "Invalid OTP".
   const existingOtp = String(order.deliveryOtp || '').trim();
-  if (!alreadyAtDrop || !existingOtp) {
+  if (!existingOtp) {
     order.deliveryOtp = generateFourDigitDeliveryOtp();
-    order.deliveryVerification = {
-      ...(order.deliveryVerification?.toObject?.() ||
-        order.deliveryVerification ||
-        {}),
-      dropOtp: { required: true, verified: false },
-    };
   }
+  // Arm the OTP gate at drop regardless (early-return above covers already-verified).
+  order.deliveryVerification = {
+    ...(order.deliveryVerification?.toObject?.() ||
+      order.deliveryVerification ||
+      {}),
+    dropOtp: { required: true, verified: false },
+  };
 
   order.deliveryState = {
     ...(order.deliveryState?.toObject?.() || order.deliveryState || {}),
