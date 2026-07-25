@@ -206,16 +206,30 @@ export function calculateRiderEarning(feeSettings = {}, distanceKm) {
     : [];
   if (ranges.length === 0) return 0;
 
-  const earning = matchFeeRange(ranges, distance, (range) => {
-    const basePay = Number(range.deliveryBoyBasePay || 0);
-    const perKm = Number(range.deliveryBoyPerKm || 0);
+  // basePay and perKm are mutually exclusive (the admin UI enforces this too):
+  // a flat basePay wins, otherwise pay per km of the actual trip.
+  const payFor = (range) => {
+    const basePay = Number(range?.deliveryBoyBasePay || 0);
+    const perKm = Number(range?.deliveryBoyPerKm || 0);
 
     if (basePay > 0) return basePay;
     if (perKm > 0) return distance * perKm;
     return 0;
-  });
+  };
 
-  return Number.isFinite(earning) ? Math.round(earning) : 0;
+  const matched = matchFeeRange(ranges, distance, payFor);
+  // A matched band is authoritative — including an explicit 0.
+  if (matched != null && Number.isFinite(matched)) return Math.round(matched);
+
+  // No band covers this distance. The customer is still charged (resolveUserDeliveryFee
+  // falls back to the base fee), so paying the rider 0 here would mean unpaid work on a
+  // real delivery whenever the bands don't span the dispatch radius. Fall back to the
+  // widest configured band instead of silently zeroing the payout.
+  const widest = [...ranges].sort(
+    (a, b) => Number(a?.max ?? 0) - Number(b?.max ?? 0),
+  )[ranges.length - 1];
+  const fallback = payFor(widest);
+  return Number.isFinite(fallback) ? Math.round(fallback) : 0;
 }
 
 export async function calculateOrderPricing(userId, dto, options = {}) {
