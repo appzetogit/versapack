@@ -5,6 +5,22 @@ import { FoodReferralSettings } from '../../admin/models/referralSettings.model.
 import { DeliveryBonusTransaction } from '../../admin/models/deliveryBonusTransaction.model.js';
 import { FoodReferralLog } from '../../admin/models/referralLog.model.js';
 import { logger } from '../../../../utils/logger.js';
+import { config } from '../../../../config/env.js';
+
+/** Path on the web app that reads ?ref= and pre-fills the rider signup. */
+const REFERRAL_SIGNUP_PATH = '/food/delivery/signup';
+
+/**
+ * Build the shareable invite link. Returns '' when no usable public origin is configured
+ * (or it still points at localhost) so the app shares the bare code rather than a dead URL.
+ */
+const buildReferralLink = (referralCode) => {
+    const base = String(config.publicWebUrl || '').trim();
+    if (!base || !referralCode) return '';
+    if (!/^https?:\/\//i.test(base)) return '';
+    if (/localhost|127\.0\.0\.1/i.test(base)) return '';
+    return `${base}${REFERRAL_SIGNUP_PATH}?ref=${encodeURIComponent(String(referralCode))}`;
+};
 
 const maskPhone = (phone) => {
     const p = String(phone || '').trim();
@@ -69,6 +85,9 @@ export const getDeliveryReferralStats = async (deliveryPartnerId) => {
         // referralCode is what the rider shares — it is the value another rider passes
         // as `ref` when registering.
         referralCode: String(partner?.referralCode || partner?._id || ''),
+        // Ready-to-share URL. Empty string when no public origin is configured — the app
+        // should then fall back to sharing referralCode alone.
+        referralLink: buildReferralLink(partner?.referralCode || partner?._id),
         referralCount: Number(partner?.referralCount) || 0,
         totalReferralEarnings,
         rewardAmount: reward,

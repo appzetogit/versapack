@@ -16,6 +16,15 @@ export const config = {
     socketHost: process.env.SOCKET_HOST || process.env.HOST || '0.0.0.0',
     nodeEnv: process.env.NODE_ENV || 'development',
 
+    /**
+     * Public web app origin, used to build shareable links (e.g. rider referral invites).
+     * REFERRAL_LINK_BASE_URL wins so links can point at a marketing/deep-link host that
+     * differs from the app origin. Trailing slashes are stripped.
+     */
+    publicWebUrl: String(
+        process.env.REFERRAL_LINK_BASE_URL || process.env.FRONTEND_URL || ''
+    ).trim().replace(/\/+$/, ''),
+
     // Database
     mongodbUri: process.env.MONGO_URI || process.env.MONGODB_URI,
 
