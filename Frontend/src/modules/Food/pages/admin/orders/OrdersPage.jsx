@@ -488,8 +488,21 @@ export default function OrdersPage({ statusKey = "all" }) {
             .filter(Boolean),
         )
 
+        // Only orders still awaiting restaurant acceptance should ring. Once the
+        // restaurant accepts, the order moves to 'confirmed' (or beyond) and drops
+        // out of this set, so the alarm stops instead of ringing forever.
+        const actionableOrderIds = new Set(
+          nextOrders
+            .filter(
+              (order) =>
+                String(order.orderStatus || order.status || "").toLowerCase() === "created",
+            )
+            .map((order) => order.id || order._id || order.orderId)
+            .filter(Boolean),
+        )
+
         if (!isFirstLoadRef.current) {
-          const hasNewOrder = [...latestOrderIds].some(
+          const hasNewOrder = [...actionableOrderIds].some(
             (id) => !seenOrderIdsRef.current.has(id),
           )
           if (hasNewOrder) {
@@ -511,6 +524,10 @@ export default function OrdersPage({ statusKey = "all" }) {
             } else {
               setTotalOrdersCount((prev) => prev + 1)
             }
+          } else if (actionableOrderIds.size === 0) {
+            // Nothing left awaiting acceptance — silence the alarm.
+            activeOrderAlertRef.current = null
+            stopAlertLoop()
           }
         }
 
@@ -567,6 +584,7 @@ export default function OrdersPage({ statusKey = "all" }) {
     playDefaultRing,
     showBrowserNotification,
     startAlertLoop,
+    stopAlertLoop,
   ])
 
   const fetchOrdersRef = useRef(fetchOrders)
@@ -903,18 +921,30 @@ export default function OrdersPage({ statusKey = "all" }) {
     socket.on("disconnect", () => {
       socketConnectedRef.current = false
     })
+    // An order moving past 'created' (restaurant accepted / cancelled) means it no longer
+    // needs admin action — stop the alarm and refresh so the popup clears.
+    const handleRealtimeStatusChange = (payload = {}) => {
+      const status = String(payload?.orderStatus || payload?.status || "").toLowerCase()
+      if (!status || status === "created") return
+      activeOrderAlertRef.current = null
+      stopAlertLoop()
+      fetchOrdersRef.current({ silent: true, withRingCheck: false, force: true })
+    }
+
     socket.on("admin_new_order", handleIncomingRealtimeOrder)
     socket.on("play_notification_sound", handleIncomingRealtimeOrder)
+    socket.on("order_status_update", handleRealtimeStatusChange)
 
     return () => {
       socketConnectedRef.current = false
       socket.off("admin_new_order", handleIncomingRealtimeOrder)
       socket.off("play_notification_sound", handleIncomingRealtimeOrder)
+      socket.off("order_status_update", handleRealtimeStatusChange)
       socket.disconnect()
       socketRef.current = null
       fetchAbortRef.current?.abort()
     }
-  }, [statusKey, playDefaultRing, showBrowserNotification, startAlertLoop])
+  }, [statusKey, playDefaultRing, showBrowserNotification, startAlertLoop, stopAlertLoop])
 
   useEffect(() => {
     const onVisibilityChange = () => {
