@@ -349,7 +349,14 @@ export async function listOrdersAvailableDelivery(deliveryPartnerId, query) {
       return da - db;
     });
 
-    enriched = kept.map(({ order }) => order);
+    // Surface the rider → restaurant distance already computed for filtering. The socket
+    // offer (new_order_available) carries pickupDistanceKm, so REST must too — otherwise a
+    // rider polling (or opening the app fresh) sees the earning without the travel distance.
+    enriched = kept.map(({ order, distanceKm }) => ({
+      ...order,
+      pickupDistanceKm:
+        distanceKm == null ? null : Number(Number(distanceKm).toFixed(2)),
+    }));
   }
 
   const total = enriched.length;
