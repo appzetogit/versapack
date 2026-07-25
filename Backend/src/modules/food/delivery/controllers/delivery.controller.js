@@ -15,7 +15,14 @@ import {
 export const registerDeliveryPartnerController = async (req, res, next) => {
     try {
         const validated = validateDeliveryRegisterDto(req.body);
-        const partner = await registerDeliveryPartner(validated, req.files);
+        // upload.any() gives req.files as an array — reshape to { fieldname: [file] }
+        // so the existing named lookups (files.profilePhoto[0]) keep working, and
+        // admin-defined document fields are picked up by their own key.
+        const filesByField = {};
+        for (const f of Array.isArray(req.files) ? req.files : []) {
+            (filesByField[f.fieldname] ||= []).push(f);
+        }
+        const partner = await registerDeliveryPartner(validated, filesByField, req.body);
         return sendResponse(res, 201, 'Delivery partner registered successfully', partner);
     } catch (error) {
         next(error);

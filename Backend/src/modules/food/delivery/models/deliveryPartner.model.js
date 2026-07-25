@@ -110,6 +110,10 @@ const deliveryPartnerSchema = new mongoose.Schema(
             index: true
         },
         referralCount: { type: Number, default: 0, min: 0 },
+        // Admin-defined dynamic registration answers, keyed by field.key.
+        customFields: { type: mongoose.Schema.Types.Mixed, default: {} },
+        // Admin-defined document uploads, keyed by field.key → stored URL.
+        customDocuments: { type: mongoose.Schema.Types.Mixed, default: {} },
         rating: {
             type: Number,
             default: 0,

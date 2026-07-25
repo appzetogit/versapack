@@ -32,7 +32,8 @@ const roomNames = {
     restaurant: (id) => `restaurant:${String(id)}`,
     user: (id) => `user:${String(id)}`,
     delivery: (id) => `delivery:${String(id)}`,
-    tracking: (orderId) => `tracking:${String(orderId)}`
+    tracking: (orderId) => `tracking:${String(orderId)}`,
+    admin: () => 'admin:all'
 };
 
 /**
@@ -127,7 +128,26 @@ export const initSocket = async (server) => {
                     room: roomNames.delivery(userId),
                 });
             }
+            if (role === 'ADMIN') socket.join(roomNames.admin());
         }
+
+        // ─── Chat: typing indicator relay (messages themselves go over REST) ───
+        socket.on('chat:typing', (data) => {
+            const toRole = String(data?.toRole || '').toUpperCase();
+            const toId = data?.toId;
+            let room = null;
+            if (toRole === 'ADMIN') room = roomNames.admin();
+            else if (toRole === 'USER') room = roomNames.user(toId);
+            else if (toRole === 'RESTAURANT') room = roomNames.restaurant(toId);
+            else if (toRole === 'DELIVERY_PARTNER') room = roomNames.delivery(toId);
+            if (!room) return;
+            socket.to(room).emit('chat:typing', {
+                conversationId: data?.conversationId || null,
+                fromRole: role,
+                fromId: String(userId),
+                typing: Boolean(data?.typing)
+            });
+        });
 
         // Explicit join (used by existing restaurant client hook).
         socket.on('join-restaurant', (restaurantId) => {

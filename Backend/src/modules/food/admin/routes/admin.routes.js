@@ -18,6 +18,7 @@ import {
 } from '../../restaurant/controllers/bulkUpload.controller.js';
 import { FoodAdmin } from '../../../../core/admin/admin.model.js';
 import { requireAdminPermission, requireAnyAdminPermission } from '../../../../core/roles/adminPermission.middleware.js';
+import * as driverRegField from '../../delivery/controllers/driverRegistrationField.controller.js';
 
 const router = express.Router();
 
@@ -284,6 +285,12 @@ router.delete('/feedback-experiences/:id', feedbackExperienceController.deleteFe
 // ----- Fee Settings -----
 router.get('/fee-settings', adminController.getFeeSettings);
 router.put('/fee-settings', adminController.createOrUpdateFeeSettings);
+
+// ----- Driver Registration Fields (dynamic form builder) -----
+router.get('/driver-registration-fields', driverRegField.listFieldsController);
+router.post('/driver-registration-fields', driverRegField.createFieldController);
+router.patch('/driver-registration-fields/:id', driverRegField.updateFieldController);
+router.delete('/driver-registration-fields/:id', driverRegField.deleteFieldController);
 
 // ----- Referral Settings -----
 router.get('/referral-settings', adminController.getReferralSettings);

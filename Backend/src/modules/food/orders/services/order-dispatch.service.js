@@ -133,7 +133,7 @@ async function listNearbyOnlineDeliveryPartners(
     return { partners: [] };
   }
 
-  const final = (config.env === 'production')
+  const final = (config.nodeEnv === 'production')
     ? picked.filter(p => p.status === 'approved')
     : picked;
 

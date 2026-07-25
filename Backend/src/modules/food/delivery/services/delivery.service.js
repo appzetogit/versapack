@@ -9,6 +9,7 @@ import { ValidationError } from '../../../../core/auth/errors.js';
 import { getDeliveryCashLimitSettings } from '../../admin/services/admin.service.js';
 import { upsertFirebaseDeviceToken } from '../../../../core/notifications/firebase.service.js';
 import { logger } from '../../../../utils/logger.js';
+import { collectDynamicRegistration } from './driverRegistrationField.service.js';
 
 const savePartnerFcmToken = async (partnerId, fcmToken, platform) => {
     if (!fcmToken || !partnerId) return;
@@ -24,7 +25,7 @@ const savePartnerFcmToken = async (partnerId, fcmToken, platform) => {
     }
 };
 
-export const registerDeliveryPartner = async (payload, files) => {
+export const registerDeliveryPartner = async (payload, files, rawBody = {}) => {
     const { 
         name, phone, email, countryCode, address, city, state, 
         vehicleType, vehicleName, vehicleNumber, drivingLicenseNumber, panNumber, aadharNumber,
@@ -97,6 +98,24 @@ export const registerDeliveryPartner = async (payload, files) => {
 
     const images = Object.fromEntries(await Promise.all(uploadTasks));
 
+    // ── Admin-defined dynamic fields + documents ──
+    const fileKeys = new Set(Object.keys(files || {}));
+    const { customFields, documentKeys } = await collectDynamicRegistration(rawBody || {}, fileKeys);
+
+    // Upload any admin-defined document files (skip keys already handled as known photos).
+    const KNOWN_DOC_FIELDS = new Set(['profilePhoto', 'aadharPhoto', 'panPhoto', 'drivingLicensePhoto', 'upiQrCode']);
+    const customDocuments = {};
+    const dynamicDocTasks = [];
+    for (const key of documentKeys) {
+        if (KNOWN_DOC_FIELDS.has(key)) continue;
+        const file = files?.[key]?.[0];
+        if (!file) continue;
+        dynamicDocTasks.push(
+            uploadImageBuffer(file.buffer, `food/delivery/${key}`).then((url) => [key, url])
+        );
+    }
+    for (const [k, v] of await Promise.all(dynamicDocTasks)) customDocuments[k] = v;
+
     let normalizedEmail = undefined;
     if (email && String(email).trim()) {
         normalizedEmail = String(email).trim().toLowerCase();
@@ -126,7 +145,9 @@ export const registerDeliveryPartner = async (payload, files) => {
         panNumber,
         aadharNumber,
         status: 'pending',
-        ...images
+        ...images,
+        ...(Object.keys(customFields).length ? { customFields } : {}),
+        ...(Object.keys(customDocuments).length ? { customDocuments } : {})
     });
 
     // Ensure referralCode exists for sharing.
