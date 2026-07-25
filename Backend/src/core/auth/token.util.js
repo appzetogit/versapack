@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { config } from '../../config/env.js';
 
 export const signAccessToken = (payload) => {
@@ -8,8 +9,12 @@ export const signAccessToken = (payload) => {
 };
 
 export const signRefreshToken = (payload) => {
+    // jwtid makes two tokens minted in the same second differ. Without it the payload +
+    // iat are identical and the unique index on food_refresh_tokens.token throws E11000
+    // when a user double-taps "Verify".
     return jwt.sign(payload, config.jwtRefreshSecret, {
-        expiresIn: config.jwtRefreshExpiresIn
+        expiresIn: config.jwtRefreshExpiresIn,
+        jwtid: crypto.randomUUID()
     });
 };
 

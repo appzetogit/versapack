@@ -1001,6 +1001,12 @@ export async function completeDelivery(orderId, deliveryPartnerId, body = {}) {
 
   await order.save();
 
+  // Increment the rider's lifetime completed-delivery counter (best-effort).
+  FoodDeliveryPartner.updateOne(
+    { _id: deliveryPartnerId },
+    { $inc: { totalDeliveries: 1 } }
+  ).catch((e) => logger.warn(`totalDeliveries increment failed: ${e?.message || e}`));
+
   const ledgerKind =
     payMethod === 'cash' && prevPayStatus === 'cod_pending'
       ? 'cod_marked_paid_on_delivery'
