@@ -150,7 +150,8 @@ function emitOrderUpdate(order, deliveryPartnerId) {
         {
           title: userTitle,
           body: userBody,
-          dataOnly: true,
+          // Visible banner (notification block) + data for deep-linking. Without the
+          // notification block these key milestones stay silent when the app is backgrounded.
           data: {
             type: 'order_status_update',
             orderId,
@@ -167,7 +168,6 @@ function emitOrderUpdate(order, deliveryPartnerId) {
         {
           title: riderTitle,
           body: riderBody,
-          dataOnly: true,
           data: {
             type: status === 'delivered' ? 'order_completed' : 'order_status_update',
             orderId,
