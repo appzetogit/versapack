@@ -935,6 +935,16 @@ export async function completeDelivery(orderId, deliveryPartnerId, body = {}) {
   const { otp, ratings } = body;
   logger.info(`[DeliveryComplete] Attempting to complete order ${order._id} for partner ${deliveryPartnerId}. Status: ${order.orderStatus}`);
 
+  // Pickup must have happened. dropOtp.required is only set at pickup/reached-drop, so
+  // completing straight after accept skipped BOTH OTP guards below and still paid the
+  // rider, credited totalDeliveries and marked COD collected — for food never collected.
+  const hasPickedUp =
+    Boolean(order.deliveryState?.pickedUpAt) ||
+    ['picked_up', 'reached_drop'].includes(String(order.orderStatus || ''));
+  if (!hasPickedUp) {
+    throw new ValidationError('Confirm pickup before completing this delivery.');
+  }
+
   if (
     otp &&
     order.deliveryVerification?.dropOtp?.required &&

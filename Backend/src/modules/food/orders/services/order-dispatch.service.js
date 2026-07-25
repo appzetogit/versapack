@@ -312,10 +312,28 @@ export async function tryAutoAssign(orderId, options = {}) {
       action: 'offered'
     }));
 
-    order.dispatch.status = 'unassigned';
-    order.dispatch.deliveryPartnerId = null;
-    order.dispatch.offeredTo.push(...offeredToEntries);
-    await order.save();
+    // Conditional update, NOT order.save(). This doc was loaded before several awaits
+    // (rider lookup, Directions fetch, FCM batch) — seconds of wall time during which a
+    // rider may have accepted. A blind save reverted that accept to unassigned/null, so
+    // the order was re-broadcast and a second rider could claim the same trip.
+    const reoffer = await FoodOrder.updateOne(
+      {
+        _id: order._id,
+        'dispatch.status': { $ne: 'accepted' },
+        'dispatch.acceptedAt': { $exists: false },
+      },
+      {
+        $set: { 'dispatch.status': 'unassigned', 'dispatch.deliveryPartnerId': null },
+        $push: { 'dispatch.offeredTo': { $each: offeredToEntries } },
+      },
+    );
+
+    if (reoffer.modifiedCount === 0) {
+      logger.info(
+        `tryAutoAssign: order ${order._id} was accepted during broadcast — leaving assignment intact.`,
+      );
+      return order;
+    }
 
     // Re-check in 60s
     await addOrderJob({
