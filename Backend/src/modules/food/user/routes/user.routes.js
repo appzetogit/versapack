@@ -31,6 +31,10 @@ import {
     listMySupportTicketsController
 } from '../controllers/supportTicket.controller.js';
 import { syncUserCartController } from '../controllers/userCart.controller.js';
+import {
+    getCashbackHistoryController,
+    getRefundHistoryController
+} from '../controllers/cashback.controller.js';
 
 const router = express.Router();
 
@@ -43,6 +47,10 @@ router.delete('/profile', deleteCurrentUserAccountController);
 router.get('/wallet', getUserWalletController);
 router.post('/wallet/topup/order', createWalletTopupOrderController);
 router.post('/wallet/topup/verify', verifyWalletTopupPaymentController);
+
+// Wallet sub-ledgers (both derived from the wallet/order records, no separate store)
+router.get('/cashback', getCashbackHistoryController);
+router.get('/refunds', getRefundHistoryController);
 
 // Referral stats (Bearer USER)
 router.get('/referrals/stats', getUserReferralStatsController);

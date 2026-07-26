@@ -204,8 +204,59 @@ export function normalizeOrderForClient(orderDoc) {
         lat: order.lastRiderLocation.coordinates[1],
         lng: order.lastRiderLocation.coordinates[0]
       } : (order?.deliveryState?.currentLocation || null)
-    }
+    },
+    eta: buildLiveEta(order)
   };
+}
+
+/** Straight-line km inflated to approximate road distance for city driving. */
+const ROAD_FACTOR = 1.3;
+/** Average city delivery speed (km/h) — bikes in traffic. */
+const AVG_SPEED_KMPH = 22;
+
+/**
+ * Live ETA derived from the rider's last known position, recomputed on every read.
+ *
+ * Deliberately NOT a Directions API call: this is read on every order fetch and poll, so a
+ * paid call here would be billed per refresh. Accuracy is "good enough for a countdown";
+ * `source` tells the client what it is looking at.
+ */
+export function buildLiveEta(order) {
+  const status = String(order?.orderStatus || '');
+  if (['delivered', 'cancelled_by_user', 'cancelled_by_restaurant', 'cancelled_by_admin'].includes(status)) {
+    return { minutes: null, distanceKm: null, source: 'completed', target: null };
+  }
+
+  const rider = order?.lastRiderLocation?.coordinates?.length >= 2
+    ? { lat: order.lastRiderLocation.coordinates[1], lng: order.lastRiderLocation.coordinates[0] }
+    : null;
+
+  const pickedUp = Boolean(order?.deliveryState?.pickedUpAt) || ['picked_up', 'reached_drop'].includes(status);
+  // Before pickup the rider is heading to the restaurant; after, to the customer.
+  const dest = pickedUp ? parseGeoPoint(order?.deliveryAddress) : parseGeoPoint(order?.restaurantId);
+  const target = pickedUp ? 'customer' : 'restaurant';
+
+  if (rider && dest) {
+    const straight = geoHaversineKm(rider.lat, rider.lng, dest.lat, dest.lng);
+    if (Number.isFinite(straight)) {
+      const km = Number((straight * ROAD_FACTOR).toFixed(2));
+      const minutes = Math.max(1, Math.ceil((km / AVG_SPEED_KMPH) * 60));
+      return { minutes, distanceKm: km, source: 'live', target };
+    }
+  }
+
+  // No rider fix yet — fall back to the trip estimate captured at order time.
+  const fallback = Number(order?.tripDurationMins ?? order?.pricing?.roadDurationMins);
+  if (Number.isFinite(fallback) && fallback > 0) {
+    return {
+      minutes: Math.ceil(fallback),
+      distanceKm: Number(order?.tripDistanceKm ?? order?.pricing?.roadDistanceKm) || null,
+      source: 'estimate',
+      target
+    };
+  }
+
+  return { minutes: null, distanceKm: null, source: 'unavailable', target };
 }
 
 export async function applyAggregateRating(model, entityId, newRating) {

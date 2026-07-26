@@ -1036,6 +1036,11 @@ export async function completeDelivery(orderId, deliveryPartnerId, body = {}) {
     )
     .catch((e) => logger.warn(`referral credit hook failed: ${e?.message || e}`));
 
+  // Customer cashback on the delivered order. Idempotent per order, never throws.
+  import('../../user/services/cashback.service.js')
+    .then(({ awardOrderCashback }) => awardOrderCashback(String(order._id)))
+    .catch((e) => logger.warn(`cashback award hook failed: ${e?.message || e}`));
+
   const ledgerKind =
     payMethod === 'cash' && prevPayStatus === 'cod_pending'
       ? 'cod_marked_paid_on_delivery'

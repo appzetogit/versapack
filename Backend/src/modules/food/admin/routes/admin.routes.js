@@ -19,6 +19,7 @@ import {
 import { FoodAdmin } from '../../../../core/admin/admin.model.js';
 import { requireAdminPermission, requireAnyAdminPermission } from '../../../../core/roles/adminPermission.middleware.js';
 import * as driverRegField from '../../delivery/controllers/driverRegistrationField.controller.js';
+import * as cashbackSettings from '../controllers/cashbackSettings.controller.js';
 
 const router = express.Router();
 
@@ -291,6 +292,10 @@ router.get('/driver-registration-fields', driverRegField.listFieldsController);
 router.post('/driver-registration-fields', driverRegField.createFieldController);
 router.patch('/driver-registration-fields/:id', driverRegField.updateFieldController);
 router.delete('/driver-registration-fields/:id', driverRegField.deleteFieldController);
+
+// ----- Cashback Settings -----
+router.get('/cashback-settings', cashbackSettings.getCashbackSettingsController);
+router.put('/cashback-settings', cashbackSettings.upsertCashbackSettingsController);
 
 // ----- Referral Settings -----
 router.get('/referral-settings', adminController.getReferralSettings);
