@@ -447,6 +447,16 @@ export async function notifyRestaurantNewOrder(orderDoc) {
       io.to(rooms.restaurant(orderDoc.restaurantId)).emit("new_order", payload);
     }
 
+    // Atomic claim: only the caller that flips restaurantNotifiedAt from null actually
+    // sends the push. Mongo guarantees a single winner even under a concurrent race, so a
+    // retried webhook or duplicate code path can never ring the restaurant twice. The
+    // socket emit above stays unguarded — it is just a UI refresh and is idempotent.
+    const claimed = await FoodOrder.findOneAndUpdate(
+      { _id: orderDoc._id, restaurantNotifiedAt: null },
+      { $set: { restaurantNotifiedAt: new Date() } },
+    );
+    if (!claimed) return;
+
     await notifyOwnersSafely(
       [{ ownerType: "RESTAURANT", ownerId: orderDoc.restaurantId }],
       {

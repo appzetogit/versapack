@@ -191,13 +191,40 @@ const buildMessagePayload = (payload = {}, token) => {
         message.data = data;
     }
 
+    // 'new_order' rings through the dedicated high-priority channel (custom sound, max
+    // importance) created client-side in LocalNotificationService. The channel id and the
+    // Android sound resource name must match the app EXACTLY, otherwise Android 8+
+    // silently falls back to the default channel and the alert is inaudible.
+    const isNewOrderAlert = data.type === 'new_order';
+    const isDataOnlyPush = Boolean(payload.dataOnly);
+
     message.android = {
         priority: 'high',
         notification: {
-            channel_id: 'default',
-            // sound: 'default',
+            channel_id: isNewOrderAlert ? 'new_order_channel' : 'default',
             default_vibrate_timings: true,
-            default_light_settings: true
+            default_light_settings: true,
+            ...(isNewOrderAlert ? { sound: 'tujh_bin' } : {})
+        }
+    };
+
+    // Background/terminated delivery on iOS: silent (content-available) pushes must use
+    // priority 5 + push-type background or Apple throttles/drops them. Alert pushes get
+    // priority 10, and new-order alerts add a custom sound plus time-sensitive so they
+    // cut through Focus and the lock screen the way Android does.
+    message.apns = {
+        headers: {
+            'apns-priority': isDataOnlyPush ? '5' : '10',
+            'apns-push-type': isDataOnlyPush ? 'background' : 'alert'
+        },
+        payload: {
+            aps: isDataOnlyPush
+                ? { 'content-available': 1 }
+                : {
+                      sound: isNewOrderAlert ? 'tujh_bin.caf' : 'default',
+                      'content-available': 1,
+                      ...(isNewOrderAlert ? { 'interruption-level': 'time-sensitive' } : {})
+                  }
         }
     };
 
@@ -233,6 +260,11 @@ const shouldRemoveTokenFromError = (errorJson, response) => {
     const message = String(errorJson?.error?.message || '').toUpperCase();
     return status === 404 || message.includes('UNREGISTERED') || message.includes('INVALID_ARGUMENT');
 };
+
+/** Transient FCM failures worth a retry. Anything else is permanent. */
+const RETRYABLE_HTTP_STATUSES = new Set([429, 500, 502, 503, 504]);
+const MAX_SEND_ATTEMPTS = 3;
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const getOwnerModel = (ownerType) => OWNER_MODELS[String(ownerType || '').toUpperCase()] || null;
 
@@ -336,6 +368,52 @@ export const removeFirebaseDeviceToken = async ({ ownerType, ownerId, token }) =
     return { success: true };
 };
 
+/**
+ * Send one FCM message, retrying transient failures (network throw, 429/5xx) with
+ * exponential backoff: immediate, +300ms, +600ms. Permanent failures (unregistered token,
+ * invalid argument) return straight away with remove:true so the caller prunes the token —
+ * retrying those only delays cleanup.
+ */
+const sendMessageWithRetry = async (message, { projectId, accessToken }) => {
+    let lastError;
+    for (let attempt = 1; attempt <= MAX_SEND_ATTEMPTS; attempt += 1) {
+        try {
+            const response = await fetch(FCM_SEND_URL(projectId), {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ message })
+            });
+
+            if (response.ok) {
+                return { ok: true, response: await response.json() };
+            }
+
+            const errorJson = await parseFirebaseError(response);
+            const remove = shouldRemoveTokenFromError(errorJson, response);
+            const retryable = !remove && RETRYABLE_HTTP_STATUSES.has(response.status);
+            if (retryable && attempt < MAX_SEND_ATTEMPTS) {
+                await sleep(300 * 2 ** (attempt - 1));
+                continue;
+            }
+            return {
+                ok: false,
+                remove,
+                error: errorJson?.error?.message || `FCM send failed (${response.status})`
+            };
+        } catch (error) {
+            lastError = error;
+            if (attempt < MAX_SEND_ATTEMPTS) {
+                await sleep(300 * 2 ** (attempt - 1));
+                continue;
+            }
+        }
+    }
+    return { ok: false, remove: false, error: lastError?.message || String(lastError) };
+};
+
 export const sendPushNotification = async (tokens, payload = {}) => {
     const projectId = getFirebaseProjectId();
     const accessToken = await getFirebaseAccessToken();
@@ -348,39 +426,8 @@ export const sendPushNotification = async (tokens, payload = {}) => {
     const results = await Promise.all(
         uniqueTokens.map(async (token) => {
             const message = buildMessagePayload(payload, token);
-            try {
-                const response = await fetch(FCM_SEND_URL(projectId), {
-                    method: 'POST',
-                    headers: {
-                        Authorization: `Bearer ${accessToken}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ message })
-                });
-
-                if (!response.ok) {
-                    const errorJson = await parseFirebaseError(response);
-                    return {
-                        token,
-                        ok: false,
-                        remove: shouldRemoveTokenFromError(errorJson, response),
-                        error: errorJson?.error?.message || `FCM send failed (${response.status})`
-                    };
-                }
-
-                return {
-                    token,
-                    ok: true,
-                    response: await response.json()
-                };
-            } catch (error) {
-                return {
-                    token,
-                    ok: false,
-                    remove: false,
-                    error: error?.message || String(error)
-                };
-            }
+            const result = await sendMessageWithRetry(message, { projectId, accessToken });
+            return { token, ...result };
         })
     );
 
