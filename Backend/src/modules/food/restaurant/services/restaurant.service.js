@@ -780,6 +780,35 @@ export const registerRestaurant = async (payload, files) => {
         ).then(urls => { menuImages = [...menuImages, ...urls]; }));
     }
 
+    // Main cover image (single hero shot of the restaurant).
+    let coverImage = String(payload.coverImage || '').trim();
+    if (files?.coverImage?.[0]) {
+        uploadTasks.push(
+            uploadImageBuffer(files.coverImage[0].buffer, 'food/restaurants/cover')
+                .then((url) => { if (url) coverImage = url; })
+        );
+    }
+
+    // Premises gallery — the rider uses these to identify the shop at pickup.
+    let galleryImages = [];
+    if (payload.galleryImages) {
+        try {
+            const pre = typeof payload.galleryImages === 'string'
+                ? JSON.parse(payload.galleryImages)
+                : payload.galleryImages;
+            if (Array.isArray(pre)) galleryImages = pre.map((u) => String(u || '').trim()).filter(Boolean);
+        } catch {
+            // A single pre-uploaded URL rather than a JSON array is fine too.
+            const single = String(payload.galleryImages).trim();
+            if (single.startsWith('http') || single.startsWith('/')) galleryImages = [single];
+        }
+    }
+    if (files?.galleryImages?.length) {
+        uploadTasks.push(Promise.all(
+            files.galleryImages.map((file) => uploadImageBuffer(file.buffer, 'food/restaurants/gallery'))
+        ).then((urls) => { galleryImages = [...galleryImages, ...urls.filter(Boolean)]; }));
+    }
+
     // Wait for all uploads to complete in parallel
     if (uploadTasks.length > 0) {
         console.log(`[ONBOARDING] Starting upload of ${uploadTasks.length} image tasks...`);
@@ -894,6 +923,11 @@ export const registerRestaurant = async (payload, files) => {
             accountHolderName,
             accountType,
             menuImages,
+            coverImage,
+            galleryImages,
+            // Keep coverImages (the public page banner array) seeded from onboarding so the
+            // restaurant page isn't blank before they manage banners themselves.
+            coverImages: coverImage ? [coverImage, ...galleryImages] : galleryImages,
             // Postpaid subscription model: monthly invoices from GMV at month end.
             ...onboardingFeeFields,
             ...images

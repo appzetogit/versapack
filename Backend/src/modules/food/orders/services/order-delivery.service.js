@@ -66,7 +66,10 @@ const DELIVERY_USER_POPULATE = {
 
 const DELIVERY_RESTAURANT_POPULATE = {
   path: 'restaurantId',
-  select: 'restaurantName name phone ownerPhone location addressLine1 area city state profileImage',
+  // coverImage + galleryImages let the rider visually identify the premises at pickup;
+  // phone/ownerPhone back the tap-to-call button; location gives the exact pin.
+  select:
+    'restaurantName name phone ownerPhone location addressLine1 area city state pincode landmark profileImage coverImage galleryImages',
 };
 
 const DELIVERY_TRANSACTION_SELECT = 'orderId payment paymentMethod pricing amounts status';

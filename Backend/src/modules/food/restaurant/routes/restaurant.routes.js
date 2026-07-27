@@ -77,7 +77,11 @@ import {
     listBannersController,
     uploadBannersController,
     deleteBannerController,
-    reorderBannersController
+    reorderBannersController,
+    getMediaController,
+    uploadCoverImageController,
+    uploadGalleryImagesController,
+    deleteGalleryImageController
 } from '../controllers/restaurantBanner.controller.js';
 import { listBannersForRestaurantAppController } from '../../admin/controllers/restaurantAppBanner.controller.js';
 
@@ -97,7 +101,10 @@ const uploadFields = upload.fields([
     { name: 'panImage', maxCount: 1 },
     { name: 'gstImage', maxCount: 1 },
     { name: 'fssaiImage', maxCount: 1 },
-    { name: 'menuImages', maxCount: 10 }
+    { name: 'menuImages', maxCount: 10 },
+    // Onboarding: main cover + premises gallery (gallery is shown to the rider at pickup).
+    { name: 'coverImage', maxCount: 1 },
+    { name: 'galleryImages', maxCount: 10 }
 ]);
 
 router.post('/register', uploadFields, registerRestaurantController);
@@ -192,6 +199,13 @@ router.post(
 
 // Admin-managed promo banners shown INSIDE the restaurant partner app.
 router.get('/app-banners', authMiddleware, requireRestaurant, listBannersForRestaurantAppController);
+
+// Main cover image + premises gallery. The gallery is surfaced to the delivery partner
+// at pickup so they can visually identify the shop.
+router.get('/media', authMiddleware, requireRestaurant, getMediaController);
+router.post('/media/cover-image', authMiddleware, requireRestaurant, upload.single('file'), uploadCoverImageController);
+router.post('/media/gallery', authMiddleware, requireRestaurant, upload.array('files', 10), uploadGalleryImagesController);
+router.delete('/media/gallery', authMiddleware, requireRestaurant, deleteGalleryImageController);
 
 // Banners shown on the public restaurant page (/restaurants/:id -> coverImages).
 // Separate from /profile/cover-images, which resets the restaurant to 'pending' and is

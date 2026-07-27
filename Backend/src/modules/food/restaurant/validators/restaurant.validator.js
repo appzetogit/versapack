@@ -145,7 +145,9 @@ const restaurantRegisterSchema = z.object({
     panImage: z.string().optional(),
     gstImage: z.string().optional(),
     fssaiImage: z.string().optional(),
-    menuImages: z.string().optional() // can be a stringified array
+    menuImages: z.string().optional(), // can be a stringified array
+    coverImage: z.string().optional(),
+    galleryImages: z.string().optional() // stringified array of pre-uploaded URLs
 });
 
 export const validateRestaurantRegisterDto = (body) => {

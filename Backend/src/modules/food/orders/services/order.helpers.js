@@ -23,6 +23,17 @@ export function haversineKm(lat1, lon1, lat2, lon2) {
   return geoHaversineKm(lat1, lon1, lat2, lon2);
 }
 
+/**
+ * Build a dialer URI the client can hand straight to url_launcher / Linking.
+ * Strips spaces, dashes and brackets — a raw number with formatting won't dial.
+ * Returns '' when there is no usable number, so the app can hide the call button.
+ */
+export function buildTelUri(phone) {
+  const digits = String(phone || '').replace(/[^\d+]/g, '');
+  if (digits.replace(/\D/g, '').length < 6) return '';
+  return `tel:${digits}`;
+}
+
 export function generateFourDigitDeliveryOtp() {
   return String(Math.floor(1000 + Math.random() * 9000));
 }
@@ -370,7 +381,14 @@ export function buildDeliverySocketPayload(orderDoc, restaurantDoc = null) {
       restaurantLocation?.formattedAddress ||
       restaurant?.addressLine1 ||
       "",
-    restaurantPhone: restaurant?.phone || "",
+    restaurantPhone: restaurant?.phone || restaurant?.ownerPhone || "",
+    // Ready-to-launch dialer URI — the app can pass this straight to url_launcher.
+    restaurantCallUri: buildTelUri(restaurant?.phone || restaurant?.ownerPhone),
+    // Photos of the premises so the rider can recognise the shop on arrival.
+    restaurantCoverImage:
+      restaurant?.coverImage || (Array.isArray(restaurant?.coverImages) ? restaurant.coverImages[0] : '') || '',
+    restaurantGalleryImages: Array.isArray(restaurant?.galleryImages) ? restaurant.galleryImages : [],
+    restaurantLandmark: restaurant?.landmark || "",
     restaurantLocation: {
       latitude: Number.isFinite(restaurantLat) ? restaurantLat : undefined,
       longitude: Number.isFinite(restaurantLng) ? restaurantLng : undefined,
@@ -407,6 +425,9 @@ export function buildDeliverySocketPayload(orderDoc, restaurantDoc = null) {
     customerAddress: customerAddressParts.length ? customerAddressParts.join(', ') : "",
     customerName: order?.customerName || order?.deliveryAddress?.fullName || order?.deliveryAddress?.name || order?.userId?.name || "",
     customerPhone: order?.customerPhone || order?.deliveryAddress?.phone || order?.userId?.phone || "",
+    customerCallUri: buildTelUri(
+      order?.customerPhone || order?.deliveryAddress?.phone || order?.userId?.phone,
+    ),
     userName: order?.customerName || order?.deliveryAddress?.fullName || order?.deliveryAddress?.name || order?.userId?.name || "",
     userPhone: order?.customerPhone || order?.deliveryAddress?.phone || order?.userId?.phone || "",
     note: order?.deliveryInstructions || "",

@@ -37,6 +37,99 @@ export const listRestaurantBanners = async (restaurantId) => {
     return { banners, primaryBanner: banners[0] || null, maxBanners: MAX_BANNERS };
 };
 
+const MAX_GALLERY = 10;
+
+/** Main cover image + premises gallery (the photos the rider sees at pickup). */
+export const getRestaurantMedia = async (restaurantId) => {
+    if (!restaurantId || !mongoose.Types.ObjectId.isValid(String(restaurantId))) {
+        throw new ValidationError('Invalid restaurant id');
+    }
+    const doc = await FoodRestaurant.findById(restaurantId)
+        .select('coverImage galleryImages coverImages profileImage')
+        .lean();
+    if (!doc) throw new ValidationError('Restaurant not found');
+
+    const gallery = (Array.isArray(doc.galleryImages) ? doc.galleryImages : []).map(toUrl).filter(Boolean);
+    return {
+        coverImage: toUrl(doc.coverImage) || readBanners(doc)[0] || '',
+        galleryImages: gallery,
+        maxGalleryImages: MAX_GALLERY
+    };
+};
+
+/** Replace the single main cover image. */
+export const uploadRestaurantCoverImage = async (restaurantId, file) => {
+    if (!restaurantId || !mongoose.Types.ObjectId.isValid(String(restaurantId))) {
+        throw new ValidationError('Invalid restaurant id');
+    }
+    if (!file?.buffer) throw new ValidationError('Cover image file is required');
+
+    const url = await uploadImageBuffer(file.buffer, 'food/restaurants/cover');
+    if (!url) throw new ValidationError('Image upload failed');
+
+    await FoodRestaurant.findByIdAndUpdate(restaurantId, { $set: { coverImage: url } });
+    bustPublicCaches();
+    return { coverImage: url };
+};
+
+/** Append premises photos, capped at MAX_GALLERY. */
+export const uploadRestaurantGalleryImages = async (restaurantId, files = []) => {
+    if (!restaurantId || !mongoose.Types.ObjectId.isValid(String(restaurantId))) {
+        throw new ValidationError('Invalid restaurant id');
+    }
+    const valid = (Array.isArray(files) ? files : []).filter((f) => f?.buffer);
+    if (valid.length === 0) throw new ValidationError('At least one image file is required');
+
+    const doc = await FoodRestaurant.findById(restaurantId).select('galleryImages').lean();
+    if (!doc) throw new ValidationError('Restaurant not found');
+
+    const existing = (Array.isArray(doc.galleryImages) ? doc.galleryImages : []).map(toUrl).filter(Boolean);
+    const room = MAX_GALLERY - existing.length;
+    if (room <= 0) {
+        throw new ValidationError(`Gallery limit reached (${MAX_GALLERY}). Delete one before uploading.`);
+    }
+
+    const uploaded = (
+        await Promise.all(
+            valid.slice(0, room).map((f) => uploadImageBuffer(f.buffer, 'food/restaurants/gallery'))
+        )
+    ).filter(Boolean);
+
+    const galleryImages = [...existing];
+    uploaded.forEach((u) => { if (!galleryImages.includes(u)) galleryImages.push(u); });
+
+    await FoodRestaurant.findByIdAndUpdate(restaurantId, {
+        $set: { galleryImages: galleryImages.slice(0, MAX_GALLERY) }
+    });
+    bustPublicCaches();
+
+    return {
+        galleryImages: galleryImages.slice(0, MAX_GALLERY),
+        uploaded,
+        skipped: Math.max(0, valid.length - room)
+    };
+};
+
+/** Remove one gallery photo by exact URL. */
+export const deleteRestaurantGalleryImage = async (restaurantId, imageUrl) => {
+    if (!restaurantId || !mongoose.Types.ObjectId.isValid(String(restaurantId))) {
+        throw new ValidationError('Invalid restaurant id');
+    }
+    const url = String(imageUrl || '').trim();
+    if (!url) throw new ValidationError('imageUrl is required');
+
+    const doc = await FoodRestaurant.findById(restaurantId).select('galleryImages').lean();
+    if (!doc) throw new ValidationError('Restaurant not found');
+
+    const existing = (Array.isArray(doc.galleryImages) ? doc.galleryImages : []).map(toUrl).filter(Boolean);
+    if (!existing.includes(url)) throw new ValidationError('Image not found in this gallery');
+
+    const galleryImages = existing.filter((u) => u !== url);
+    await FoodRestaurant.findByIdAndUpdate(restaurantId, { $set: { galleryImages } });
+    bustPublicCaches();
+    return { galleryImages, deleted: url };
+};
+
 /**
  * Append uploaded banner images.
  *

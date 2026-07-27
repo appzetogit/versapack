@@ -188,6 +188,20 @@ const restaurantSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    /** Single hero/cover image for the restaurant page. Falls back to coverImages[0]. */
+    coverImage: {
+      type: String,
+      default: '',
+    },
+    /**
+     * Photos of the physical premises — storefront, entrance, signage. Shown to the
+     * delivery partner at pickup so they can visually identify the place, and on the
+     * customer-facing page.
+     */
+    galleryImages: {
+      type: [String],
+      default: [],
+    },
     profileImage: {
       type: String,
     },
