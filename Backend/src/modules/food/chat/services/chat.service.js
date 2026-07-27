@@ -59,35 +59,119 @@ async function assertOrderParticipants(orderId, tokens) {
  * @param sender {{ role, id }}
  * @param dto {{ peerRole, peerId?, orderId?, text }}
  */
+/**
+ * Work out who the message is for, from the ORDER — never from a client-supplied peerId,
+ * which a caller could point at an unrelated user.
+ *
+ * With only { orderId, text } the counterpart is implied: a customer is writing to the
+ * assigned rider and vice versa. peerRole is honoured when supplied so a restaurant can
+ * pick which side of the order it is addressing.
+ */
+async function resolveOrderRecipient(sender, order, requestedPeerRole = '') {
+    const userId = order?.userId ? String(order.userId) : '';
+    const riderId = order?.dispatch?.deliveryPartnerId ? String(order.dispatch.deliveryPartnerId) : '';
+    const restaurantId = order?.restaurantId ? String(order.restaurantId) : '';
+    const me = String(sender.id);
+
+    const parties = {
+        USER: userId,
+        DELIVERY_PARTNER: riderId,
+        RESTAURANT: restaurantId
+    };
+
+    // The sender must actually be on this order.
+    if (String(parties[sender.role] || '') !== me) {
+        throw new ForbiddenError('You are not a participant of this order');
+    }
+
+    if (requestedPeerRole) {
+        const role = String(requestedPeerRole).toUpperCase();
+        if (!parties[role]) {
+            throw new ValidationError(
+                role === 'DELIVERY_PARTNER'
+                    ? 'No delivery partner is assigned to this order yet'
+                    : `This order has no ${role.toLowerCase()} to message`
+            );
+        }
+        if (role === sender.role) throw new ValidationError('Cannot message yourself');
+        return { role, id: parties[role] };
+    }
+
+    // Default counterpart: customer <-> assigned rider.
+    if (sender.role === 'USER') {
+        if (!riderId) throw new ValidationError('No delivery partner is assigned to this order yet');
+        return { role: 'DELIVERY_PARTNER', id: riderId };
+    }
+    if (sender.role === 'DELIVERY_PARTNER') {
+        if (!userId) throw new ValidationError('This order has no customer to message');
+        return { role: 'USER', id: userId };
+    }
+    // A restaurant has two possible counterparts, so it must say which.
+    throw new ValidationError('peerRole is required for this sender');
+}
+
+/** True for the customer<->rider pair, whose thread is keyed on the order id itself. */
+const isUserRiderPair = (roleA, roleB) =>
+    [roleA, roleB].sort().join('|') === 'DELIVERY_PARTNER|USER';
+
 export async function sendMessage(sender, dto) {
     const text = String(dto?.text || '').trim();
     if (!text) throw new ValidationError('Message text is required');
     if (text.length > 2000) throw new ValidationError('Message is too long (max 2000 chars)');
 
-    const peerRole = String(dto?.peerRole || '').toUpperCase();
-    if (!ROLES.includes(peerRole)) throw new ValidationError('Invalid peerRole');
-
-    if (peerRole !== 'ADMIN' && !mongoose.Types.ObjectId.isValid(String(dto?.peerId || ''))) {
-        throw new ValidationError('peerId is required for non-admin recipients');
+    const requestedPeerRole = String(dto?.peerRole || '').toUpperCase();
+    if (requestedPeerRole && !ROLES.includes(requestedPeerRole)) {
+        throw new ValidationError('Invalid peerRole');
     }
-    if (sender.role === peerRole && peerRole !== 'ADMIN' && String(sender.id) === String(dto.peerId)) {
-        throw new ValidationError('Cannot message yourself');
+
+    const orderIdRaw = dto?.orderId ? String(dto.orderId) : '';
+    const adminInvolved = sender.role === 'ADMIN' || requestedPeerRole === 'ADMIN';
+
+    // Non-admin conversations must be tied to a shared order (anti-spam).
+    if (!adminInvolved && !orderIdRaw) {
+        throw new ValidationError('orderId is required to chat outside of admin support');
+    }
+
+    let orderId = null;
+    let peerRole;
+    let peerId;
+
+    if (orderIdRaw && !adminInvolved) {
+        if (!mongoose.Types.ObjectId.isValid(orderIdRaw)) {
+            throw new ValidationError('Invalid order id');
+        }
+        const order = await FoodOrder.findById(orderIdRaw)
+            .select('userId restaurantId dispatch.deliveryPartnerId')
+            .lean();
+        if (!order) throw new ValidationError('Order not found');
+
+        orderId = order._id;
+        const peer = await resolveOrderRecipient(sender, order, requestedPeerRole);
+        peerRole = peer.role;
+        peerId = peer.id;
+    } else {
+        // Admin support thread: no order, so the peer must be stated.
+        peerRole = requestedPeerRole || 'ADMIN';
+        if (peerRole !== 'ADMIN') {
+            if (!mongoose.Types.ObjectId.isValid(String(dto?.peerId || ''))) {
+                throw new ValidationError('peerId is required for non-admin recipients');
+            }
+            peerId = String(dto.peerId);
+        }
+        if (orderIdRaw && mongoose.Types.ObjectId.isValid(orderIdRaw)) {
+            orderId = new mongoose.Types.ObjectId(orderIdRaw);
+        }
     }
 
     const senderToken = partyToken(sender.role, sender.id);
-    const recipientToken = partyToken(peerRole, dto.peerId);
-    const orderId = dto?.orderId ? new mongoose.Types.ObjectId(String(dto.orderId)) : null;
+    const recipientToken = partyToken(peerRole, peerId);
 
-    // Non-admin ↔ non-admin conversations must be tied to a shared order (anti-spam).
-    const adminInvolved = sender.role === 'ADMIN' || peerRole === 'ADMIN';
-    if (!adminInvolved && !orderId) {
-        throw new ValidationError('orderId is required to chat outside of admin support');
-    }
-    if (orderId) {
-        await assertOrderParticipants(orderId, [senderToken, recipientToken]);
-    }
-
-    const conversationId = buildConversationId(senderToken, recipientToken, orderId);
+    // Customer <-> rider threads are keyed on the order's Mongo _id exactly, because the
+    // client looks the thread up by the order id it already holds.
+    const conversationId =
+        orderId && isUserRiderPair(sender.role, peerRole)
+            ? String(orderId)
+            : buildConversationId(senderToken, recipientToken, orderId);
 
     const message = await FoodChatMessage.create({
         conversationId,
@@ -96,7 +180,7 @@ export async function sendMessage(sender, dto) {
         senderId: new mongoose.Types.ObjectId(String(sender.id)),
         senderToken,
         recipientRole: peerRole,
-        recipientId: peerRole === 'ADMIN' ? null : new mongoose.Types.ObjectId(String(dto.peerId)),
+        recipientId: peerRole === 'ADMIN' ? null : new mongoose.Types.ObjectId(String(peerId)),
         recipientToken,
         participants: [senderToken, recipientToken],
         text
@@ -108,7 +192,7 @@ export async function sendMessage(sender, dto) {
     try {
         const io = getIO();
         if (io) {
-            const recipientRoom = roomForToken(peerRole, dto.peerId);
+            const recipientRoom = roomForToken(peerRole, peerId);
             const senderRoom = roomForToken(sender.role, sender.id);
             if (recipientRoom) io.to(recipientRoom).emit('chat:message', payload);
             if (senderRoom && senderRoom !== recipientRoom) io.to(senderRoom).emit('chat:message', payload);
@@ -126,7 +210,7 @@ export async function sendMessage(sender, dto) {
     if (peerRole === 'ADMIN') {
         notifyAdminsSafely(pushPayload).catch(() => {});
     } else {
-        notifyOwnersSafely([{ ownerType: peerRole, ownerId: dto.peerId }], pushPayload).catch(() => {});
+        notifyOwnersSafely([{ ownerType: peerRole, ownerId: peerId }], pushPayload).catch(() => {});
     }
 
     return payload;
