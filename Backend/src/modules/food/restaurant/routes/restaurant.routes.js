@@ -79,6 +79,7 @@ import {
     deleteBannerController,
     reorderBannersController
 } from '../controllers/restaurantBanner.controller.js';
+import { listBannersForRestaurantAppController } from '../../admin/controllers/restaurantAppBanner.controller.js';
 
 import { cacheResponse, invalidateCache } from '../../../../middleware/cache.js';
 
@@ -188,6 +189,9 @@ router.post(
     },
     uploadRestaurantMenuImagesController
 );
+
+// Admin-managed promo banners shown INSIDE the restaurant partner app.
+router.get('/app-banners', authMiddleware, requireRestaurant, listBannersForRestaurantAppController);
 
 // Banners shown on the public restaurant page (/restaurants/:id -> coverImages).
 // Separate from /profile/cover-images, which resets the restaurant to 'pending' and is

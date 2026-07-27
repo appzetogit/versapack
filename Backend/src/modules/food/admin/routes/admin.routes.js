@@ -20,6 +20,7 @@ import { FoodAdmin } from '../../../../core/admin/admin.model.js';
 import { requireAdminPermission, requireAnyAdminPermission } from '../../../../core/roles/adminPermission.middleware.js';
 import * as driverRegField from '../../delivery/controllers/driverRegistrationField.controller.js';
 import * as cashbackSettings from '../controllers/cashbackSettings.controller.js';
+import * as restaurantAppBanner from '../controllers/restaurantAppBanner.controller.js';
 
 const router = express.Router();
 
@@ -292,6 +293,14 @@ router.get('/driver-registration-fields', driverRegField.listFieldsController);
 router.post('/driver-registration-fields', driverRegField.createFieldController);
 router.patch('/driver-registration-fields/:id', driverRegField.updateFieldController);
 router.delete('/driver-registration-fields/:id', driverRegField.deleteFieldController);
+
+// ----- Restaurant App Promo Banners (shown inside the restaurant partner app) -----
+router.get('/restaurant-app-banners', restaurantAppBanner.listBannersAdminController);
+router.post('/restaurant-app-banners', upload.single('file'), restaurantAppBanner.createBannerController);
+router.patch('/restaurant-app-banners/order', restaurantAppBanner.reorderBannersController);
+router.patch('/restaurant-app-banners/:id/status', restaurantAppBanner.toggleBannerStatusController);
+router.patch('/restaurant-app-banners/:id', upload.single('file'), restaurantAppBanner.updateBannerController);
+router.delete('/restaurant-app-banners/:id', restaurantAppBanner.deleteBannerController);
 
 // ----- Cashback Settings -----
 router.get('/cashback-settings', cashbackSettings.getCashbackSettingsController);
