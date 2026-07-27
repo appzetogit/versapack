@@ -73,6 +73,12 @@ import * as orderController from '../../orders/controllers/order.controller.js';
 import { authMiddleware, optionalAuth } from '../../../../core/auth/auth.middleware.js';
 import { sendError } from '../../../../utils/response.js';
 import { getRestaurantFinanceController } from '../controllers/restaurantFinance.controller.js';
+import {
+    listBannersController,
+    uploadBannersController,
+    deleteBannerController,
+    reorderBannersController
+} from '../controllers/restaurantBanner.controller.js';
 
 import { cacheResponse, invalidateCache } from '../../../../middleware/cache.js';
 
@@ -182,6 +188,21 @@ router.post(
     },
     uploadRestaurantMenuImagesController
 );
+
+// Banners shown on the public restaurant page (/restaurants/:id -> coverImages).
+// Separate from /profile/cover-images, which resets the restaurant to 'pending' and is
+// only appropriate during onboarding — routine banner edits must not take a live
+// restaurant offline.
+router.get('/banners', authMiddleware, requireRestaurant, listBannersController);
+router.post(
+    '/banners',
+    authMiddleware,
+    requireRestaurant,
+    upload.array('files', 10),
+    uploadBannersController
+);
+router.delete('/banners', authMiddleware, requireRestaurant, deleteBannerController);
+router.patch('/banners/order', authMiddleware, requireRestaurant, reorderBannersController);
 
 // Categories (restaurant dashboard). Read-only for item creation, CRUD for Menu Categories page.
 router.get('/categories', authMiddleware, requireRestaurant, listCategoriesController);
