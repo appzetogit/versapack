@@ -123,11 +123,20 @@ function getModuleFromUrl(url = "") {
   
   // Admin detection
   if (
-    normalized.includes("/admin/") || 
-    normalized.includes("/food/admin/") || 
-    normalized.includes("/food/auth/admin") || 
-    normalized.includes("/auth/admin") || 
+    normalized.includes("/admin/") ||
+    normalized.includes("/food/admin/") ||
+    normalized.includes("/food/auth/admin") ||
+    normalized.includes("/auth/admin") ||
     normalized.includes("admin/login")
+  ) return "admin";
+
+  // Landing/banner management lives at /food/hero-banners and /food/top-banners rather
+  // than under /food/admin, so it fell through to "user" and was sent with no token at
+  // all (admin login only writes admin_accessToken). Anything here that is NOT a
+  // /public read is an admin operation and must carry the admin token.
+  if (
+    (normalized.includes("/food/hero-banners") || normalized.includes("/food/top-banners")) &&
+    !normalized.includes("/public")
   ) return "admin";
   
   // Delivery detection - Catch all delivery-specific functional and auth routes

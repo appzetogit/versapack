@@ -1,5 +1,7 @@
 import express from 'express';
 import { upload } from '../../../../middleware/upload.js';
+import { authMiddleware } from '../../../../core/auth/auth.middleware.js';
+import { requireRoles } from '../../../../core/roles/role.middleware.js';
 import {
     listHeroBannersController,
     uploadHeroBannersController,
@@ -70,6 +72,33 @@ import { getPublicPageController } from '../../admin/controllers/pageContent.con
 import { getPublicReferralSettingsController } from '../controllers/publicReferralSettings.controller.js';
 
 const router = express.Router();
+
+/**
+ * This router is mounted at /v1/food WITHOUT the admin guard, yet it also contains the
+ * banner/landing MANAGEMENT endpoints (upload, delete, reorder, toggle). They were
+ * therefore reachable unauthenticated by anyone.
+ *
+ * Allowlist the genuinely public reads and require an admin token for everything else, so
+ * any route added to this file in future is protected by default rather than exposed.
+ */
+const PUBLIC_LANDING_PATTERNS = [
+    /\/public$/,                 // every ".../public" read
+    /^\/pages\//,                // CMS pages (about, terms, privacy)
+    /^\/referral-settings$/,     // referral reward copy
+    /^\/zones\//,                // zone detect / nearby / public
+];
+
+const requireAdminForLandingWrites = (req, res, next) => {
+    if (req.method === 'OPTIONS') return next();
+    const path = req.path || '';
+    if (PUBLIC_LANDING_PATTERNS.some((re) => re.test(path))) return next();
+    return authMiddleware(req, res, (err) => {
+        if (err) return next(err);
+        return requireRoles('ADMIN')(req, res, next);
+    });
+};
+
+router.use(requireAdminForLandingWrites);
 
 // Public CMS pages (About + legal). No auth required.
 router.get('/pages/:key', getPublicPageController);
