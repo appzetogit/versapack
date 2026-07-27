@@ -141,17 +141,21 @@ const formatTime12Hour = (value) => {
 // the panel's own host and returns index.html instead of the image.
 const normalizeImageUrl = (image) => resolveMediaUrl(image)
 
+// Order matters: profileImage is the restaurant's own identity image and the one an admin
+// edits here, so it must win. It previously ranked BELOW menuImages, so a card stayed
+// pinned to an old photo of a menu card and appeared not to update after every upload.
+// menuImages is a photo of a paper menu — only ever a last resort.
 const getPrimaryRestaurantImage = (restaurant, fallback = "") => {
-  const coverImages = Array.isArray(restaurant?.coverImages) ? restaurant.coverImages : []
-  const firstCoverImage = coverImages.map(normalizeImageUrl).find(Boolean)
-  if (firstCoverImage) return firstCoverImage
-  const menuImages = Array.isArray(restaurant?.menuImages) ? restaurant.menuImages : []
-  const firstMenuImage = menuImages.map(normalizeImageUrl).find(Boolean)
-  if (firstMenuImage) return firstMenuImage
+  const firstOf = (value) =>
+    (Array.isArray(value) ? value : []).map(normalizeImageUrl).find(Boolean) || ""
+
   return (
     normalizeImageUrl(restaurant?.profileImage) ||
     normalizeImageUrl(restaurant?.logo) ||
     normalizeImageUrl(restaurant?.restaurantImage) ||
+    normalizeImageUrl(restaurant?.coverImage) ||
+    firstOf(restaurant?.coverImages) ||
+    firstOf(restaurant?.menuImages) ||
     fallback
   )
 }

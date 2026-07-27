@@ -12,18 +12,19 @@ const debugError = (...args) => {}
 // resolved against the API origin, not the panel's own host.
 const normalizeImageUrl = (image) => resolveMediaUrl(image)
 
+// profileImage first — it is the restaurant's identity image and the one admins edit.
+// It previously ranked below menuImages (a photo of a paper menu), so cards stayed pinned
+// to a stale image and looked like they never updated after an upload.
 const getPrimaryRestaurantImage = (restaurant, fallback = "") => {
-    const coverImages = Array.isArray(restaurant?.coverImages) ? restaurant.coverImages : []
-    const firstCoverImage = coverImages.map(normalizeImageUrl).find(Boolean)
-    if (firstCoverImage) return firstCoverImage
-
-    const menuImages = Array.isArray(restaurant?.menuImages) ? restaurant.menuImages : []
-    const firstMenuImage = menuImages.map(normalizeImageUrl).find(Boolean)
-    if (firstMenuImage) return firstMenuImage
+    const firstOf = (value) =>
+        (Array.isArray(value) ? value : []).map(normalizeImageUrl).find(Boolean) || ""
 
     return (
         normalizeImageUrl(restaurant?.profileImage) ||
         normalizeImageUrl(restaurant?.logo) ||
+        normalizeImageUrl(restaurant?.coverImage) ||
+        firstOf(restaurant?.coverImages) ||
+        firstOf(restaurant?.menuImages) ||
         fallback
     )
 }
