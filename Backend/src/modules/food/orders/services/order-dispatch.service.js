@@ -84,6 +84,39 @@ async function enrichPayloadWithTripRoadDistance(order, payload) {
   return payload;
 }
 
+/**
+ * Driver acceptance window. Single source of truth — the client countdown, the re-queue
+ * delay and acceptanceDeadlineAt all derive from this, so they can't drift apart.
+ */
+const DRIVER_ACCEPT_WINDOW_MS = 45000;
+
+/**
+ * Flat, string-only data map for the incoming-order push.
+ *
+ * FCM data values must be strings. Everything the full-screen alert needs is included so
+ * the app can render it with no follow-up API call — important when the device is locked
+ * or the app was killed.
+ */
+function buildIncomingOrderPushData(order, payload, acceptanceDeadlineAt) {
+  const s = (v) => (v === undefined || v === null ? '' : String(v));
+  return {
+    type: 'new_order',
+    orderId: s(order?._id),
+    orderMongoId: s(order?._id),
+    orderDisplayId: s(order?.order_id || order?._id),
+    restaurantName: s(payload?.restaurantName),
+    restaurantAddress: s(payload?.restaurantAddress),
+    customerAddress: s(payload?.customerAddress),
+    tripDistanceKm: s(payload?.tripDistanceKm ?? ''),
+    tripDurationMins: s(payload?.tripDurationMins ?? ''),
+    riderEarning: s(payload?.riderEarning ?? 0),
+    earnings: s(payload?.earnings ?? payload?.riderEarning ?? 0),
+    paymentMethod: s(payload?.paymentMethod || order?.payment?.method),
+    total: s(payload?.total ?? order?.pricing?.total ?? 0),
+    acceptanceDeadlineAt: s(acceptanceDeadlineAt?.toISOString?.() || acceptanceDeadlineAt),
+  };
+}
+
 async function listNearbyOnlineDeliveryPartners(
   restaurantId,
   { maxKm = 15, limit = 25 } = {},
@@ -161,7 +194,8 @@ export async function updateDispatchSettings(dispatchMode, adminId) {
 
 export async function tryAutoAssign(orderId, options = {}) {
   const attempt = options.attempt || 1;
-  const lockTimeout = 55000; // 55 seconds lock interval
+  // Small buffer above the accept window so an in-flight offer isn't reclaimed early.
+  const lockTimeout = DRIVER_ACCEPT_WINDOW_MS + 5000; // 50s
 
   const order = await FoodOrder.findOneAndUpdate(
     {
@@ -253,22 +287,47 @@ export async function tryAutoAssign(orderId, options = {}) {
         if (busyPartnerIds.has(partnerKey)) return false;
         return true;
       });
-      if (io && reofferEligible.length > 0) {
+      if (reofferEligible.length > 0) {
         const basePayload = buildDeliverySocketPayload(order, order.restaurantId);
         const payload = await enrichPayloadWithTripRoadDistance(order, basePayload);
-        for (const p of reofferEligible) {
-          const roomName = rooms.delivery(p.partnerId);
-          io.to(roomName).emit('new_order_available', { ...payload, pickupDistanceKm: p.distanceKm });
+        const acceptanceDeadlineAt = new Date(Date.now() + DRIVER_ACCEPT_WINDOW_MS);
+
+        if (io) {
+          for (const p of reofferEligible) {
+            const roomName = rooms.delivery(p.partnerId);
+            io.to(roomName).emit('new_order_available', {
+              ...payload,
+              pickupDistanceKm: p.distanceKm,
+              acceptanceDeadlineAt,
+            });
+          }
+        }
+
+        // This branch previously emitted a socket event only, so a backgrounded or locked
+        // driver was never woken on a re-offer round — the order could sit unassigned while
+        // every nearby rider was simply not looking at the app. Push on every round.
+        try {
+          await notifyOwnersSafely(
+            reofferEligible.map((p) => ({ ownerType: 'DELIVERY_PARTNER', ownerId: p.partnerId })),
+            {
+              title: 'New order available!',
+              body: `Order #${order.order_id || order._id} is still available. Tap to accept.`,
+              dataOnly: true,
+              data: buildIncomingOrderPushData(order, payload, acceptanceDeadlineAt),
+            },
+          );
+        } catch (err) {
+          logger.warn(`Re-offer push failed for order ${order._id}: ${err.message}`);
         }
       }
 
-      // Re-queue itself to keep trying
+      // Re-queue itself to keep trying, aligned to the client countdown.
       await addOrderJob({
         action: 'DISPATCH_TIMEOUT_CHECK',
         orderMongoId: order._id.toString(),
         orderId: order._id.toString(),
         attempt: attempt + 1
-      }, { delay: 30000 }); // Retry faster (30s) if no one found
+      }, { delay: DRIVER_ACCEPT_WINDOW_MS });
 
       return order;
     }
@@ -280,9 +339,16 @@ export async function tryAutoAssign(orderId, options = {}) {
     // BROADCAST: Notify all eligible riders
     // tripDistanceKm = restaurant ↔ customer (road); pickupDistanceKm = rider → restaurant (ranking only)
     logger.info(`Broadcasting order ${order._id} to ${eligible.length} riders. tripDistanceKm=${payload.tripDistanceKm}`);
+    const acceptanceDeadlineAt = new Date(Date.now() + DRIVER_ACCEPT_WINDOW_MS);
     for (const p of eligible) {
       const roomName = rooms.delivery(p.partnerId);
-      if (io) io.to(roomName).emit('new_order', { ...payload, pickupDistanceKm: p.distanceKm });
+      if (io) {
+        io.to(roomName).emit('new_order', {
+          ...payload,
+          pickupDistanceKm: p.distanceKm,
+          acceptanceDeadlineAt,
+        });
+      }
     }
 
     // Batch Push Notifications
@@ -297,8 +363,11 @@ export async function tryAutoAssign(orderId, options = {}) {
           pushTargets,
           {
             title: 'New order available!',
-            body: `Order #${order.order_id || order._id} is available. You have 60 seconds to accept!`,
-            data: { type: 'new_order', orderId: order._id.toString() },
+            body: `Order #${order.order_id || order._id} is available. You have ${Math.round(DRIVER_ACCEPT_WINDOW_MS / 1000)} seconds to accept!`,
+            // Data-only: the app raises its own full-screen accept UI. With a notification
+            // block Android would also post a tray notification competing with it.
+            dataOnly: true,
+            data: buildIncomingOrderPushData(order, payload, acceptanceDeadlineAt),
           }
         );
       } catch (err) {
@@ -335,13 +404,14 @@ export async function tryAutoAssign(orderId, options = {}) {
       return order;
     }
 
-    // Re-check in 60s
+    // Re-check when the offer window closes, so the next round starts exactly as the
+    // client countdown hits zero.
     await addOrderJob({
       action: 'DISPATCH_TIMEOUT_CHECK',
       orderMongoId: order._id.toString(),
       orderId: order._id.toString(),
       attempt: attempt + 1
-    }, { delay: 60000 });
+    }, { delay: DRIVER_ACCEPT_WINDOW_MS });
 
     return order;
   } finally {
