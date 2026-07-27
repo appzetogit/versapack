@@ -3,16 +3,14 @@ import { useNavigate } from "react-router-dom"
 import { Search, Download, ChevronDown, Eye, Settings, ArrowUpDown, Loader2, Star, Building2, User, FileText, Phone, Mail, MapPin, ShieldX, Trash2, ArrowRight } from "lucide-react"
 import { adminAPI } from "@food/api"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@food/components/ui/dropdown-menu"
+import { resolveMediaUrl } from "../../../../../shared/utils/mediaUrl.js"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
 
-const normalizeImageUrl = (image) => {
-    if (!image) return ""
-    if (typeof image === "string") return image
-    if (typeof image === "object") return image.url || image.secure_url || ""
-    return ""
-}
+// Delegates to the shared resolver — see RestaurantsList: relative /uploads paths must be
+// resolved against the API origin, not the panel's own host.
+const normalizeImageUrl = (image) => resolveMediaUrl(image)
 
 const getPrimaryRestaurantImage = (restaurant, fallback = "") => {
     const coverImages = Array.isArray(restaurant?.coverImages) ? restaurant.coverImages : []

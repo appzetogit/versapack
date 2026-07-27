@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom"
 import { Search, Download, ChevronDown, ChevronLeft, ChevronRight, Eye, Settings, ArrowUpDown, Loader2, X, MapPin, Phone, Mail, Clock, Star, Building2, User, FileText, FileSpreadsheet, CreditCard, Calendar, Image as ImageIcon, ExternalLink, ShieldX, AlertTriangle, Trash2, Plus } from "lucide-react"
 import { adminAPI, restaurantAPI, uploadAPI } from "@food/api"
 import { clearModuleAuth } from "@food/utils/auth"
+import { resolveMediaUrl } from "../../../../../shared/utils/mediaUrl.js"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@food/components/ui/dropdown-menu"
 import { getGoogleMapsApiKey } from "@food/utils/googleMapsApiKey"
 
@@ -135,12 +136,10 @@ const formatTime12Hour = (value) => {
   return `${String(hour12).padStart(2, "0")}:${String(m).padStart(2, "0")} ${period}`
 }
 
-const normalizeImageUrl = (image) => {
-  if (!image) return ""
-  if (typeof image === "string") return image
-  if (typeof image === "object") return image.url || image.secure_url || ""
-  return ""
-}
+// Delegates to the shared resolver: the API returns RELATIVE paths ("/uploads/..."), and
+// this panel is served from a different origin to the API, so a raw path resolves against
+// the panel's own host and returns index.html instead of the image.
+const normalizeImageUrl = (image) => resolveMediaUrl(image)
 
 const getPrimaryRestaurantImage = (restaurant, fallback = "") => {
   const coverImages = Array.isArray(restaurant?.coverImages) ? restaurant.coverImages : []
