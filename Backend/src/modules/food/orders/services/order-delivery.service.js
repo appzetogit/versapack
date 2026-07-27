@@ -1101,3 +1101,82 @@ export async function updateOrderStatusDelivery(orderId, deliveryPartnerId, orde
   return order.toObject();
 }
 
+
+/**
+ * Driving route from the rider's current position to the next stop, for the active-trip map.
+ *
+ * `target` picks the destination; when omitted it is inferred from the trip phase — the
+ * restaurant before pickup, the customer after. `orderId` accepts either the display id or
+ * the Mongo _id. Returns empty-but-valid fields rather than throwing when Directions has
+ * nothing to give, so the client can degrade instead of erroring.
+ */
+export async function getOrderRouteForDelivery(orderId, deliveryPartnerId, query = {}) {
+  const identity = buildOrderIdentityFilter(orderId);
+  if (!identity) throw new ValidationError('Order id required');
+
+  const order = await FoodOrder.findOne(identity)
+    .select('dispatch deliveryState deliveryAddress restaurantId lastRiderLocation orderStatus')
+    .populate('restaurantId', 'location addressLine1 restaurantName')
+    .lean();
+  if (!order) throw new NotFoundError('Order not found');
+
+  if (String(order.dispatch?.deliveryPartnerId || '') !== String(deliveryPartnerId)) {
+    throw new ForbiddenError('Not your order');
+  }
+
+  // Origin: the rider's live position from the query, else their last known ping.
+  const qLat = Number(query.lat);
+  const qLng = Number(query.lng);
+  const hasQueryOrigin = Number.isFinite(qLat) && Number.isFinite(qLng);
+  const lastCoords = order.lastRiderLocation?.coordinates;
+  const origin = hasQueryOrigin
+    ? { lat: qLat, lng: qLng }
+    : Array.isArray(lastCoords) && lastCoords.length >= 2
+      ? { lat: Number(lastCoords[1]), lng: Number(lastCoords[0]) }
+      : null;
+
+  const pickedUp =
+    Boolean(order.deliveryState?.pickedUpAt) ||
+    ['picked_up', 'reached_drop'].includes(String(order.orderStatus || ''));
+  const target = ['restaurant', 'customer'].includes(String(query.target || ''))
+    ? String(query.target)
+    : pickedUp
+      ? 'customer'
+      : 'restaurant';
+
+  const restCoords = order.restaurantId?.location?.coordinates;
+  const custCoords = order.deliveryAddress?.location?.coordinates;
+  const pick = target === 'customer' ? custCoords : restCoords;
+  const destination =
+    Array.isArray(pick) && pick.length >= 2
+      ? { lat: Number(pick[1]), lng: Number(pick[0]) }
+      : null;
+
+  const empty = {
+    polyline: '',
+    distanceMeters: null,
+    distanceKm: null,
+    durationSeconds: null,
+    durationMins: null,
+    target,
+    origin,
+    destination,
+  };
+  if (!origin || !destination) return empty;
+
+  const route = await fetchDrivingRoute(origin, destination);
+  const durationSeconds = Number.isFinite(Number(route?.durationSeconds))
+    ? Number(route.durationSeconds)
+    : null;
+
+  return {
+    polyline: route?.polyline || '',
+    distanceMeters: route?.distanceMeters ?? null,
+    distanceKm: route?.distanceKm ?? null,
+    durationSeconds,
+    durationMins: durationSeconds != null ? Math.max(1, Math.ceil(durationSeconds / 60)) : null,
+    target,
+    origin,
+    destination,
+  };
+}

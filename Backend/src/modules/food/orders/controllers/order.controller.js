@@ -456,3 +456,17 @@ export async function processRefundAdminController(req, res, next) {
         next(err);
     }
 }
+
+export async function getOrderRouteDeliveryController(req, res, next) {
+    try {
+        const deliveryPartnerId = req.user?.userId;
+        const result = await orderService.getOrderRouteForDelivery(
+            req.params.orderId,
+            deliveryPartnerId,
+            req.query || {}
+        );
+        return sendResponse(res, 200, 'Route fetched', result);
+    } catch (err) {
+        next(err);
+    }
+}

@@ -1711,6 +1711,10 @@ export async function listOrdersAvailableDelivery(deliveryPartnerId, query) {
   return deliveryService.listOrdersAvailableDelivery(deliveryPartnerId, query);
 }
 
+export async function getOrderRouteForDelivery(orderId, deliveryPartnerId, query) {
+  return deliveryService.getOrderRouteForDelivery(orderId, deliveryPartnerId, query);
+}
+
 export async function acceptOrderDelivery(orderId, deliveryPartnerId) {
   return deliveryService.acceptOrderDelivery(orderId, deliveryPartnerId);
 }
