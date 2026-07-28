@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
-import { adminAPI } from "@food/api"
+import { adminAPI, uploadAPI } from "@food/api"
 import { Input } from "@food/components/ui/input"
 import { Button } from "@food/components/ui/button"
 import { Label } from "@food/components/ui/label"
 import { getGoogleMapsApiKey } from "@food/utils/googleMapsApiKey"
-import { ArrowLeft, Loader2 } from "lucide-react"
+import { ArrowLeft, Loader2, Trash2, Upload } from "lucide-react"
 
 const debugError = (..._args) => {}
 
@@ -17,6 +17,29 @@ const toNumberOrEmpty = (value) => {
 const isNearZero = (n) => Math.abs(Number(n) || 0) < 0.000001
 
 const normalizeRestaurantId = (r) => r?._id || r?.id || r?.restaurantId || ""
+
+const MAX_GALLERY_IMAGES = 10
+
+/** Image fields arrive as a bare URL or as { url }, depending on the endpoint. */
+const imageUrlOf = (value) => {
+  if (!value) return ""
+  if (typeof value === "string") return value.trim()
+  return String(value?.url || "").trim()
+}
+
+const imageUrlList = (value) =>
+  (Array.isArray(value) ? value : [value]).map(imageUrlOf).filter(Boolean)
+
+/**
+ * The model carries two separate cover fields and onboarding does not consistently
+ * fill the same one, so read both. coverImage is the single hero; coverImages is the
+ * public page's banner array.
+ */
+const normalizeMediaFormFromRestaurant = (restaurant) => ({
+  coverImage: imageUrlOf(restaurant?.coverImage) || imageUrlList(restaurant?.coverImages)[0] || "",
+  galleryImages: imageUrlList(restaurant?.galleryImages),
+  menuImages: imageUrlList(restaurant?.menuImages),
+})
 
 const normalizeZoneId = (zoneId) => {
   if (!zoneId) return ""
@@ -136,6 +159,9 @@ export default function EditRestaurant() {
   const [zonesLoading, setZonesLoading] = useState(false)
 
   const [detailsForm, setDetailsForm] = useState(() => normalizeDetailsFormFromRestaurant(null))
+  const [mediaForm, setMediaForm] = useState(() => normalizeMediaFormFromRestaurant(null))
+  const [savingMedia, setSavingMedia] = useState(false)
+  const [uploadingMedia, setUploadingMedia] = useState("")
   const [locationForm, setLocationForm] = useState(() => normalizeLocationFormFromRestaurant(null))
   const [locationError, setLocationError] = useState("")
 
@@ -167,6 +193,7 @@ export default function EditRestaurant() {
         setRestaurant(data)
         setDetailsForm(normalizeDetailsFormFromRestaurant(data))
         setLocationForm(normalizeLocationFormFromRestaurant(data))
+        setMediaForm(normalizeMediaFormFromRestaurant(data))
       } catch (e) {
         debugError(e)
         if (!mounted) return
@@ -329,6 +356,91 @@ export default function EditRestaurant() {
       alert(e?.response?.data?.message || "Failed to update restaurant details")
     } finally {
       setSavingDetails(false)
+    }
+  }
+
+  /**
+   * Uploads go to the shared media endpoint and yield a URL; nothing is attached to
+   * the restaurant until Save. That keeps a half-finished edit from mutating a live
+   * restaurant, and matches how the rest of this form behaves.
+   */
+  const uploadOne = async (file, folder) => {
+    const res = await uploadAPI.uploadMedia(file, { folder })
+    const url = imageUrlOf(res?.data?.data)
+    if (!url) throw new Error("Upload did not return a URL")
+    return url
+  }
+
+  const handleCoverUpload = async (file) => {
+    if (!file) return
+    try {
+      setUploadingMedia("cover")
+      const url = await uploadOne(file, "food/restaurants/cover")
+      setMediaForm((p) => ({ ...p, coverImage: url }))
+    } catch (e) {
+      alert(e?.response?.data?.message || e?.message || "Cover image upload failed")
+    } finally {
+      setUploadingMedia("")
+    }
+  }
+
+  const handleGalleryUpload = async (files) => {
+    const list = Array.from(files || []).filter(Boolean)
+    if (list.length === 0) return
+
+    const remaining = MAX_GALLERY_IMAGES - mediaForm.galleryImages.length
+    if (remaining <= 0) {
+      alert(`Gallery is limited to ${MAX_GALLERY_IMAGES} images`)
+      return
+    }
+    // Truncating silently would look like the upload failed, so say so.
+    if (list.length > remaining) {
+      alert(`Only ${remaining} more image(s) can be added; the rest were skipped`)
+    }
+
+    try {
+      setUploadingMedia("gallery")
+      const urls = []
+      for (const file of list.slice(0, remaining)) {
+        urls.push(await uploadOne(file, "food/restaurants/gallery"))
+      }
+      setMediaForm((p) => ({ ...p, galleryImages: [...p.galleryImages, ...urls] }))
+    } catch (e) {
+      alert(e?.response?.data?.message || e?.message || "Gallery upload failed")
+    } finally {
+      setUploadingMedia("")
+    }
+  }
+
+  // Removal is by URL, not index, so a concurrent upload cannot shift positions and
+  // drop the wrong image.
+  const handleRemoveGalleryImage = (url) => {
+    setMediaForm((p) => ({ ...p, galleryImages: p.galleryImages.filter((u) => u !== url) }))
+  }
+
+  const handleSaveMedia = async () => {
+    if (!restaurantId) return
+    try {
+      setSavingMedia(true)
+      const payload = {
+        coverImage: mediaForm.coverImage,
+        // Kept in step with coverImage: the public restaurant page reads the array,
+        // the rider's pickup screen reads the single field, and leaving them to
+        // disagree is what made images appear on one surface but not the other.
+        coverImages: mediaForm.coverImage ? [mediaForm.coverImage] : [],
+        galleryImages: mediaForm.galleryImages,
+      }
+      const res = await adminAPI.updateRestaurant(restaurantId, payload)
+      const updated = res?.data?.data?.restaurant || res?.data?.data || null
+      if (updated) {
+        setRestaurant((prev) => ({ ...(prev || {}), ...updated }))
+        setMediaForm(normalizeMediaFormFromRestaurant(updated))
+      }
+      alert("Restaurant media updated successfully")
+    } catch (e) {
+      alert(e?.response?.data?.message || "Failed to update restaurant media")
+    } finally {
+      setSavingMedia(false)
     }
   }
 
@@ -496,6 +608,154 @@ export default function EditRestaurant() {
                   <Input value={detailsForm.offer} onChange={(e) => setDetailsForm((p) => ({ ...p, offer: e.target.value }))} />
                 </div>
               </div>
+            </section>
+
+            <section className="bg-white rounded-xl border border-slate-200 p-6">
+              <div className="flex items-center justify-between gap-3 mb-1">
+                <h2 className="text-lg font-semibold text-slate-900">Media Images</h2>
+                <Button onClick={handleSaveMedia} disabled={savingMedia || Boolean(uploadingMedia)}>
+                  {savingMedia ? (
+                    <span className="inline-flex items-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Saving...
+                    </span>
+                  ) : (
+                    "Save Media"
+                  )}
+                </Button>
+              </div>
+              <p className="text-sm text-slate-500 mb-4">
+                Uploads are staged here &mdash; nothing changes on the restaurant until you press Save Media.
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <Label>Cover Image</Label>
+                  <p className="text-xs text-slate-500 mt-1">
+                    The hero image on the restaurant page. Replacing it also updates the page banner.
+                  </p>
+                  <div className="mt-2">
+                    {mediaForm.coverImage ? (
+                      <div className="relative w-full h-40 rounded-lg overflow-hidden border border-slate-200 bg-slate-50">
+                        <img
+                          src={mediaForm.coverImage}
+                          alt="Restaurant cover"
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setMediaForm((p) => ({ ...p, coverImage: "" }))}
+                          className="absolute top-2 right-2 p-1.5 rounded-md bg-white/90 hover:bg-white border border-slate-200"
+                          title="Remove cover image"
+                        >
+                          <Trash2 className="w-4 h-4 text-red-600" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="w-full h-40 rounded-lg border border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-sm text-slate-400">
+                        No cover image
+                      </div>
+                    )}
+                  </div>
+                  <label className="mt-3 inline-flex items-center gap-2 px-3 py-2 rounded-md border border-slate-300 text-sm cursor-pointer hover:bg-slate-50">
+                    {uploadingMedia === "cover" ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Upload className="w-4 h-4" />
+                    )}
+                    {mediaForm.coverImage ? "Replace cover image" : "Upload cover image"}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      disabled={Boolean(uploadingMedia)}
+                      onChange={(e) => {
+                        handleCoverUpload(e.target.files?.[0])
+                        e.target.value = ""
+                      }}
+                    />
+                  </label>
+                </div>
+
+                <div>
+                  <Label>
+                    Premises Gallery ({mediaForm.galleryImages.length}/{MAX_GALLERY_IMAGES})
+                  </Label>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Shown to the delivery partner at pickup so they can identify the premises.
+                  </p>
+                  <div className="mt-2 grid grid-cols-3 gap-2">
+                    {mediaForm.galleryImages.map((url) => (
+                      <div
+                        key={url}
+                        className="relative h-24 rounded-lg overflow-hidden border border-slate-200 bg-slate-50"
+                      >
+                        <img src={url} alt="Premises" className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveGalleryImage(url)}
+                          className="absolute top-1 right-1 p-1 rounded bg-white/90 hover:bg-white border border-slate-200"
+                          title="Remove image"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 text-red-600" />
+                        </button>
+                      </div>
+                    ))}
+                    {mediaForm.galleryImages.length === 0 && (
+                      <div className="col-span-3 h-24 rounded-lg border border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-sm text-slate-400">
+                        No gallery images
+                      </div>
+                    )}
+                  </div>
+                  <label
+                    className={`mt-3 inline-flex items-center gap-2 px-3 py-2 rounded-md border border-slate-300 text-sm ${
+                      mediaForm.galleryImages.length >= MAX_GALLERY_IMAGES
+                        ? "opacity-50 cursor-not-allowed"
+                        : "cursor-pointer hover:bg-slate-50"
+                    }`}
+                  >
+                    {uploadingMedia === "gallery" ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Upload className="w-4 h-4" />
+                    )}
+                    Add gallery images
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      disabled={
+                        Boolean(uploadingMedia) ||
+                        mediaForm.galleryImages.length >= MAX_GALLERY_IMAGES
+                      }
+                      onChange={(e) => {
+                        handleGalleryUpload(e.target.files)
+                        e.target.value = ""
+                      }}
+                    />
+                  </label>
+                </div>
+              </div>
+
+              {mediaForm.menuImages.length > 0 && (
+                <div className="mt-6">
+                  <Label>Menu Photos ({mediaForm.menuImages.length})</Label>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Uploaded during onboarding. Read-only here.
+                  </p>
+                  <div className="mt-2 grid grid-cols-3 md:grid-cols-6 gap-2">
+                    {mediaForm.menuImages.map((url) => (
+                      <div
+                        key={url}
+                        className="h-24 rounded-lg overflow-hidden border border-slate-200 bg-slate-50"
+                      >
+                        <img src={url} alt="Menu" className="w-full h-full object-cover" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </section>
 
             <section className="bg-white rounded-xl border border-slate-200 p-6">

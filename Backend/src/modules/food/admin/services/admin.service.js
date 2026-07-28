@@ -3120,19 +3120,35 @@ export async function updateRestaurantById(id, body = {}) {
     if (body.gstImage !== undefined) doc.gstImage = toStr(getUrl(body.gstImage)) || undefined;
     if (body.fssaiImage !== undefined) doc.fssaiImage = toStr(getUrl(body.fssaiImage)) || undefined;
 
-    if (body.menuImages !== undefined) {
-        if (Array.isArray(body.menuImages)) {
-            doc.menuImages = body.menuImages.map(m => toStr(getUrl(m))).filter(Boolean);
-        } else {
-            doc.menuImages = [toStr(getUrl(body.menuImages))].filter(Boolean);
-        }
-    }
+    const toUrlList = (value, max) => {
+        const list = Array.isArray(value) ? value : [value];
+        return list.map((v) => toStr(getUrl(v))).filter(Boolean).slice(0, max);
+    };
+
+    if (body.menuImages !== undefined) doc.menuImages = toUrlList(body.menuImages, 10);
+
+    // Media images. These were missing, so an admin could edit a restaurant's
+    // documents and menu photos but not the cover or premises gallery — the two
+    // the customer app and the rider's pickup screen actually show.
+    //
+    // coverImage is the single hero; coverImages is the public page's banner array.
+    // Both are kept because the model carries them separately and onboarding does
+    // not consistently fill the same one.
+    if (body.coverImage !== undefined) doc.coverImage = toStr(getUrl(body.coverImage)) || undefined;
+    if (body.coverImages !== undefined) doc.coverImages = toUrlList(body.coverImages, 10);
+    if (body.galleryImages !== undefined) doc.galleryImages = toUrlList(body.galleryImages, 10);
 
     await doc.save();
 
     if (body.openingTime !== undefined || body.closingTime !== undefined) {
         await syncAdminRestaurantOutletTimings(doc);
+    }
 
+    // Always invalidate, not only on a timings change. Name, cuisines and every
+    // image field above are part of the cached public payload, so editing an image
+    // and seeing the old one for the rest of the TTL was indistinguishable from the
+    // upload silently failing.
+    {
         const { invalidateCache } = await import('../../../../middleware/cache.js');
         void invalidateCache('restaurants:*');
         void invalidateCache('restaurant_detail:*');

@@ -1883,6 +1883,10 @@ export default function RestaurantsList() {
                 const hasFlatAddress = r?.addressLine1 || r?.area || r?.city || r?.state || r?.pincode
                 const flatAddress = [r?.addressLine1, r?.addressLine2, r?.area, r?.city, r?.state, r?.pincode, r?.landmark].filter(Boolean).join(", ")
                 const menuImages = Array.isArray(r?.menuImages) ? r.menuImages.map(normalizeImageUrl).filter(Boolean) : []
+                // Premises gallery: what the rider is shown at pickup. It was the one
+                // image field this modal never surfaced, so an admin could not tell
+                // whether a restaurant had usable pickup photos without opening the edit page.
+                const galleryImages = Array.isArray(r?.galleryImages) ? r.galleryImages.map(normalizeImageUrl).filter(Boolean) : []
                 const cuisinesList =
                   (Array.isArray(r?.cuisines) && r.cuisines.length ? r.cuisines : null) ||
                   (Array.isArray(r?.onboarding?.step2?.cuisines) && r.onboarding.step2.cuisines.length ? r.onboarding.step2.cuisines : null) ||
@@ -2138,7 +2142,7 @@ export default function RestaurantsList() {
                   </div>
 
                   {/* Media */}
-                  {(profileImgUrl || coverImages.length > 0 || menuImages.length > 0) && (
+                  {(profileImgUrl || coverImages.length > 0 || galleryImages.length > 0 || menuImages.length > 0) && (
                     <div className="pt-6 border-t border-slate-200">
                       <h4 className="text-lg font-semibold text-slate-900 mb-4">Media</h4>
                       <div className="space-y-4">
@@ -2173,6 +2177,35 @@ export default function RestaurantsList() {
                                   <img
                                     src={url}
                                     alt={`Restaurant ${idx + 1}`}
+                                    className="w-full h-full object-cover"
+                                    loading="lazy"
+                                    onError={(e) => {
+                                      e.target.style.display = "none"
+                                    }}
+                                  />
+                                </a>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {galleryImages.length > 0 && (
+                          <div>
+                            <p className="text-xs text-slate-500 mb-2">
+                              Premises Gallery ({galleryImages.length}) &mdash; shown to the delivery partner at pickup
+                            </p>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                              {galleryImages.map((url, idx) => (
+                                <a
+                                  key={`${url}-${idx}`}
+                                  href={url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="relative aspect-4/5 rounded-lg overflow-hidden border border-slate-200 bg-slate-50 hover:border-slate-300"
+                                  title="Open premises photo"
+                                >
+                                  <img
+                                    src={url}
+                                    alt={`Premises ${idx + 1}`}
                                     className="w-full h-full object-cover"
                                     loading="lazy"
                                     onError={(e) => {
