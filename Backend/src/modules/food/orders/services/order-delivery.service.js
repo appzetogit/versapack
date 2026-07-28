@@ -66,10 +66,14 @@ const DELIVERY_USER_POPULATE = {
 
 const DELIVERY_RESTAURANT_POPULATE = {
   path: 'restaurantId',
-  // coverImage + galleryImages let the rider visually identify the premises at pickup;
+  // The image fields let the rider visually identify the premises at pickup. All four
+  // are included because the restaurant model carries two separate pairs and onboarding
+  // does not consistently fill the same one: coverImage is the single hero (documented
+  // as falling back to coverImages[0]), and galleryImages/menuImages are distinct
+  // arrays. Selecting only one pair returns empty for restaurants that filled the other.
   // phone/ownerPhone back the tap-to-call button; location gives the exact pin.
   select:
-    'restaurantName name phone ownerPhone location addressLine1 area city state pincode landmark profileImage coverImage galleryImages',
+    'restaurantName name phone ownerPhone location addressLine1 area city state pincode landmark profileImage coverImage coverImages galleryImages menuImages',
 };
 
 const DELIVERY_TRANSACTION_SELECT = 'orderId payment paymentMethod pricing amounts status';
