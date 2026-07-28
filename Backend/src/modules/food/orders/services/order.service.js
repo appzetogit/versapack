@@ -995,7 +995,7 @@ export async function getOrderById(
       "restaurantId",
       "restaurantName ownerPhone profileImage area city location rating totalRatings primaryContactNumber",
     )
-    .populate("dispatch.deliveryPartnerId", "name fullName phone phoneNumber rating totalRatings profilePhoto vehicleType vehicleName vehicleNumber totalDeliveries")
+    .populate("dispatch.deliveryPartnerId", "name fullName phone phoneNumber rating totalRatings profilePhoto vehicleType vehicleName vehicleNumber totalDeliveries lastLat lastLng lastLocationAt")
     .populate("userId", "name fullName phone email")
     .select("+deliveryOtp")
     .lean();
@@ -1043,6 +1043,25 @@ export async function getOrderById(
     if (!drop.verified && secret) {
       out.handoverOtp = secret;
     }
+
+    // deliveryState.currentLocation is derived from order.lastRiderLocation, which
+    // is only written once the rider emits a location-update FOR THIS ORDER — so
+    // before pickup it is null and every customer-side screen reading riderLat
+    // silently fell back to the restaurant's coordinates. The assigned partner's
+    // own last ping is a real position, so use it when we have nothing better.
+    const partner = order.dispatch?.deliveryPartnerId;
+    if (!out.deliveryState?.currentLocation && partner?._id) {
+      const pLat = Number(partner.lastLat);
+      const pLng = Number(partner.lastLng);
+      if (Number.isFinite(pLat) && Number.isFinite(pLng)) {
+        out.deliveryState = {
+          ...(out.deliveryState || {}),
+          currentLocation: { lat: pLat, lng: pLng },
+          currentLocationAt: partner.lastLocationAt || null,
+        };
+      }
+    }
+
     return out;
   }
 
