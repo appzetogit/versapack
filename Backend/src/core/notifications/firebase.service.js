@@ -224,6 +224,7 @@ const buildMessagePayload = (payload = {}, token) => {
             channel_id: isNewOrderAlert ? NEW_ORDER_CHANNEL_ID : DEFAULT_CHANNEL_ID,
             default_vibrate_timings: true,
             default_light_settings: true,
+            click_action: 'FLUTTER_NOTIFICATION_CLICK',
             ...(isNewOrderAlert ? { sound: 'tujh_bin' } : {})
         }
     };

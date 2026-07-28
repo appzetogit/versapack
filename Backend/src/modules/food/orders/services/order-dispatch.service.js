@@ -114,6 +114,10 @@ function buildIncomingOrderPushData(order, payload, acceptanceDeadlineAt) {
     paymentMethod: s(payload?.paymentMethod || order?.payment?.method),
     total: s(payload?.total ?? order?.pricing?.total ?? 0),
     acceptanceDeadlineAt: s(acceptanceDeadlineAt?.toISOString?.() || acceptanceDeadlineAt),
+    pickupAddress: s(payload?.restaurantAddress),
+    dropAddress: s(payload?.customerAddress),
+    price: s(payload?.earnings ?? payload?.riderEarning ?? 0),
+    distance: s(payload?.tripDistanceKm ?? ''),
   };
 }
 
