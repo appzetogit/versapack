@@ -140,14 +140,33 @@ async function listNearbyOnlineDeliveryPartners(
 
   const scored = [];
   const allowedStatuses = process.env.NODE_ENV === 'production' ? ['approved'] : ['approved', 'pending'];
-  const STALE_GPS_MS = 10 * 60 * 1000;
 
+  // A rider is only dropped for staleness after this long WITHOUT any GPS ping.
+  //
+  // This was 10 minutes, which silently starved the whole offer path: Android Doze
+  // suppresses the app's background location upload, the rider's GPS goes stale, so
+  // they're excluded from the offer, so no push is sent to wake the app, so the GPS
+  // stays stale. A rider sitting outside the restaurant with the app backgrounded
+  // would never be told about a new order.
+  //
+  // Excluding them was never what stopped cross-city offers — the distanceKm <= maxKm
+  // gate below does that. The original bug was that missing-GPS riders were being
+  // scored as distanceKm: 999, which BYPASSED the gate. Coordinates that are half an
+  // hour old and 3 km from the restaurant are still a far better candidate than
+  // offering the order to nobody.
+  const STALE_GPS_MS = Number(process.env.DISPATCH_STALE_GPS_MS) || 45 * 60 * 1000;
+
+  let droppedStale = 0;
   for (const p of allOnline) {
     if (!allowedStatuses.includes(p.status)) continue;
 
-    const isStale = !p.lastLocationAt || (Date.now() - new Date(p.lastLocationAt).getTime()) > STALE_GPS_MS;
-    // Skip missing/stale GPS — including them as distanceKm:999 leaked offers across cities.
-    if (p.lastLat == null || p.lastLng == null || isStale) {
+    // No coordinates at all → genuinely unplaceable, must skip (never score as 999).
+    if (p.lastLat == null || p.lastLng == null) {
+      droppedStale += 1;
+      continue;
+    }
+    if (!p.lastLocationAt || Date.now() - new Date(p.lastLocationAt).getTime() > STALE_GPS_MS) {
+      droppedStale += 1;
       continue;
     }
 
@@ -155,6 +174,14 @@ async function listNearbyOnlineDeliveryPartners(
     if (Number.isFinite(d) && d <= maxKm) {
       scored.push({ partnerId: p._id, distanceKm: d, status: p.status });
     }
+  }
+
+  // Without this, a starved dispatch is indistinguishable from "no riders online".
+  if (droppedStale > 0) {
+    logger.warn(
+      `[Dispatch] ${droppedStale}/${allOnline.length} online riders skipped for missing/stale GPS ` +
+        `(restaurant ${rId}, maxKm ${maxKm}). ${scored.length} eligible.`,
+    );
   }
 
   scored.sort((a, b) => a.distanceKm - b.distanceKm);
