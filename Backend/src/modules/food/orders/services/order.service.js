@@ -1350,6 +1350,10 @@ export async function submitOrderRatings(orderId, userId, dto) {
         restaurantRating: dto.restaurantRating,
         deliveryPartnerRating: hasDeliveryPartner ? dto.deliveryPartnerRating : null
     });
+
+    // The controller responds with { order }, so returning nothing shipped
+    // `order: undefined` on every successful rating.
+    return normalizeOrderForClient(order);
 }
 
 export async function updateOrderInstructions(orderId, userId, instructions) {
