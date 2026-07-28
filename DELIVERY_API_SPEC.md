@@ -186,6 +186,12 @@ Behaviour depends on state:
   "lastRiderLocation": { "type": "Point", "coordinates": [lng, lat] },
   "deliveryFleet": "standard",
   "ratings": { … },
+  "restaurantCoverImage": "/uploads/food/restaurants/cover/….webp",
+  "restaurantGalleryImages": ["/uploads/….webp"],
+  "restaurantLandmark": "Near SBI ATM",
+  "restaurantCallUri": "tel:9632587410",
+  "customerCallUri": "tel:9876543210",
+  "pickupDistanceKm": 1.2,
   "createdAt": "…", "updatedAt": "…"
 }
 ```
@@ -216,6 +222,39 @@ Watch out: `note` on a delivery-facing order is the **delivery instruction**, no
 `deliveryState.currentPhase` progresses: `en_route_to_pickup` → `at_pickup` → `en_route_to_delivery` → `at_drop` → `delivered` → `completed`.
 
 The drop OTP is never exposed to the partner in any response. The customer reads it out; the partner types it into verify-drop-otp.
+
+---
+
+### `GET /food/delivery/orders/:orderId/route`
+
+Driving route for the active-trip map. Accepts the display id **or** the Mongo `_id`.
+
+Query: `lat`, `lng` (rider's current position — falls back to the last stored ping),
+`target` = `restaurant` | `customer` (optional; inferred from trip phase when omitted —
+restaurant before pickup, customer after).
+
+```json
+{ "polyline": "<encoded google polyline>",
+  "distanceMeters": 10936, "distanceKm": 10.94,
+  "durationSeconds": 1612, "durationMins": 27,
+  "target": "restaurant",
+  "origin": { "lat": 22.68, "lng": 75.83 },
+  "destination": { "lat": 22.7282195, "lng": 75.8843622 } }
+```
+
+The polyline is **full-detail** (stitched from Google's per-step geometry, not the
+simplified `overview_polyline`), so it follows the road at street zoom. Decode it before
+drawing — it is an encoded string, not coordinates.
+
+When Directions can't produce a route you get **200** with `polyline: ""` and null
+distances — don't draw the line, keep the markers. Don't treat it as an error.
+
+⚠️ Each call is a **billed** Directions request. Call it when a trip phase starts and on a
+real re-route, not on a timer. The same polyline is also written to Firebase RTDB
+`active_orders/{orderMongoId}` at accept time and is free to read.
+
+⚠️ A near-zero-distance order (test data where the customer is metres from the restaurant)
+legitimately returns a 2-point polyline. That's correct, not a bug.
 
 ---
 
@@ -406,8 +445,23 @@ Indian defaults are served when admin hasn't configured them.
 
 ### `GET /food/delivery/referrals/stats`
 ```json
-{ "stats": { "referralCount": 3, "totalReferralEarnings": 300, "rewardAmount": 100 } }
+{ "stats": {
+    "referralCode": "6a64baafc8248e1b5dc44e0f",
+    "referralLink": "https://…?referrer=6a64baaf…",   // "" when admin hasn't set one
+    "rewardAmount": 50, "referralLimit": 20, "remainingReferrals": 19,
+    "referralCount": 1, "totalReferralEarnings": 50,
+    "totalInvited": 1, "creditedCount": 1, "pendingCount": 0, "rejectedCount": 0,
+    "rewardCondition": "Your referral must be approved and complete 1 delivery.",
+    "invitedPartners": [
+      { "id","name","phone","partnerStatus","deliveriesCompleted",
+        "status","reason","rewardAmount","earnedAmount","invitedAt" } ] } }
 ```
+
+Share `referralLink` when non-empty, else the bare `referralCode`. Never hardcode the URL or
+the amount — both are admin-set. The reward pays only after the referred rider is
+**approved AND completes their first delivery**, so a referral can sit `pending` for days.
+
+Pass the code at signup as a `ref` text field on `POST /food/delivery/register`.
 
 ---
 

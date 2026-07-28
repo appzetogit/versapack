@@ -409,9 +409,43 @@ All four required. Idempotent — re-verifying a completed top-up returns the wa
 
 (camelCase here. The delivery app's cash-deposit verify uses snake_case — different endpoint, different convention.)
 
+### Cashback history
+
+`GET /food/user/cashback?page=1&limit=20`
+```json
+{ "totalEarned": 130,
+  "items": [ { "id","amount","description","orderId","orderDisplayId","status","date","createdAt" } ],
+  "pagination": { "page":1,"limit":20,"total":3,"totalPages":1 } }
+```
+Cashback is awarded automatically when an order is **delivered** (not at checkout) and credited to the wallet. The user also gets an FCM push with `data.type: "cashback_credited"` — refresh the wallet and this list on receipt.
+
+Pre-order copy (no auth): `GET /food/admin/cashback-settings/public` → `{ cashbackSettings: { isEnabled, cashbackType, cashbackValue, minOrderValue, maxCashback, firstOrderOnly, perUserLimit } }`. Hide the banner when `isEnabled` is false. Never hardcode these.
+
+### Refund history
+
+`GET /food/user/refunds?page=1&limit=20`
+```json
+{ "totalRefunded": 546,
+  "refunds": [
+    { "orderId":"6a64...", "orderDisplayId":"FOD-123", "restaurantName":"Suvio",
+      "amount":546, "status":"processed",            // pending | processed | failed
+      "method":"razorpay", "refundId":"rfnd_...", "reason":"...",
+      "creditedToWallet": true,                       // false = back to card
+      "processedAt":"...", "orderStatus":"cancelled_by_restaurant",
+      "createdAt":"...", "updatedAt":"..." } ],
+  "pagination": { ... } }
+```
+**`creditedToWallet` drives the copy.** `true` → "Added to your wallet"; `false` → "Refunded to your {method}, 5–7 working days". Saying "added to wallet" for a card refund is the top support-ticket cause — the balance genuinely won't move.
+
+`totalRefunded` counts **processed only**, so the list total can exceed it while a refund is pending. That's correct.
+
+There is **no** endpoint to request a refund — the backend creates them on cancellation. The app only displays them.
+
 ### Referrals
 
-`GET /food/user/referrals/stats` → `{ stats: { referralCount, totalReferralEarnings, rewardAmount } }`
+`GET /food/user/referrals/stats` → `{ stats: { referralCode, referralLink, referralCount, totalReferralEarnings, rewardAmount, referralLimit } }`
+
+`referralLink` is built server-side from an admin-configured template and may be `""` — when empty, share `referralCode` alone. Never hardcode the invite URL. The code is passed as `ref` in the OTP-verify body on signup.
 
 `GET /food/user/referrals/details`:
 ```json
@@ -731,6 +765,30 @@ You are auto-joined to `user:<userId>` at connect, so user-targeted events arriv
 
 On `order_status_update` / `order_ready`, refetch the order rather than patching state from the payload — the REST object is the complete, normalized one.
 
+### Step 3b — live ETA
+
+Every order read includes a freshly computed ETA:
+
+```json
+"eta": { "minutes": 13, "distanceKm": 4.51,
+         "source": "live",        // live | estimate | completed | unavailable
+         "target": "customer" }   // customer | restaurant | null
+```
+
+| `target` | meaning |
+|---|---|
+| `restaurant` | rider is still going to collect the food |
+| `customer` | rider has the food and is coming to you |
+
+| `source` | meaning |
+|---|---|
+| `live` | computed from the rider's actual position — recomputed on every read |
+| `estimate` | no rider GPS yet; the order-time estimate |
+| `completed` | delivered/cancelled, `minutes` is `null` |
+| `unavailable` | show "Calculating…", **not** "0 min" |
+
+Distance-based (road factor 1.3, ~22 km/h city average), **not** a Directions call — free to poll. Refresh on each `location-update`, or re-render every ~30s.
+
 ### Step 4 — the handover OTP
 
 The customer reads a 4-digit OTP to the rider at the door. Two ways to get it:
@@ -751,6 +809,47 @@ Sockets are an optimization, not the contract. If the socket is down, poll `GET 
 ### What is *not* available
 
 There is no route/polyline endpoint and no server-computed live ETA. You get the rider's current point, the two endpoints, and `roadDistanceKm` / `roadDurationMins` captured at order time. Draw the path client-side if you want one.
+
+---
+
+## 7c. Chat — `/food/chat` (Bearer)
+
+Customer ↔ delivery partner (order-scoped) and customer ↔ admin support.
+
+| Method | Path | Body / query |
+|---|---|---|
+| POST | `/food/chat/messages` | `{ "orderId": "<orderMongoId>", "text": "..." }` |
+| GET | `/food/chat/conversations` | — |
+| GET | `/food/chat/messages` | `?conversationId=&page=&limit=` |
+| PATCH | `/food/chat/conversations/:conversationId/read` | — |
+
+**Send** takes only `orderId` + `text`. The recipient is resolved **server-side** from the order (customer → assigned rider, and vice versa) — a client-supplied `peerId` is not trusted. For admin support send `{ "peerRole": "ADMIN", "text": "..." }` with no `orderId`.
+
+```json
+// message
+{ "id","conversationId","orderId","senderRole","senderId",
+  "recipientRole","recipientId","text","readAt","createdAt" }
+
+// conversation
+{ "conversationId","orderId","peerToken","lastMessage","lastAt","unread" }
+```
+
+`peerToken` is a single string `"ROLE:id"` (e.g. `"DELIVERY_PARTNER:64f..."`) — split on `:`. `"ADMIN"` has no id.
+
+**`conversationId` for a customer↔rider thread is exactly `order._id.toString()`** — look a thread up by the order id you already hold.
+
+History returns **oldest → newest** (render top-down) and auto-marks incoming messages read.
+
+**Realtime** (same socket as tracking, don't open a second):
+```dart
+socket.on('chat:message', (msg) { ... });          // same shape as the POST response
+socket.emit('chat:typing', { 'toRole':'DELIVERY_PARTNER', 'toId': riderId,
+                             'conversationId': convId, 'typing': true });
+socket.on('chat:typing', (d) { ... });             // {conversationId, fromRole, fromId, typing}
+```
+Offline delivery via FCM: `data.type: "chat_message"`, `data.conversationId`.
+
+Errors: `"orderId is required to chat outside of admin support"`, `"You are not a participant of this order"`, `"No delivery partner is assigned to this order yet"`.
 
 ---
 

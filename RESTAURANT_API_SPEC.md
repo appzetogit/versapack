@@ -32,7 +32,7 @@ Verified against `Backend/src/modules/food/restaurant/` and `Backend/src/modules
 
 ### `POST /food/restaurant/register` — `multipart/form-data`
 
-File fields: `profileImage` (1), `panImage` (1), `gstImage` (1), `fssaiImage` (1), `menuImages` (up to 10).
+File fields: `profileImage` (1), `panImage` (1), `gstImage` (1), `fssaiImage` (1), `menuImages` (up to 10), **`coverImage` (1)**, **`galleryImages` (up to 10)**.
 
 Text fields — note several are **comma-joined strings**, not arrays, because this is FormData:
 ```json
@@ -140,6 +140,46 @@ Body also takes `folder`. → `data` = upload result (URL). Use this to pre-uplo
 | POST | `/food/restaurant/profile/menu-images` | `files` | 20 |
 
 → `data` = upload result with the stored URL(s).
+
+---
+
+## 3b. Page banners, cover image & premises gallery
+
+### Public-page banners (the carousel on `/restaurants/:id`)
+
+| Method | Path | Body |
+|---|---|---|
+| GET | `/food/restaurant/banners` | → `{ banners: [url], primaryBanner, maxBanners: 10 }` |
+| POST | `/food/restaurant/banners` | multipart, field `files` (≤10) → `{ banners, primaryBanner, uploaded, skipped }` |
+| DELETE | `/food/restaurant/banners` | `{ "bannerUrl": "<exact url from the API>" }` |
+| PATCH | `/food/restaurant/banners/order` | `{ "banners": [ ...full list in order... ] }` |
+
+**Index 0 is the header image.** Reorder must be a **permutation of the current set** — send every banner exactly once, or it's rejected (this stops a stale client silently dropping a banner it never loaded).
+
+Send the **raw relative path** the API returned on delete/reorder, not the absolute URL you built for display, or you'll get *"Banner not found on this restaurant"*.
+
+⚠️ Do **not** use the older `POST /food/restaurant/profile/cover-images` for this — it resets the restaurant to `status: "pending"` and forces admin re-approval. `/banners` never touches status.
+
+### Main cover image + premises gallery
+
+| Method | Path | Body |
+|---|---|---|
+| GET | `/food/restaurant/media` | → `{ coverImage, galleryImages, maxGalleryImages: 10 }` |
+| POST | `/food/restaurant/media/cover-image` | multipart, field `file` → `{ coverImage }` |
+| POST | `/food/restaurant/media/gallery` | multipart, field `files` (≤10) → `{ galleryImages, uploaded, skipped }` |
+| DELETE | `/food/restaurant/media/gallery` | `{ "imageUrl": "…" }` |
+
+The **gallery is shown to the delivery partner at pickup** so they can identify the premises, and appears on the customer page. Both can also be supplied at onboarding (§2) as `coverImage` and `galleryImages`.
+
+### Admin promo banners shown *inside* this app
+
+`GET /food/restaurant/app-banners` (Bearer RESTAURANT, read-only)
+```json
+{ "banners": [ { "id","imageUrl","title","ctaLink","sortOrder","isActive" } ],
+  "recommendedSize": { "width": 350, "height": 100 },
+  "aspectRatio": 3.5 }
+```
+Admin-managed; the restaurant can't edit these. Size the widget from `aspectRatio`, don't hardcode 350×100. `ctaLink` may be `""` → not tappable. Empty list → render nothing.
 
 ---
 
