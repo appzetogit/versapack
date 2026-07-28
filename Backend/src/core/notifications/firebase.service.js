@@ -26,6 +26,15 @@ const OWNER_TOKEN_FIELDS = {
 /** Keep a few recent devices, not long stale histories that cause duplicate pushes. */
 const MAX_TOKENS_PER_PLATFORM = 3;
 
+/**
+ * Android notification channel for driver new-order alerts.
+ *
+ * Must exist client-side with IMPORTANCE_HIGH; Android ignores a channel_id it does
+ * not know and quietly uses the default channel instead, which is neither heads-up
+ * nor audible.
+ */
+const NEW_ORDER_CHANNEL_ID = process.env.FCM_NEW_ORDER_CHANNEL_ID || 'high_importance_channel';
+
 let cachedAccessToken = null;
 let cachedAccessTokenExpiryMs = 0;
 let cachedServiceAccount = null;
@@ -191,17 +200,19 @@ const buildMessagePayload = (payload = {}, token) => {
         message.data = data;
     }
 
-    // 'new_order' rings through the dedicated high-priority channel (custom sound, max
-    // importance) created client-side in LocalNotificationService. The channel id and the
-    // Android sound resource name must match the app EXACTLY, otherwise Android 8+
-    // silently falls back to the default channel and the alert is inaudible.
+    // 'new_order' rings through a dedicated high-importance channel with a custom
+    // sound. The channel id and the Android sound resource name must match what the
+    // app creates EXACTLY, otherwise Android 8+ silently falls back to the default
+    // channel and the alert is inaudible — a mismatch here looks identical to "the
+    // notification never arrived". Overridable so a client rename does not need a
+    // backend deploy.
     const isNewOrderAlert = data.type === 'new_order';
     const isDataOnlyPush = Boolean(payload.dataOnly);
 
     message.android = {
         priority: 'high',
         notification: {
-            channel_id: isNewOrderAlert ? 'new_order_channel' : 'default',
+            channel_id: isNewOrderAlert ? NEW_ORDER_CHANNEL_ID : 'default',
             default_vibrate_timings: true,
             default_light_settings: true,
             ...(isNewOrderAlert ? { sound: 'tujh_bin' } : {})

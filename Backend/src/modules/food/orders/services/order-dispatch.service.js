@@ -339,7 +339,11 @@ export async function tryAutoAssign(orderId, options = {}) {
             {
               title: 'New order available!',
               body: `Order #${order.order_id || order._id} is still available. Tap to accept.`,
-              dataOnly: true,
+              // NOT data-only. A data-only push needs the app alive to display
+              // anything, so a force-stopped or OEM-battery-killed app showed the
+              // rider absolutely nothing. Including the notification block makes
+              // Android/APNs display it themselves, and upgrades the iOS headers
+              // from priority 5 / push-type background to 10 / alert.
               data: buildIncomingOrderPushData(order, payload, acceptanceDeadlineAt),
             },
           );
@@ -391,9 +395,17 @@ export async function tryAutoAssign(orderId, options = {}) {
           {
             title: 'New order available!',
             body: `Order #${order.order_id || order._id} is available. You have ${Math.round(DRIVER_ACCEPT_WINDOW_MS / 1000)} seconds to accept!`,
-            // Data-only: the app raises its own full-screen accept UI. With a notification
-            // block Android would also post a tray notification competing with it.
-            dataOnly: true,
+            // Deliberately NOT data-only any more.
+            //
+            // Data-only kept the tray clear so the app could own the full-screen accept
+            // UI, but it also meant FCM displayed nothing itself — so a force-stopped or
+            // OEM-battery-killed app left the rider with no indication at all. A possible
+            // duplicate buzz is a far better failure than a missed order.
+            //
+            // This also lifts the iOS headers from priority 5 / push-type background
+            // (throttled by Apple, and undeliverable when terminated) to 10 / alert.
+            // The app should cancel its own local notification when it raises the
+            // full-screen alert, so only one survives.
             data: buildIncomingOrderPushData(order, payload, acceptanceDeadlineAt),
           }
         );
