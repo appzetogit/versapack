@@ -486,12 +486,26 @@ export async function notifyRestaurantNewOrder(orderDoc) {
     const itemCount = Array.isArray(orderDoc.items)
       ? orderDoc.items.reduce((sum, it) => sum + (Number(it?.quantity) || 0), 0)
       : 0;
+    const itemsList = Array.isArray(orderDoc.items)
+      ? orderDoc.items.map((it) => `${it.quantity}x ${it.name}`).join(", ")
+      : "";
+    const addressStr = orderDoc.deliveryAddress 
+      ? [orderDoc.deliveryAddress.address, orderDoc.deliveryAddress.area, orderDoc.deliveryAddress.city].filter(Boolean).join(", ")
+      : "";
+    const total = orderDoc.pricing?.total ?? 0;
+    
+    // Construct rich body for the custom notification layout in Flutter
+    let bodyText = `Order #${orderDoc.order_id || orderDoc._id} is waiting for review.`;
+    if (itemsList) bodyText += `\nItems: ${itemsList}`;
+    if (total > 0) bodyText += `\nTotal: ₹${total}`;
+    if (orderDoc.customerName) bodyText += `\nCustomer: ${orderDoc.customerName}`;
+    if (addressStr) bodyText += `\nAddress: ${addressStr}`;
 
     await notifyOwnersSafely(
       [{ ownerType: "RESTAURANT", ownerId: orderDoc.restaurantId }],
       {
         title: "New order received",
-        body: `Order #${orderDoc.order_id || orderDoc._id} is waiting for review.`,
+        body: bodyText,
         // Data-only, so the restaurant app renders the notification itself and can
         // attach Accept / Reject action buttons.
         //
@@ -521,7 +535,9 @@ export async function notifyRestaurantNewOrder(orderDoc) {
           // call, which matters when the device is locked or the app was killed.
           customerName: str(orderDoc.customerName),
           itemCount: str(itemCount),
-          total: str(orderDoc.pricing?.total ?? 0),
+          itemsList: str(itemsList),
+          address: str(addressStr),
+          total: str(total),
           paymentMethod: str(orderDoc.payment?.method),
           acceptanceDeadlineAt: str(orderDoc.acceptanceDeadlineAt?.toISOString?.() || ""),
         },
