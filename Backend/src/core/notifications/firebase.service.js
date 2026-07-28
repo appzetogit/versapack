@@ -219,15 +219,17 @@ const buildMessagePayload = (payload = {}, token) => {
     const isDataOnlyPush = Boolean(payload.dataOnly);
 
     message.android = {
-        priority: 'high',
-        notification: {
+        priority: 'high'
+    };
+    if (!isDataOnlyPush) {
+        message.android.notification = {
             channel_id: isNewOrderAlert ? NEW_ORDER_CHANNEL_ID : DEFAULT_CHANNEL_ID,
             default_vibrate_timings: true,
             default_light_settings: true,
             click_action: 'FLUTTER_NOTIFICATION_CLICK',
             ...(isNewOrderAlert ? { sound: 'tujh_bin' } : {})
-        }
-    };
+        };
+    }
 
     // Background/terminated delivery on iOS: silent (content-available) pushes must use
     // priority 5 + push-type background or Apple throttles/drops them. Alert pushes get
