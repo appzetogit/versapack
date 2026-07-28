@@ -27,13 +27,27 @@ const OWNER_TOKEN_FIELDS = {
 const MAX_TOKENS_PER_PLATFORM = 3;
 
 /**
- * Android notification channel for driver new-order alerts.
+ * Android notification channels. These MUST match channels the receiving app
+ * actually creates: Android silently ignores an unknown channel_id and falls back
+ * to FCM's auto-created "Miscellaneous" channel at IMPORTANCE_DEFAULT — no heads-up,
+ * no sound, no full-screen intent. That failure is indistinguishable from the push
+ * never arriving, which is why these defaults are taken from the apps' own source
+ * rather than from what anyone assumed the ids were.
  *
- * Must exist client-side with IMPORTANCE_HIGH; Android ignores a channel_id it does
- * not know and quietly uses the default channel instead, which is neither heads-up
- * nor audible.
+ * Delivery app (Flutter_delivery, lib/core/services/fcm_service.dart):
+ *   'incoming_orders_channel' — Importance.max, full-screen incoming order alerts
+ *   'orders_channel'          — Importance.max, order status updates
+ *   It does NOT define 'high_importance_channel' anywhere, and has no
+ *   default_notification_channel_id in its manifest.
+ *
+ * User app (flutter-food-user-application, lib/src/platform/notifications/push_service.dart):
+ *   'high_importance_channel' — Importance.max, and the manifest's
+ *   com.google.firebase.messaging.default_notification_channel_id.
+ *
+ * Both overridable, so a client-side rename is an env change rather than a deploy.
  */
-const NEW_ORDER_CHANNEL_ID = process.env.FCM_NEW_ORDER_CHANNEL_ID || 'high_importance_channel';
+const NEW_ORDER_CHANNEL_ID = process.env.FCM_NEW_ORDER_CHANNEL_ID || 'incoming_orders_channel';
+const DEFAULT_CHANNEL_ID = process.env.FCM_DEFAULT_CHANNEL_ID || 'high_importance_channel';
 
 let cachedAccessToken = null;
 let cachedAccessTokenExpiryMs = 0;
@@ -200,19 +214,14 @@ const buildMessagePayload = (payload = {}, token) => {
         message.data = data;
     }
 
-    // 'new_order' rings through a dedicated high-importance channel with a custom
-    // sound. The channel id and the Android sound resource name must match what the
-    // app creates EXACTLY, otherwise Android 8+ silently falls back to the default
-    // channel and the alert is inaudible — a mismatch here looks identical to "the
-    // notification never arrived". Overridable so a client rename does not need a
-    // backend deploy.
+    // See NEW_ORDER_CHANNEL_ID / DEFAULT_CHANNEL_ID above for why these ids matter.
     const isNewOrderAlert = data.type === 'new_order';
     const isDataOnlyPush = Boolean(payload.dataOnly);
 
     message.android = {
         priority: 'high',
         notification: {
-            channel_id: isNewOrderAlert ? NEW_ORDER_CHANNEL_ID : 'default',
+            channel_id: isNewOrderAlert ? NEW_ORDER_CHANNEL_ID : DEFAULT_CHANNEL_ID,
             default_vibrate_timings: true,
             default_light_settings: true,
             ...(isNewOrderAlert ? { sound: 'tujh_bin' } : {})
