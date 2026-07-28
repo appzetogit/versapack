@@ -470,3 +470,16 @@ export async function getOrderRouteDeliveryController(req, res, next) {
         next(err);
     }
 }
+
+export async function getOrderRouteUserController(req, res, next) {
+    try {
+        const result = await orderService.getOrderRouteForUser(
+            req.params.orderId,
+            req.user?.userId,
+            req.query || {}
+        );
+        return sendResponse(res, 200, 'Route fetched', result);
+    } catch (err) {
+        next(err);
+    }
+}

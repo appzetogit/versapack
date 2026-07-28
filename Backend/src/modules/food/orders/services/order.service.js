@@ -1725,6 +1725,10 @@ export async function getOrderRouteForDelivery(orderId, deliveryPartnerId, query
   return deliveryService.getOrderRouteForDelivery(orderId, deliveryPartnerId, query);
 }
 
+export async function getOrderRouteForUser(orderId, userId, query) {
+  return deliveryService.getOrderRouteForUser(orderId, userId, query);
+}
+
 export async function acceptOrderDelivery(orderId, deliveryPartnerId) {
   return deliveryService.acceptOrderDelivery(orderId, deliveryPartnerId);
 }

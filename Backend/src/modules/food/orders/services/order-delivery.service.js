@@ -1124,20 +1124,53 @@ export async function updateOrderStatusDelivery(orderId, deliveryPartnerId, orde
  * the Mongo _id. Returns empty-but-valid fields rather than throwing when Directions has
  * nothing to give, so the client can degrade instead of erroring.
  */
-export async function getOrderRouteForDelivery(orderId, deliveryPartnerId, query = {}) {
+async function loadOrderForRoute(orderId) {
   const identity = buildOrderIdentityFilter(orderId);
   if (!identity) throw new ValidationError('Order id required');
 
   const order = await FoodOrder.findOne(identity)
-    .select('dispatch deliveryState deliveryAddress restaurantId lastRiderLocation orderStatus')
+    .select('userId dispatch deliveryState deliveryAddress restaurantId lastRiderLocation orderStatus')
     .populate('restaurantId', 'location addressLine1 restaurantName')
     .lean();
   if (!order) throw new NotFoundError('Order not found');
+  return order;
+}
+
+export async function getOrderRouteForDelivery(orderId, deliveryPartnerId, query = {}) {
+  const order = await loadOrderForRoute(orderId);
 
   if (String(order.dispatch?.deliveryPartnerId || '') !== String(deliveryPartnerId)) {
     throw new ForbiddenError('Not your order');
   }
 
+  return computeOrderRoute(order, query);
+}
+
+/**
+ * Customer-facing twin of the rider's route endpoint.
+ *
+ * The tracking map previously drew the RTDB polyline, which is computed ONCE at
+ * accept time as restaurant→customer and never re-cut. So before pickup it drew a
+ * route the rider isn't on, and after pickup it never followed them. The rider app
+ * looks correct precisely because it calls the route endpoint with a live origin,
+ * so this gives the customer the same thing.
+ *
+ * Unlike the rider's version this ignores any client lat/lng and always uses the
+ * rider's server-side last known position. Letting the customer pass arbitrary
+ * coordinates would make this an open Directions proxy billed to us, and would
+ * leak nothing useful anyway — they want the rider's route, not their own.
+ */
+export async function getOrderRouteForUser(orderId, userId, query = {}) {
+  const order = await loadOrderForRoute(orderId);
+
+  if (String(order.userId || '') !== String(userId)) {
+    throw new ForbiddenError('Not your order');
+  }
+
+  return computeOrderRoute(order, { target: query?.target });
+}
+
+async function computeOrderRoute(order, query = {}) {
   // Origin: the rider's live position from the query, else their last known ping.
   const qLat = Number(query.lat);
   const qLng = Number(query.lng);

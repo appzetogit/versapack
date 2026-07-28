@@ -10,7 +10,8 @@ import {
     cancelOrderController,
     submitOrderRatingsController,
     getOrderDropOtpUserController,
-    updateOrderInstructionsController
+    updateOrderInstructionsController,
+    getOrderRouteUserController
 } from '../controllers/order.controller.js';
 
 const router = express.Router();
@@ -22,6 +23,8 @@ router.delete('/:orderId/pending-payment', abandonOnlinePaymentController);
 router.get('/', listOrdersUserController);
 router.get('/:orderId/payments', getOrderPaymentsUserController);
 router.get('/:orderId/drop-otp', getOrderDropOtpUserController);
+// Live route from the rider's current position to their next stop, for the tracking map.
+router.get('/:orderId/route', getOrderRouteUserController);
 router.get('/:orderId', getOrderByIdUserController);
 router.patch('/:orderId/cancel', cancelOrderController);
 router.patch('/:orderId/ratings', submitOrderRatingsController);
