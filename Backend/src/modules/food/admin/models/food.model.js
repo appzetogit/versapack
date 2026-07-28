@@ -23,6 +23,9 @@ const foodSchema = new mongoose.Schema(
         image: { type: String, trim: true, default: '' },
         foodType: { type: String, enum: ['Veg', 'Non-Veg'], default: 'Non-Veg' },
         isAvailable: { type: Boolean, default: true, index: true },
+        /** Running average of per-dish ratings left by customers. */
+        rating: { type: Number, default: 0, min: 0, max: 5 },
+        totalRatings: { type: Number, default: 0, min: 0 },
         /** When set, item auto-restores to available after this time (server-side). */
         stockResumeAt: { type: Date, index: true },
         stockOffMode: {

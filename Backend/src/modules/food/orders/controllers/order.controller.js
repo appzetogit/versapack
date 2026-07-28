@@ -9,7 +9,8 @@ import {
     validateOrderStatusDto,
     validateAssignDeliveryDto,
     validateDispatchSettingsDto,
-    validateOrderRatingsDto
+    validateOrderRatingsDto,
+    validateCustomerRatingDto
 } from '../validators/order.validator.js';
 
 export async function calculateOrderController(req, res, next) {
@@ -119,6 +120,21 @@ export async function submitOrderRatingsController(req, res, next) {
         const dto = validateOrderRatingsDto(req.body);
         const order = await orderService.submitOrderRatings(orderId, userId, dto);
         return sendResponse(res, 200, 'Ratings submitted successfully', { order });
+    } catch (err) {
+        next(err);
+    }
+}
+
+export async function rateCustomerDeliveryController(req, res, next) {
+    try {
+        const deliveryPartnerId = req.user?.userId;
+        const dto = validateCustomerRatingDto(req.body);
+        const result = await orderService.submitCustomerRating(
+            req.params.orderId,
+            deliveryPartnerId,
+            dto
+        );
+        return sendResponse(res, 200, 'Customer rated successfully', result);
     } catch (err) {
         next(err);
     }

@@ -178,7 +178,32 @@ export function validateOrderRatingsDto(body) {
         restaurantRating: z.number().min(1).max(5),
         deliveryPartnerRating: z.number().min(1).max(5).optional(),
         restaurantComment: z.string().max(500).optional(),
-        deliveryPartnerComment: z.string().max(500).optional()
+        deliveryPartnerComment: z.string().max(500).optional(),
+        // Per-dish ratings. Optional, so a customer can rate the restaurant
+        // without being forced to score every item.
+        itemRatings: z
+            .array(
+                z.object({
+                    itemId: z.string().min(1),
+                    rating: z.number().min(1).max(5),
+                    comment: z.string().max(500).optional()
+                })
+            )
+            .max(50)
+            .optional()
+    });
+    const result = schema.safeParse(body || {});
+    if (!result.success) {
+        throw new ValidationError(result.error.errors?.[0]?.message || 'Validation failed');
+    }
+    return result.data;
+}
+
+/** Delivery partner rating the customer after handover. */
+export function validateCustomerRatingDto(body) {
+    const schema = z.object({
+        rating: z.number().min(1).max(5),
+        comment: z.string().max(500).optional()
     });
     const result = schema.safeParse(body || {});
     if (!result.success) {

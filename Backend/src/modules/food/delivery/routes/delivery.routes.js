@@ -78,6 +78,8 @@ router.patch('/orders/:orderId/status', authMiddleware, requireRoles('DELIVERY_P
 router.post('/orders/:orderId/collect/qr', authMiddleware, requireRoles('DELIVERY_PARTNER'), orderController.createCollectQrController);
 
 router.get('/orders/:orderId/route', authMiddleware, requireRoles('DELIVERY_PARTNER'), orderController.getOrderRouteDeliveryController);
+// Delivery partner rates the customer after handover.
+router.patch('/orders/:orderId/rate-customer', authMiddleware, requireRoles('DELIVERY_PARTNER'), orderController.rateCustomerDeliveryController);
 
 router.get('/orders/:orderId/payment-status', authMiddleware, requireRoles('DELIVERY_PARTNER'), orderController.getPaymentStatusController);
 router.post('/orders/:orderId/collect/cash', authMiddleware, requireRoles('DELIVERY_PARTNER'), orderController.switchToCashController);

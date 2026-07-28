@@ -177,10 +177,26 @@ const orderEntityRatingSchema = new mongoose.Schema(
     { _id: false }
 );
 
+/** One rated dish. itemId matches items[].itemId on the same order. */
+const orderItemRatingSchema = new mongoose.Schema(
+    {
+        itemId: { type: String, required: true, trim: true },
+        name: { type: String, default: '', trim: true },
+        rating: { type: Number, min: 1, max: 5, required: true },
+        comment: { type: String, default: '', trim: true },
+        ratedAt: { type: Date, default: Date.now }
+    },
+    { _id: false }
+);
+
 const orderRatingsSchema = new mongoose.Schema(
     {
         restaurant: { type: orderEntityRatingSchema, default: undefined },
-        deliveryPartner: { type: orderEntityRatingSchema, default: undefined }
+        deliveryPartner: { type: orderEntityRatingSchema, default: undefined },
+        /** The CUSTOMER, rated by the delivery partner after handover. */
+        customer: { type: orderEntityRatingSchema, default: undefined },
+        /** Per-dish ratings from the customer. */
+        items: { type: [orderItemRatingSchema], default: [] }
     },
     { _id: false }
 );

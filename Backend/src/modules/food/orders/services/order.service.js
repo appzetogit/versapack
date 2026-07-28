@@ -3,6 +3,7 @@ import { FoodOrder, FoodSettings } from '../models/order.model.js';
 // import { paymentSnapshotFromOrder } from './foodOrderPayment.service.js';
 import { logger } from '../../../../utils/logger.js';
 import { FoodUser } from '../../../../core/users/user.model.js';
+import { FoodItem } from '../../admin/models/food.model.js';
 import { FoodRestaurant } from '../../restaurant/models/restaurant.model.js';
 import { FoodDeliveryPartner } from '../../delivery/models/deliveryPartner.model.js';
 import { FoodZone } from '../../admin/models/zone.model.js';
@@ -1327,6 +1328,32 @@ export async function submitOrderRatings(orderId, userId, dto) {
     };
   }
 
+  // Per-dish ratings. Only items actually on this order count — otherwise a
+  // customer could rate any dish on the menu, from one cheap order.
+  const orderedItems = new Map(
+    (order.items || []).map((it) => [String(it.itemId), it]),
+  );
+  const itemRatings = Array.isArray(dto.itemRatings) ? dto.itemRatings : [];
+  const seenItemIds = new Set();
+  for (const entry of itemRatings) {
+    const itemId = String(entry.itemId || "").trim();
+    const ordered = orderedItems.get(itemId);
+    if (!ordered) {
+      throw new ValidationError("You can only rate dishes from this order");
+    }
+    if (seenItemIds.has(itemId)) {
+      throw new ValidationError("Each dish can be rated only once");
+    }
+    seenItemIds.add(itemId);
+    order.ratings.items.push({
+      itemId,
+      name: ordered.name || "",
+      rating: entry.rating,
+      comment: entry.comment || "",
+      ratedAt: now,
+    });
+  }
+
   await Promise.all([
     applyAggregateRating(
       FoodRestaurant,
@@ -1340,6 +1367,9 @@ export async function submitOrderRatings(orderId, userId, dto) {
           dto.deliveryPartnerRating,
         )
       : Promise.resolve(),
+    ...itemRatings.map((entry) =>
+      applyAggregateRating(FoodItem, entry.itemId, entry.rating),
+    ),
   ]);
 
     await order.save();
@@ -1354,6 +1384,50 @@ export async function submitOrderRatings(orderId, userId, dto) {
     // The controller responds with { order }, so returning nothing shipped
     // `order: undefined` on every successful rating.
     return normalizeOrderForClient(order);
+}
+
+/**
+ * Delivery partner rates the customer after handover.
+ *
+ * Kept separate from submitOrderRatings rather than folded into it: the two are
+ * written by different roles at different times, and sharing the one-shot guard
+ * would mean whichever side rated first locked the other out.
+ */
+export async function submitCustomerRating(orderId, deliveryPartnerId, dto) {
+  const identity = buildOrderIdentityFilter(orderId);
+  if (!identity) throw new ValidationError("Order id required");
+
+  const order = await FoodOrder.findOne(identity);
+  if (!order) throw new NotFoundError("Order not found");
+
+  if (
+    String(order.dispatch?.deliveryPartnerId || "") !==
+    String(deliveryPartnerId)
+  ) {
+    throw new ForbiddenError("Not your order");
+  }
+  if (String(order.orderStatus) !== "delivered") {
+    throw new ValidationError("You can rate only delivered orders");
+  }
+  if (Number.isFinite(Number(order?.ratings?.customer?.rating))) {
+    throw new ValidationError("You have already rated this customer");
+  }
+
+  order.ratings = order.ratings || {};
+  order.ratings.customer = {
+    rating: dto.rating,
+    comment: dto.comment || "",
+    ratedAt: new Date(),
+  };
+
+  await applyAggregateRating(FoodUser, order.userId, dto.rating);
+  await order.save();
+
+  return {
+    orderId: order.order_id || order._id.toString(),
+    orderMongoId: order._id.toString(),
+    customerRating: order.ratings.customer,
+  };
 }
 
 export async function updateOrderInstructions(orderId, userId, instructions) {

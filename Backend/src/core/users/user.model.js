@@ -137,7 +137,10 @@ const userSchema = new mongoose.Schema(
         addresses: {
             type: [userAddressSchema],
             default: []
-        }
+        },
+        /** Running average of ratings left by delivery partners. */
+        rating: { type: Number, default: 0, min: 0, max: 5 },
+        totalRatings: { type: Number, default: 0, min: 0 }
     },
     {
         collection: 'food_users',
