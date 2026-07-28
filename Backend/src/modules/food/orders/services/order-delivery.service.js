@@ -1131,6 +1131,10 @@ async function loadOrderForRoute(orderId) {
   const order = await FoodOrder.findOne(identity)
     .select('userId dispatch deliveryState deliveryAddress restaurantId lastRiderLocation orderStatus')
     .populate('restaurantId', 'location addressLine1 restaurantName')
+    // Deliberately NOT populating dispatch.deliveryPartnerId: the rider ownership
+    // check below compares it with String(), which a populated document would turn
+    // into "[object Object]" and reject every rider. computeOrderRoute looks the
+    // partner up separately, and only when it needs a fallback origin.
     .lean();
   if (!order) throw new NotFoundError('Order not found');
   return order;
@@ -1176,11 +1180,34 @@ async function computeOrderRoute(order, query = {}) {
   const qLng = Number(query.lng);
   const hasQueryOrigin = Number.isFinite(qLat) && Number.isFinite(qLng);
   const lastCoords = order.lastRiderLocation?.coordinates;
-  const origin = hasQueryOrigin
+  let origin = hasQueryOrigin
     ? { lat: qLat, lng: qLng }
     : Array.isArray(lastCoords) && lastCoords.length >= 2
       ? { lat: Number(lastCoords[1]), lng: Number(lastCoords[0]) }
       : null;
+
+  // Fall back to the partner's own last known position.
+  //
+  // order.lastRiderLocation is only written when the rider emits a socket
+  // location-update FOR THIS ORDER, which before pickup has usually not happened
+  // yet. The rider app never noticed because it passes its live coordinates in the
+  // query; the customer app cannot, so every pre-pickup call returned an empty
+  // polyline in ~15ms without ever reaching Directions — no line on the map.
+  // The partner's lastLat/lastLng is refreshed by the availability ping regardless
+  // of any order, so it is the right fallback.
+  if (!origin) {
+    const partnerId = order.dispatch?.deliveryPartnerId;
+    if (partnerId) {
+      const partner = await FoodDeliveryPartner.findById(partnerId)
+        .select('lastLat lastLng')
+        .lean();
+      const pLat = Number(partner?.lastLat);
+      const pLng = Number(partner?.lastLng);
+      if (Number.isFinite(pLat) && Number.isFinite(pLng)) {
+        origin = { lat: pLat, lng: pLng };
+      }
+    }
+  }
 
   const pickedUp =
     Boolean(order.deliveryState?.pickedUpAt) ||
