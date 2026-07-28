@@ -449,7 +449,12 @@ export async function createOrder(userId, dto) {
 
     const paymentMethod =
       dto.paymentMethod === "card" ? "razorpay" : dto.paymentMethod;
-    if (paymentMethod === "cash") {
+    // COD was hard-disabled here. It is back on by default and kept behind a switch
+    // so it can be turned off again without a deploy — everything downstream already
+    // supports it (payment.status 'cod_pending' is the schema default, the restaurant
+    // order-list filter and canExposeOrderToRestaurant both include 'cash', and rider
+    // cash collection, deposits and cashInHand are all live).
+    if (paymentMethod === "cash" && String(process.env.COD_ENABLED || "true") !== "true") {
       throw new ValidationError("Cash on Delivery is no longer available. Please pay online.");
     }
     const isCash = paymentMethod === "cash";

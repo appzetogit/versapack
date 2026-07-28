@@ -90,10 +90,13 @@ export function validateCreateOrderDto(body) {
         deliveryInstructions: z.string().optional(),
         deliveryMode: z.enum(['basic', 'quick']).optional(),
         sendCutlery: z.boolean().optional(),
-        // 'cash' (COD) is no longer accepted for new orders; legacy COD orders remain supported elsewhere.
-        // 'razorpay_qr' means COD-style flow, but payment is collected via Razorpay QR at delivery.
-        paymentMethod: z.enum(['razorpay', 'razorpay_qr', 'card', 'wallet'], {
-            errorMap: () => ({ message: 'Cash on Delivery is no longer available. Please pay online.' }),
+        // 'cash' is true COD, collected as notes at the door.
+        // 'razorpay_qr' is the same pay-at-delivery flow, collected by QR instead.
+        // 'cash' is accepted here regardless so the service can return the friendly
+        // "not available" message when COD_ENABLED is off, rather than a generic
+        // enum error that names every method.
+        paymentMethod: z.enum(['razorpay', 'razorpay_qr', 'card', 'wallet', 'cash'], {
+            errorMap: () => ({ message: 'Unsupported payment method' }),
         }),
         zoneId: z.string().nullable().optional(),
         scheduledAt: z.string().datetime().optional()
