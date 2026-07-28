@@ -635,6 +635,20 @@ export async function rejectOrderDelivery(orderId, deliveryPartnerId) {
     throw new ForbiddenError('Not your order');
   }
 
+  // Only an order that hasn't been collected may be rejected. Without this a rider could
+  // pick the food up and then reject: the order was re-dispatched to someone else while
+  // rider #1 still held it, and every earnings/cash aggregation keyed on
+  // dispatch.deliveryPartnerId lost the order — including the COD cash he was carrying.
+  if (Boolean(order.deliveryState?.pickedUpAt) ||
+      ['picked_up', 'reached_drop', 'delivered'].includes(String(order.orderStatus || ''))) {
+    throw new ValidationError(
+      'This order has already been picked up and cannot be rejected. Use emergency reassignment instead.'
+    );
+  }
+  if (TERMINAL_ORDER_STATUSES.includes(String(order.orderStatus || ''))) {
+    throw new ValidationError('This order is already closed');
+  }
+
   const offer = order.dispatch.offeredTo.find(
     (item) =>
       String(item.partnerId) === String(deliveryPartnerId) &&

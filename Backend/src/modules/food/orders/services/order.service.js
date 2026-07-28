@@ -1362,7 +1362,8 @@ export async function listOrdersRestaurant(restaurantId, query) {
   const filter = {
     restaurantId: new mongoose.Types.ObjectId(restaurantId),
     $or: [
-      { "payment.method": { $in: ["cash", "wallet"] } },
+      // razorpay_qr = collected at the door, same as cash — see canExposeOrderToRestaurant.
+      { "payment.method": { $in: ["cash", "wallet", "razorpay_qr"] } },
       { "payment.status": { $in: ["paid", "authorized", "captured", "settled", "refunded"] } },
     ],
   };

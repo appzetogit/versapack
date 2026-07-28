@@ -62,10 +62,19 @@ export async function syncRazorpayQrPayment(orderDoc) {
     return payment;
   }
 
-  // Razorpay Payment Link statuses: created, partially_paid, paid, expired, cancelled
-  const isPaid = ['paid', 'partially_paid', 'captured', 'authorized'].includes(linkStatus);
+  // Razorpay Payment Link statuses: created, partially_paid, paid, expired, cancelled.
+  // ONLY a fully-paid link counts. 'partially_paid' means some of the amount arrived, and
+  // 'authorized' means funds are merely held, not captured — treating either as paid let a
+  // rider hand over food for an order that was underpaid or never actually charged.
+  const isPaid = ['paid', 'captured'].includes(linkStatus);
   const isFailed = ['expired', 'cancelled', 'canceled', 'failed'].includes(linkStatus);
   const newPaymentStatus = isPaid ? 'paid' : isFailed ? 'failed' : (payment.status || 'pending_qr');
+
+  if (['partially_paid', 'authorized'].includes(linkStatus)) {
+    logger.warn(
+      `[QrSync] Order ${orderId} link is '${linkStatus}' — NOT settling as paid. The rider must not hand over the order until it is fully captured.`
+    );
+  }
 
   logger.info(`[QrSync] Updating order ${orderId} payment.status from '${payment.status}' to '${newPaymentStatus}'`);
 
@@ -295,10 +304,23 @@ export async function switchToCash(orderId, deliveryPartnerId) {
     ? { _id: orderId }
     : { orderId };
 
-  const order = await FoodOrder.findOne(query).lean();
+  let order = await FoodOrder.findOne(query).lean();
   if (!order) throw new NotFoundError('Order not found');
   if (order.dispatch.deliveryPartnerId?.toString() !== deliveryPartnerId.toString()) {
     throw new ForbiddenError('Not your order');
+  }
+
+  // The local payment status is only refreshed by syncRazorpayQrPayment. Without syncing
+  // first, a customer who has already scanned and paid the QR still looks unpaid here, so
+  // the rider collects cash as well — the customer pays twice and the QR payment is left
+  // unattributed. Pull the real state from Razorpay before deciding.
+  if (order.payment?.qr?.paymentLinkId) {
+    try {
+      await syncRazorpayQrPayment(await FoodOrder.findOne(query));
+      order = await FoodOrder.findOne(query).lean();
+    } catch (err) {
+      logger.warn(`switchToCash QR sync failed for ${order._id}: ${err?.message || err}`);
+    }
   }
 
   // Only pay-at-delivery orders (legacy COD or QR-collect) may switch to cash.
@@ -310,18 +332,33 @@ export async function switchToCash(orderId, deliveryPartnerId) {
     throw new ValidationError('Order is already paid');
   }
 
-  // Reset payment method to cash in FoodTransaction
-  await FoodTransaction.updateOne(
-    { orderId: order._id },
-    {
-      $set: {
-        paymentMethod: 'cash',
-        'payment.method': 'cash',
-        'payment.status': 'cod_pending',
-        'payment.qr': {} // Clear QR info
+  // Reset payment method to cash on BOTH records. Updating only the transaction left
+  // FoodOrder.payment as razorpay_qr/pending_qr, so completeDelivery never flipped it to
+  // paid and the cash-in-hand aggregations (which filter on FoodOrder.payment.method
+  // 'cash' + status 'paid') never saw the money the rider actually collected.
+  await Promise.all([
+    FoodTransaction.updateOne(
+      { orderId: order._id },
+      {
+        $set: {
+          paymentMethod: 'cash',
+          'payment.method': 'cash',
+          'payment.status': 'cod_pending',
+          'payment.qr': {} // Clear QR info
+        }
       }
-    }
-  );
+    ),
+    FoodOrder.updateOne(
+      { _id: order._id },
+      {
+        $set: {
+          'payment.method': 'cash',
+          'payment.status': 'cod_pending',
+          'payment.qr': {}
+        }
+      }
+    )
+  ]);
 
   await foodTransactionService.updateTransactionStatus(
     order._id,

@@ -447,7 +447,11 @@ export function canExposeOrderToRestaurant(orderLike) {
   if (String(orderLike?.orderStatus || "").toLowerCase() === "pending_payment") return false;
   const method = String(orderLike?.payment?.method || "").toLowerCase();
   const status = String(orderLike?.payment?.status || "").toLowerCase();
-  if (["cash", "wallet"].includes(method)) return true;
+  // razorpay_qr is a pay-at-delivery flow like cash: the rider collects via QR at the
+  // door, so the restaurant must see and prepare it even though nothing is captured yet.
+  // Omitting it hid those orders from the restaurant list while still dispatching them,
+  // so they silently auto-cancelled at the acceptance deadline.
+  if (["cash", "wallet", "razorpay_qr"].includes(method)) return true;
   return ["paid", "authorized", "captured", "settled"].includes(status);
 }
 
