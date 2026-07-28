@@ -81,17 +81,25 @@ const router = express.Router();
  * Allowlist the genuinely public reads and require an admin token for everything else, so
  * any route added to this file in future is protected by default rather than exposed.
  */
-const PUBLIC_LANDING_PATTERNS = [
-    /\/public$/,                 // every ".../public" read
-    /^\/pages\//,                // CMS pages (about, terms, privacy)
-    /^\/referral-settings$/,     // referral reward copy
-    /^\/zones\//,                // zone detect / nearby / public
-];
+/**
+ * CRITICAL: this router is mounted at /v1/food, which is a PREFIX of /v1/food/user,
+ * /v1/food/orders, /v1/food/chat, /v1/food/notifications, /v1/food/payments and
+ * /v1/food/search — all of which mount AFTER it. So every one of those requests passes
+ * through this middleware first. It must therefore only act on the paths this router
+ * actually owns, and fall straight through for everything else, or it locks the whole
+ * customer app out with 403.
+ */
+const LANDING_MANAGED_PREFIXES = [/^\/hero-banners/, /^\/top-banners/];
 
 const requireAdminForLandingWrites = (req, res, next) => {
     if (req.method === 'OPTIONS') return next();
     const path = req.path || '';
-    if (PUBLIC_LANDING_PATTERNS.some((re) => re.test(path))) return next();
+
+    // Not a landing-management path → not ours to guard.
+    if (!LANDING_MANAGED_PREFIXES.some((re) => re.test(path))) return next();
+    // Public reads stay open.
+    if (/\/public$/.test(path)) return next();
+
     return authMiddleware(req, res, (err) => {
         if (err) return next(err);
         return requireRoles('ADMIN')(req, res, next);
