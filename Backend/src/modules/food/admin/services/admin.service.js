@@ -3612,6 +3612,12 @@ export async function updateRestaurantAddonAdmin(addonId, body) {
     }
 
     await addon.save();
+    {
+        const { invalidatePublicAddonCache } = await import(
+            '../../restaurant/services/restaurantAddon.service.js'
+        );
+        await invalidatePublicAddonCache();
+    }
     return addon.toObject();
 }
 
@@ -3635,6 +3641,15 @@ export async function approveRestaurantAddon(addonId) {
         ],
         { new: true }
     ).lean();
+
+    if (updated) {
+        // Approval flips draft -> published, which is what the public endpoint
+        // serves. Without this the add-on stayed invisible for up to 600s.
+        const { invalidatePublicAddonCache } = await import(
+            '../../restaurant/services/restaurantAddon.service.js'
+        );
+        await invalidatePublicAddonCache();
+    }
 
     if (updated?.restaurantId) {
         try {

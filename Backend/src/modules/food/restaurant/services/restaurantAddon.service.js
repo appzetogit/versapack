@@ -1,8 +1,53 @@
 import mongoose from 'mongoose';
 import { ValidationError } from '../../../../core/auth/errors.js';
 import { FoodAddon } from '../models/foodAddon.model.js';
+import { FoodItem } from '../../admin/models/food.model.js';
+import { logger } from '../../../../utils/logger.js';
 
 const escapeRegex = (s) => String(s || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/**
+ * Drops the cached public add-on responses.
+ *
+ * `GET /restaurants/:id/addons` is cached for 600s and NOTHING was clearing it, so a
+ * newly created, edited, approved or deleted add-on could take ten minutes to appear
+ * in the user app. Keyed per foodId as well, so a targeted delete would have to know
+ * every item id; wiping the whole prefix is both simpler and complete, and add-on
+ * edits are far too rare for the extra misses to matter.
+ */
+export async function invalidatePublicAddonCache() {
+    try {
+        const { invalidateCache } = await import('../../../../middleware/cache.js');
+        await invalidateCache('restaurant_addons:*');
+    } catch (err) {
+        logger.warn(`Add-on cache invalidation failed: ${err?.message || err}`);
+    }
+}
+
+/**
+ * Keeps only ids that are real menu items of THIS restaurant.
+ *
+ * Without this check a restaurant could attach its add-ons to another restaurant's
+ * menu items, and those add-ons would then surface on that restaurant's item sheet
+ * at a price its owner never set.
+ */
+async function sanitizeFoodIds(restaurantId, foodIds) {
+    const ids = [...new Set((Array.isArray(foodIds) ? foodIds : []).map((v) => String(v || '').trim()))]
+        .filter((v) => mongoose.Types.ObjectId.isValid(v));
+    if (!ids.length) return [];
+
+    const owned = await FoodItem.find({
+        restaurantId: new mongoose.Types.ObjectId(String(restaurantId)),
+        _id: { $in: ids.map((v) => new mongoose.Types.ObjectId(v)) }
+    })
+        .select('_id')
+        .lean();
+
+    if (owned.length !== ids.length) {
+        throw new ValidationError('One or more selected menu items do not belong to this restaurant');
+    }
+    return owned.map((doc) => doc._id);
+}
 
 const normalizeAddonDoc = (doc) => {
     if (!doc) return null;
@@ -18,6 +63,15 @@ const normalizeAddonDoc = (doc) => {
         approvedAt: doc.approvedAt,
         rejectedAt: doc.rejectedAt,
         isAvailable: doc.isAvailable !== false,
+        // Empty => applies to the whole menu.
+        foodIds: (Array.isArray(doc.foodIds) ? doc.foodIds : []).map((v) => String(v)),
+        isItemSpecific: Array.isArray(doc.foodIds) && doc.foodIds.length > 0,
+        group: {
+            name: doc.group?.name || '',
+            minSelect: Number(doc.group?.minSelect) || 0,
+            maxSelect: Number(doc.group?.maxSelect) || 1,
+            sortOrder: Number(doc.group?.sortOrder) || 0
+        },
         // Draft fields (what restaurant edits)
         name: draft.name || '',
         description: draft.description || '',
@@ -114,6 +168,13 @@ export async function createRestaurantAddon(restaurantId, body) {
             image: String(body.image || '').trim(),
             images: Array.isArray(body.images) ? body.images.filter(Boolean).slice(0, 10) : []
         },
+        foodIds: await sanitizeFoodIds(rid, body?.foodIds),
+        group: {
+            name: String(body?.group?.name || '').trim(),
+            minSelect: Number(body?.group?.minSelect) || 0,
+            maxSelect: Number(body?.group?.maxSelect) || 1,
+            sortOrder: Number(body?.group?.sortOrder) || 0
+        },
         published: null,
         approvalStatus: 'pending',
         rejectionReason: '',
@@ -140,6 +201,7 @@ export async function createRestaurantAddon(restaurantId, body) {
         console.error('Failed to notify admins of new addon approval request:', e);
     }
 
+    await invalidatePublicAddonCache();
     return normalizeAddonDoc(doc.toObject());
 }
 
@@ -157,6 +219,21 @@ export async function updateRestaurantAddon(restaurantId, addonId, updateDto) {
 
     if (updateDto?.isAvailable !== undefined) {
         set.isAvailable = updateDto.isAvailable !== false;
+    }
+
+    // Re-linking to menu items is not a content change, so this deliberately does
+    // NOT reset approvalStatus the way a draft edit below does.
+    if (updateDto?.foodIds !== undefined) {
+        set.foodIds = await sanitizeFoodIds(rid, updateDto.foodIds);
+    }
+
+    // Also presentation, not content — no re-approval.
+    if (updateDto?.group !== undefined) {
+        const g = updateDto.group || {};
+        set['group.name'] = String(g.name || '').trim();
+        set['group.minSelect'] = Number(g.minSelect) || 0;
+        set['group.maxSelect'] = Number(g.maxSelect) || 1;
+        set['group.sortOrder'] = Number(g.sortOrder) || 0;
     }
 
     if (updateDto?.draft) {
@@ -217,6 +294,7 @@ export async function updateRestaurantAddon(restaurantId, addonId, updateDto) {
         { $set: set },
         { new: true }
     ).lean();
+    if (updated) await invalidatePublicAddonCache();
     return updated ? normalizeAddonDoc(updated) : null;
 }
 
@@ -234,5 +312,6 @@ export async function deleteRestaurantAddon(restaurantId, addonId) {
         { $set: { isDeleted: true } },
         { new: true }
     ).lean();
+    if (updated) await invalidatePublicAddonCache();
     return updated ? { id: updated._id } : null;
 }

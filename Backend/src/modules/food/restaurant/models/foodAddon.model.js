@@ -12,6 +12,28 @@ const addonPayloadSchema = new mongoose.Schema(
     { _id: false }
 );
 
+/**
+ * Grouping + selection rules, so the user app can render the Zomato-style item
+ * sheet ("Upgrade Your Base — Select up to 1 option") instead of a flat list.
+ *
+ * Stored on each add-on rather than in its own collection, and the public endpoint
+ * derives the groups by name. That keeps this to one migration-free field, at the
+ * cost of the rules being repeated across a group's members — so treat the lowest
+ * sortOrder member as authoritative when they disagree (see buildAddonGroups).
+ */
+const addonGroupSchema = new mongoose.Schema(
+    {
+        /** Empty = ungrouped; the app shows these under a generic "Add-ons" heading. */
+        name: { type: String, trim: true, default: '' },
+        /** > 0 makes the group mandatory before the item can be added to the cart. */
+        minSelect: { type: Number, min: 0, default: 0 },
+        /** 1 renders radio buttons, >1 renders checkboxes capped at this count. */
+        maxSelect: { type: Number, min: 1, default: 1 },
+        sortOrder: { type: Number, default: 0 }
+    },
+    { _id: false }
+);
+
 const foodAddonSchema = new mongoose.Schema(
     {
         restaurantId: {
@@ -20,6 +42,23 @@ const foodAddonSchema = new mongoose.Schema(
             required: true,
             index: true
         },
+        // Menu items this add-on can be attached to.
+        //
+        // EMPTY MEANS RESTAURANT-WIDE, which is how every add-on behaved before this
+        // field existed — so old documents keep working untouched.
+        //
+        // Deliberately top-level rather than inside draft/published: admin approval
+        // exists to moderate content (name, price, image), and attaching an approved
+        // "Extra cheese" to a newly added burger is not a content change. Putting it
+        // in the draft would send the add-on back to pending every time the menu
+        // changed.
+        foodIds: {
+            type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'FoodItem' }],
+            default: []
+        },
+        // Presentation only, like foodIds — not moderated content, so changing it
+        // must not push the add-on back to pending.
+        group: { type: addonGroupSchema, default: () => ({}) },
         // Draft is what restaurant is editing and what admin approves/rejects.
         draft: { type: addonPayloadSchema, required: true },
         // Published is what the user app can see (kept while draft is pending).
@@ -43,6 +82,8 @@ const foodAddonSchema = new mongoose.Schema(
 );
 
 foodAddonSchema.index({ restaurantId: 1, isDeleted: 1, createdAt: -1 });
+// Serves the user app's per-item lookup: approved + available + attached to this item.
+foodAddonSchema.index({ restaurantId: 1, foodIds: 1, approvalStatus: 1, isAvailable: 1 });
 foodAddonSchema.index({ approvalStatus: 1, isDeleted: 1, requestedAt: -1 });
 foodAddonSchema.index({ restaurantId: 1, approvalStatus: 1, isDeleted: 1, requestedAt: -1 });
 
