@@ -58,6 +58,7 @@ import {
   applyAggregateRating,
   buildDeliverySocketPayload,
   notifyRestaurantNewOrder,
+  canExposeOrderToRestaurant,
   isStatusAdvance,
   STATUS_PRIORITY,
 } from './order.helpers.js';
@@ -1465,6 +1466,14 @@ export async function updateOrderStatusRestaurant(
     restaurantId: new mongoose.Types.ObjectId(restaurantId),
   });
   if (!order) throw new NotFoundError("Order not found");
+
+  // An unpaid order must never be actionable by the restaurant. pending_payment is absent
+  // from STATUS_PRIORITY, so isStatusAdvance() treats it as 0 and lets ANY target status
+  // through — a restaurant could walk an abandoned, never-paid order all the way to
+  // 'delivered', which then counts toward its payout. Same gate the order list uses.
+  if (!canExposeOrderToRestaurant(order)) {
+    throw new ValidationError("This order is not payable yet and cannot be updated");
+  }
 
   const targetStatus = String(orderStatus || "").toLowerCase();
   if (targetStatus === "preparing" || targetStatus === "confirmed") {

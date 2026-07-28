@@ -8,7 +8,8 @@ import { FoodDeliveryWallet } from '../models/deliveryWallet.model.js';
 import { DeliveryBonusTransaction } from '../../admin/models/deliveryBonusTransaction.model.js';
 import { getDeliveryCashLimitSettings } from '../../admin/services/admin.service.js';
 import { ValidationError } from '../../../../core/auth/errors.js';
-import { createRazorpayOrder, getRazorpayKeyId, isRazorpayConfigured, verifyPaymentSignature } from '../../orders/helpers/razorpay.helper.js';
+import { createRazorpayOrder, getRazorpayKeyId, isRazorpayConfigured, verifyPaymentSignature, fetchRazorpayPayment } from '../../orders/helpers/razorpay.helper.js';
+import { logger } from '../../../../utils/logger.js';
 
 /**
  * Enhanced wallet fetch for delivery partners.
@@ -313,17 +314,45 @@ export const verifyDeliveryCashDepositPayment = async (deliveryPartnerId, payloa
         return { deposit: existing, wallet: await getDeliveryPartnerWalletEnhanced(deliveryPartnerId) };
     }
 
-    const wallet = await getDeliveryPartnerWalletEnhanced(deliveryPartnerId);
-    if (amount > wallet.cashInHand) {
-        throw new ValidationError('Deposit amount cannot exceed cash in hand');
-    }
-
     const isValid = isRazorpayConfigured()
         ? verifyPaymentSignature(orderId, paymentId, signature)
         : true;
 
     if (!isValid) {
         throw new ValidationError('Payment verification failed');
+    }
+
+    // The signature proves the payment belongs to this order — it says NOTHING about how
+    // much was paid. Trusting the client's `amount` let a rider pay Rs 1 and post
+    // amount: 5000, clearing Rs 5000 of cash-in-hand while pocketing the difference.
+    // Always settle on the amount Razorpay actually captured.
+    let settledAmount = amount;
+    if (isRazorpayConfigured()) {
+        const payment = await fetchRazorpayPayment(paymentId);
+
+        const capturedPaise = Number(payment?.amount);
+        if (!Number.isFinite(capturedPaise) || capturedPaise <= 0) {
+            throw new ValidationError('Could not confirm the paid amount with Razorpay');
+        }
+        if (!['captured', 'authorized'].includes(String(payment?.status || ''))) {
+            throw new ValidationError(`Payment is not captured (status: ${payment?.status || 'unknown'})`);
+        }
+        // Reject a payment belonging to a different Razorpay order.
+        if (payment?.order_id && String(payment.order_id) !== orderId) {
+            throw new ValidationError('Payment does not belong to this order');
+        }
+
+        settledAmount = Math.round((capturedPaise / 100) * 100) / 100;
+        if (Math.abs(settledAmount - amount) > 0.01) {
+            logger.warn(
+                `Cash deposit amount mismatch for partner ${deliveryPartnerId}: client claimed ${amount}, Razorpay captured ${settledAmount}. Using the captured amount.`
+            );
+        }
+    }
+
+    const wallet = await getDeliveryPartnerWalletEnhanced(deliveryPartnerId);
+    if (settledAmount > wallet.cashInHand) {
+        throw new ValidationError('Deposit amount cannot exceed cash in hand');
     }
 
     const deposit = existing
@@ -342,7 +371,7 @@ export const verifyDeliveryCashDepositPayment = async (deliveryPartnerId, payloa
         )
         : await FoodDeliveryCashDeposit.create({
             deliveryPartnerId,
-            amount,
+            amount: settledAmount,
             paymentMethod: isRazorpayConfigured() ? 'razorpay' : 'cash',
             status: 'Completed',
             razorpayOrderId: orderId,
