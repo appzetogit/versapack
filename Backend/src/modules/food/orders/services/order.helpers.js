@@ -482,16 +482,48 @@ export async function notifyRestaurantNewOrder(orderDoc) {
     );
     if (!claimed) return;
 
+    const str = (v) => (v === undefined || v === null ? "" : String(v));
+    const itemCount = Array.isArray(orderDoc.items)
+      ? orderDoc.items.reduce((sum, it) => sum + (Number(it?.quantity) || 0), 0)
+      : 0;
+
     await notifyOwnersSafely(
       [{ ownerType: "RESTAURANT", ownerId: orderDoc.restaurantId }],
       {
         title: "New order received",
         body: `Order #${orderDoc.order_id || orderDoc._id} is waiting for review.`,
+        // Data-only, so the restaurant app renders the notification itself and can
+        // attach Accept / Reject action buttons.
+        //
+        // Action buttons are NOT an FCM feature -- there is no payload field that
+        // creates them. They only exist on a notification the app builds via
+        // flutter_local_notifications, and the app only gets the chance to build one
+        // when FCM hands it the message instead of rendering it itself. Including a
+        // notification block means the OS draws a plain, button-less notification and
+        // the app's handler never runs while backgrounded.
+        //
+        // Trade-off: FCM displays nothing on its own now, so a force-stopped or
+        // OEM-battery-killed app shows the restaurant nothing at all. Exempt the app
+        // from battery optimisation, and keep the socket `new_order` event above as
+        // the in-foreground path.
+        //
+        // title/body are still sent: with dataOnly they are dropped from the FCM
+        // message, but they document the intended copy in one place and the app can
+        // fall back to them if it ever renders server-provided text.
+        dataOnly: true,
         data: {
           type: "new_order",
           orderId: orderDoc._id.toString(),
           orderMongoId: orderDoc._id?.toString?.() || "",
+          orderDisplayId: str(orderDoc.order_id || orderDoc._id),
           link: `/restaurant/orders/${orderDoc._id?.toString?.() || ""}`,
+          // Everything the notification needs to render without a follow-up API
+          // call, which matters when the device is locked or the app was killed.
+          customerName: str(orderDoc.customerName),
+          itemCount: str(itemCount),
+          total: str(orderDoc.pricing?.total ?? 0),
+          paymentMethod: str(orderDoc.payment?.method),
+          acceptanceDeadlineAt: str(orderDoc.acceptanceDeadlineAt?.toISOString?.() || ""),
         },
       },
     );
