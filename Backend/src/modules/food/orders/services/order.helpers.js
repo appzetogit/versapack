@@ -489,8 +489,17 @@ export async function notifyRestaurantNewOrder(orderDoc) {
     const itemsList = Array.isArray(orderDoc.items)
       ? orderDoc.items.map((it) => `${it.quantity}x ${it.name}`).join(", ")
       : "";
-    const addressStr = orderDoc.deliveryAddress 
-      ? [orderDoc.deliveryAddress.address, orderDoc.deliveryAddress.area, orderDoc.deliveryAddress.city].filter(Boolean).join(", ")
+    // deliveryAddressSchema has street/additionalDetails/city — there is no `address`
+    // or `area` field on it, so reading those yielded undefined and the restaurant
+    // only ever saw the city.
+    const addressStr = orderDoc.deliveryAddress
+      ? [
+          orderDoc.deliveryAddress.street,
+          orderDoc.deliveryAddress.additionalDetails,
+          orderDoc.deliveryAddress.city,
+        ]
+          .filter(Boolean)
+          .join(", ")
       : "";
     const total = orderDoc.pricing?.total ?? 0;
     
