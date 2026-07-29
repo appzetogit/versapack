@@ -682,8 +682,22 @@ const toTripDto = (order) => {
     const deliveredAt = order?.deliveryState?.deliveredAt || order?.deliveredAt || order?.completedAt || null;
     const dateForUi = deliveredAt || createdAt || order?.updatedAt || null;
 
+    // Pre-formatted for older app builds that render this string directly.
+    //
+    // 'en-IN' selects the FORMAT (12-hour, en-IN digits) and says nothing about the
+    // timezone: with no timeZone option Node uses the system zone, and this server
+    // runs UTC. Riders therefore saw every trip 5h30m early. The zone is now
+    // explicit.
+    //
+    // Deprecated: clients should format `date` (a real ISO-8601 timestamp, right
+    // below) in the device's own timezone. Formatting a time on the server can only
+    // ever be correct for one zone, and bakes that assumption into the API.
     const time = dateForUi
-        ? new Date(dateForUi).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+        ? new Date(dateForUi).toLocaleTimeString('en-IN', {
+              hour: '2-digit',
+              minute: '2-digit',
+              timeZone: process.env.DISPLAY_TIME_ZONE || 'Asia/Kolkata'
+          })
         : '';
 
     const orderStatus = String(order?.orderStatus || order?.status || '').toLowerCase();
