@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import { FoodChatMessage } from '../models/chatMessage.model.js';
+import { FoodChatConversation } from '../models/chatConversation.model.js';
 import { FoodOrder } from '../../orders/models/order.model.js';
 import { ValidationError, ForbiddenError } from '../../../../core/auth/errors.js';
 import { getIO, rooms } from '../../../../config/socket.js';
@@ -278,10 +279,36 @@ export async function markRead(me, conversationId) {
 }
 
 /** All conversations I'm a party to, newest activity first, with unread counts. */
-export async function listConversations(me) {
+/**
+ * Conversations I take part in, newest first.
+ *
+ * Messages stay the source of truth for lastMessage / lastAt / unread; the
+ * conversation document only contributes the support metadata (title, status,
+ * closedAt). A thread with no document — every order chat created before support
+ * threads existed — still lists, defaulted to an open conversation with no title,
+ * so nothing needed backfilling.
+ *
+ * Threads that were opened but never written to would be invisible if we only
+ * grouped messages, so documents with no messages yet are merged in too.
+ *
+ * @param {{orderId?: string}} [query] Pass orderId to list only that order's threads.
+ */
+export async function listConversations(me, query = {}) {
     const myToken = partyToken(me.role, me.id);
+
+    const orderId = String(query.orderId || '').trim();
+    if (orderId && !mongoose.Types.ObjectId.isValid(orderId)) {
+        throw new ValidationError('Invalid order id');
+    }
+    const orderObjectId = orderId ? new mongoose.Types.ObjectId(orderId) : null;
+
     const rows = await FoodChatMessage.aggregate([
-        { $match: { participants: myToken } },
+        {
+            $match: {
+                participants: myToken,
+                ...(orderObjectId ? { orderId: orderObjectId } : {})
+            }
+        },
         { $sort: { createdAt: -1 } },
         {
             $group: {
@@ -291,6 +318,7 @@ export async function listConversations(me) {
                 lastAt: { $first: '$createdAt' },
                 lastSenderToken: { $first: '$senderToken' },
                 participants: { $first: '$participants' },
+                firstAt: { $last: '$createdAt' },
                 unread: {
                     $sum: {
                         $cond: [
@@ -305,14 +333,163 @@ export async function listConversations(me) {
         { $sort: { lastAt: -1 } }
     ]);
 
-    return {
-        conversations: rows.map((r) => ({
+    const docs = await FoodChatConversation.find({
+        participants: myToken,
+        ...(orderObjectId ? { orderId: orderObjectId } : {})
+    }).lean();
+    const docById = new Map(docs.map((d) => [d.conversationId, d]));
+
+    const merged = rows.map((r) => {
+        const doc = docById.get(r._id);
+        docById.delete(r._id);
+        return {
             conversationId: r._id,
-            orderId: r.orderId ? String(r.orderId) : null,
-            peerToken: (r.participants || []).find((t) => t !== myToken) || null,
+            orderId: r.orderId ? String(r.orderId) : doc?.orderId ? String(doc.orderId) : null,
+            title: doc?.title || '',
+            peerToken:
+                (r.participants || []).find((t) => t !== myToken) || doc?.peerToken || null,
             lastMessage: r.lastText,
             lastAt: r.lastAt,
-            unread: r.unread
-        }))
-    };
+            unread: r.unread,
+            status: doc?.status || 'open',
+            // Without a document the thread began with its first message.
+            createdAt: doc?.createdAt || r.firstAt,
+            closedAt: doc?.closedAt || null
+        };
+    });
+
+    // Opened but not yet written to.
+    for (const doc of docById.values()) {
+        merged.push({
+            conversationId: doc.conversationId,
+            orderId: doc.orderId ? String(doc.orderId) : null,
+            title: doc.title || '',
+            peerToken: doc.peerToken,
+            lastMessage: '',
+            lastAt: null,
+            unread: 0,
+            status: doc.status,
+            createdAt: doc.createdAt,
+            closedAt: doc.closedAt || null
+        });
+    }
+
+    merged.sort(
+        (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+    );
+
+    return { conversations: merged };
+}
+
+/** Shape sent to clients over both REST and the socket, so they never disagree. */
+const serializeConversation = (doc, extra = {}) => ({
+    conversationId: doc.conversationId,
+    orderId: doc.orderId ? String(doc.orderId) : null,
+    title: doc.title || '',
+    peerToken: doc.peerToken,
+    status: doc.status,
+    createdAt: doc.createdAt,
+    closedAt: doc.closedAt || null,
+    lastMessage: '',
+    lastAt: null,
+    unread: 0,
+    ...extra
+});
+
+function emitConversationUpdate(doc) {
+    try {
+        const io = getIO();
+        if (!io) return;
+        const payload = serializeConversation(doc);
+        // Every participant, so an agent closing a thread updates the user's list
+        // immediately instead of only on their next fetch.
+        for (const token of doc.participants || []) {
+            const [role, id] = token === 'ADMIN' ? ['ADMIN', null] : token.split(':');
+            const room = roomForToken(role, id);
+            if (room) io.to(room).emit('chat:conversation_update', payload);
+        }
+    } catch (e) {
+        logger.warn(`emitConversationUpdate failed: ${e?.message || e}`);
+    }
+}
+
+/**
+ * Opens a support thread, or returns the existing one.
+ *
+ * The conversation id is the same deterministic value the messages use, so a
+ * thread opened here and the messages later sent into it join up without the
+ * client having to pass an id around.
+ */
+export async function createConversation(me, dto = {}) {
+    const myToken = partyToken(me.role, me.id);
+    const peerToken = String(dto.peerToken || 'ADMIN').trim();
+    const title = String(dto.title || '').trim().slice(0, 200);
+
+    const orderId = String(dto.orderId || '').trim();
+    if (orderId && !mongoose.Types.ObjectId.isValid(orderId)) {
+        throw new ValidationError('Invalid order id');
+    }
+    if (peerToken !== 'ADMIN') {
+        const [peerRole] = peerToken.split(':');
+        if (!ROLES.includes(peerRole)) throw new ValidationError('Invalid peer');
+        // Chatting about an order means both sides must belong to it.
+        if (orderId) await assertOrderParticipants(orderId, [myToken, peerToken]);
+    }
+
+    const conversationId = buildConversationId(myToken, peerToken, orderId || null);
+
+    // Upsert so a double-tap on "start chat" reuses the thread instead of
+    // colliding on the unique index.
+    const doc = await FoodChatConversation.findOneAndUpdate(
+        { conversationId },
+        {
+            $setOnInsert: {
+                conversationId,
+                orderId: orderId ? new mongoose.Types.ObjectId(orderId) : null,
+                title,
+                peerToken,
+                openedByToken: myToken,
+                participants: [myToken, peerToken].sort(),
+                status: 'open',
+                closedAt: null
+            }
+        },
+        { new: true, upsert: true, setDefaultsOnInsert: true }
+    ).lean();
+
+    emitConversationUpdate(doc);
+    return { conversation: serializeConversation(doc) };
+}
+
+/**
+ * Moves a thread through open -> in_progress -> closed (and back if reopened).
+ *
+ * closedAt is derived here rather than trusted from the client, so it can never
+ * disagree with status.
+ */
+export async function updateConversationStatus(me, conversationId, status) {
+    const myToken = partyToken(me.role, me.id);
+    const next = String(status || '').trim().toLowerCase();
+    if (!['open', 'in_progress', 'closed'].includes(next)) {
+        throw new ValidationError('Status must be open, in_progress or closed');
+    }
+
+    const existing = await FoodChatConversation.findOne({
+        conversationId: String(conversationId || '').trim()
+    }).lean();
+    if (!existing) throw new ValidationError('Conversation not found');
+
+    // ADMIN is a shared inbox, so any admin may act on a thread it is part of.
+    if (!(existing.participants || []).includes(myToken)) {
+        throw new ForbiddenError('Not your conversation');
+    }
+
+    const doc = await FoodChatConversation.findOneAndUpdate(
+        { conversationId: existing.conversationId },
+        { $set: { status: next, closedAt: next === 'closed' ? new Date() : null } },
+        { new: true }
+    ).lean();
+
+    emitConversationUpdate(doc);
+    return { conversation: serializeConversation(doc) };
 }

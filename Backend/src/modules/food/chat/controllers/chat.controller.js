@@ -14,8 +14,33 @@ export async function sendMessageController(req, res, next) {
 
 export async function listConversationsController(req, res, next) {
     try {
-        const data = await chatService.listConversations(me(req));
+        // ?orderId=<id> narrows to that order's threads. Omit it for everything.
+        const data = await chatService.listConversations(me(req), {
+            orderId: req.query.orderId
+        });
         return sendResponse(res, 200, 'Conversations fetched', data);
+    } catch (err) {
+        next(err);
+    }
+}
+
+export async function createConversationController(req, res, next) {
+    try {
+        const data = await chatService.createConversation(me(req), req.body || {});
+        return sendResponse(res, 201, 'Conversation created', data);
+    } catch (err) {
+        next(err);
+    }
+}
+
+export async function updateConversationStatusController(req, res, next) {
+    try {
+        const data = await chatService.updateConversationStatus(
+            me(req),
+            req.params.conversationId,
+            req.body?.status
+        );
+        return sendResponse(res, 200, 'Conversation updated', data);
     } catch (err) {
         next(err);
     }
