@@ -99,8 +99,28 @@ const DRIVER_ACCEPT_WINDOW_MS = 45000;
  */
 function buildIncomingOrderPushData(order, payload, acceptanceDeadlineAt) {
   const s = (v) => (v === undefined || v === null ? '' : String(v));
+
+  const earning = s(payload?.riderEarning ?? 0);
+  const distance = s(payload?.tripDistanceKm ?? '');
+  const bodyLines = [
+    payload?.restaurantName ? `Pickup: ${s(payload.restaurantName)}` : '',
+    payload?.customerAddress ? `Drop: ${s(payload.customerAddress)}` : '',
+    distance ? `${distance} km` : '',
+    `Earning: Rs.${earning}`,
+  ].filter(Boolean);
+
   return {
     type: 'new_order',
+    // Carried INSIDE data on purpose.
+    //
+    // This push is data-only, so FCM omits the notification block and
+    // message.notification is null on the device. An app reading
+    // message.notification.title therefore renders a blank notification — which
+    // reads as a broken push rather than a missing field. The restaurant app hit
+    // exactly this. These give the rider app ready-made strings straight from
+    // message.data.
+    title: 'New order available!',
+    body: bodyLines.join('\n'),
     orderId: s(order?._id),
     orderMongoId: s(order?._id),
     orderDisplayId: s(order?.order_id || order?._id),

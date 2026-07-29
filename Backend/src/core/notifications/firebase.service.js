@@ -46,6 +46,14 @@ const MAX_TOKENS_PER_PLATFORM = 3;
  *
  * Both overridable, so a client-side rename is an env change rather than a deploy.
  */
+/**
+ * How long an undelivered new-order push stays valid.
+ *
+ * Slightly above the 45s driver acceptance window so an offer in flight is not
+ * dropped a moment early, but far short of FCM's four-week default.
+ */
+const NEW_ORDER_TTL_SECONDS = Number(process.env.FCM_NEW_ORDER_TTL_SECONDS) || 60;
+
 const NEW_ORDER_CHANNEL_ID = process.env.FCM_NEW_ORDER_CHANNEL_ID || 'incoming_orders_channel';
 const DEFAULT_CHANNEL_ID = process.env.FCM_DEFAULT_CHANNEL_ID || 'high_importance_channel';
 
@@ -221,6 +229,15 @@ const buildMessagePayload = (payload = {}, token) => {
     message.android = {
         priority: 'high'
     };
+
+    // A new-order offer is only valid for the acceptance window. Without a TTL, FCM
+    // stores an undelivered message for up to four weeks and hands it over whenever
+    // the device next comes online — so a rider could be woken by a full-screen alert
+    // for an order that expired, or was taken by someone else, long ago. Expire the
+    // message instead of relying on the app to notice the deadline has passed.
+    if (isNewOrderAlert) {
+        message.android.ttl = NEW_ORDER_TTL_SECONDS + 's';
+    }
     if (!isDataOnlyPush) {
         message.android.notification = {
             channel_id: isNewOrderAlert ? NEW_ORDER_CHANNEL_ID : DEFAULT_CHANNEL_ID,
@@ -238,7 +255,11 @@ const buildMessagePayload = (payload = {}, token) => {
     message.apns = {
         headers: {
             'apns-priority': isDataOnlyPush ? '5' : '10',
-            'apns-push-type': isDataOnlyPush ? 'background' : 'alert'
+            'apns-push-type': isDataOnlyPush ? 'background' : 'alert',
+            // Same reasoning as android.ttl above; APNs takes an absolute epoch.
+            ...(isNewOrderAlert
+                ? { 'apns-expiration': String(Math.floor(Date.now() / 1000) + NEW_ORDER_TTL_SECONDS) }
+                : {})
         },
         payload: {
             aps: isDataOnlyPush
