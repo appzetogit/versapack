@@ -69,6 +69,29 @@ const saveLoginFcmToken = async ({ ownerType, ownerId, fcmToken, platform, owner
   }
 };
 
+/**
+ * Invalidates every existing session for an account and returns the new version.
+ *
+ * Called on each successful login. The value goes into the JWT, and authMiddleware
+ * rejects any token carrying an older one — so signing in on a new phone logs the
+ * old one out on its very next request, instead of leaving one account live on two
+ * devices.
+ *
+ * $inc is atomic, so two simultaneous logins get distinct versions and the later
+ * one wins rather than both sharing a value.
+ *
+ * Deliberately NOT applied to admins: the panel is routinely used across several
+ * browser tabs and machines, and evicting those would be a regression, not a
+ * safeguard.
+ */
+const bumpTokenVersion = async (model, id) => {
+  const updated = await model
+    .findByIdAndUpdate(id, { $inc: { tokenVersion: 1 } }, { new: true })
+    .select('tokenVersion')
+    .lean();
+  return Number(updated?.tokenVersion) || 0;
+};
+
 export const requestUserOtp = async (phone) => {
   if (!phone) {
     throw new ValidationError("Phone is required");
@@ -225,7 +248,11 @@ export const verifyUserOtpAndLogin = async (
   }
 
   const user = userDoc.toObject();
-  const payload = { userId: user._id.toString(), role: user.role || "USER" };
+  const payload = {
+    userId: user._id.toString(),
+    role: user.role || "USER",
+    tokenVersion: await bumpTokenVersion(FoodUser, user._id),
+  };
 
   const accessToken = signAccessToken(payload);
   const refreshToken = signRefreshToken(payload);
@@ -373,7 +400,11 @@ export const verifyRestaurantOtpAndLogin = async (phone, otp, fcmToken, platform
   // Postpaid subscription model: no onboarding payment or subscription purchase
   // is required to use the platform — dues are billed at each month end.
 
-  const payload = { userId: restaurant._id.toString(), role: ROLES.RESTAURANT };
+  const payload = {
+    userId: restaurant._id.toString(),
+    role: ROLES.RESTAURANT,
+    tokenVersion: await bumpTokenVersion(FoodRestaurant, restaurant._id),
+  };
   const accessToken = signAccessToken(payload);
   const refreshToken = signRefreshToken(payload);
   const ttlMs = ms(config.jwtRefreshExpiresIn || "7d");
@@ -464,6 +495,7 @@ export const verifyDeliveryOtpAndLogin = async (phone, otp, fcmToken, platform) 
   const payload = {
     userId: deliveryPartner._id.toString(),
     role: ROLES.DELIVERY_PARTNER,
+    tokenVersion: await bumpTokenVersion(FoodDeliveryPartner, deliveryPartner._id),
   };
   const accessToken = signAccessToken(payload);
   const refreshToken = signRefreshToken(payload);
@@ -895,9 +927,34 @@ export const refreshAccessToken = async (token) => {
     }
   }
 
+  // Carry the session version forward, and refuse a refresh from a device that has
+  // already been replaced. Without this, an evicted device could mint itself a
+  // brand-new access token from its still-valid refresh token and stay signed in.
+  const sessionModel = {
+    USER: FoodUser,
+    RESTAURANT: FoodRestaurant,
+    DELIVERY_PARTNER: FoodDeliveryPartner,
+  }[payload?.role];
+
+  let tokenVersion = payload?.tokenVersion;
+  if (sessionModel) {
+    const owner = await sessionModel
+      .findById(payload.userId)
+      .select('tokenVersion')
+      .lean();
+    const stored = Number(owner?.tokenVersion) || 0;
+    if (tokenVersion !== undefined && Number(tokenVersion) !== stored) {
+      throw new AuthError(
+        'You have been signed out because this account was used on another device',
+      );
+    }
+    tokenVersion = stored;
+  }
+
   const newAccessToken = signAccessToken({
     userId: payload.userId,
     role: payload.role,
+    ...(tokenVersion !== undefined ? { tokenVersion } : {}),
     ...(payload.adminType ? { adminType: payload.adminType } : {}),
   });
 

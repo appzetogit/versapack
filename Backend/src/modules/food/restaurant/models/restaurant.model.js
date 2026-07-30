@@ -349,6 +349,13 @@ const restaurantSchema = new mongoose.Schema(
     subscriptionValidTill: {
       type: Date,
     },
+    /**
+     * Bumped on every successful login, and embedded in the JWT that login issues.
+     * A token whose version is behind the stored one is rejected, so signing in on
+     * a new device silently invalidates every older device rather than leaving the
+     * account live in two places at once.
+     */
+    tokenVersion: { type: Number, default: 0 },
   },
   {
     collection: "food_restaurants",

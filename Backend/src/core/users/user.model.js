@@ -140,7 +140,14 @@ const userSchema = new mongoose.Schema(
         },
         /** Running average of ratings left by delivery partners. */
         rating: { type: Number, default: 0, min: 0, max: 5 },
-        totalRatings: { type: Number, default: 0, min: 0 }
+        totalRatings: { type: Number, default: 0, min: 0 },
+        /**
+         * Bumped on every successful login, and embedded in the JWT that login
+         * issues. A token whose version is behind the stored one is rejected, so
+         * signing in on a new device silently invalidates every older device
+         * rather than leaving the account live in two places at once.
+         */
+        tokenVersion: { type: Number, default: 0 }
     },
     {
         collection: 'food_users',
