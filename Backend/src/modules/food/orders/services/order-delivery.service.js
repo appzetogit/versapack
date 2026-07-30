@@ -3,6 +3,8 @@ import { FoodOrder } from '../models/order.model.js';
 import { FoodRestaurant } from '../../restaurant/models/restaurant.model.js';
 import { FoodTransaction } from '../models/foodTransaction.model.js';
 import { FoodDeliveryPartner } from '../../delivery/models/deliveryPartner.model.js';
+import { FoodDeliveryWallet } from '../../delivery/models/deliveryWallet.model.js';
+import { FoodDeliveryCashLimit } from '../../admin/models/deliveryCashLimit.model.js';
 import {
   ValidationError,
   ForbiddenError,
@@ -374,6 +376,39 @@ export async function listOrdersAvailableDelivery(deliveryPartnerId, query) {
   return buildPaginatedResult({ docs: paged, total, page, limit });
 }
 
+/**
+ * Rejects an accept when the rider is already at their cash ceiling.
+ *
+ * Dispatch skips over-limit riders, but an offer sent a moment BEFORE they crossed
+ * the line is still sitting on their phone — and a client-side block would be
+ * trivially bypassed anyway. This is the authoritative check.
+ *
+ * Prepaid orders are unaffected: they add nothing to the rider's float.
+ *
+ * A limit of 0 means no limit, matching the schema default, so installs that never
+ * configured this are untouched.
+ */
+async function assertCashLimitAllows(deliveryPartnerId, order) {
+  const method = String(order?.payment?.method || order?.paymentMethod || '').toLowerCase();
+  if (method !== 'cash' && method !== 'razorpay_qr') return;
+
+  const [settings, wallet] = await Promise.all([
+    FoodDeliveryCashLimit.findOne({ isActive: true }).select('deliveryCashLimit').lean(),
+    FoodDeliveryWallet.findOne({ deliveryPartnerId }).select('cashInHand').lean(),
+  ]);
+
+  const limit = Number(settings?.deliveryCashLimit) || 0;
+  if (limit <= 0) return;
+
+  const inHand = Number(wallet?.cashInHand) || 0;
+  if (inHand >= limit) {
+    throw new ValidationError(
+      `You are holding Rs.${inHand} in cash, which is at your Rs.${limit} limit. ` +
+        'Deposit your cash to keep accepting cash orders.',
+    );
+  }
+}
+
 export async function acceptOrderDelivery(orderId, deliveryPartnerId) {
   const identity = buildOrderIdentityFilter(orderId);
   if (!identity) throw new ValidationError('Order id required');
@@ -419,6 +454,15 @@ export async function acceptOrderDelivery(orderId, deliveryPartnerId) {
     note: 'Delivery partner accepted order',
     at: now,
   };
+
+  // Refuse before claiming the order, not after: a rider who is already at their
+  // cash ceiling must not end up holding a cash trip they cannot be given.
+  {
+    const pending = await FoodOrder.findOne(identity)
+      .select('payment paymentMethod')
+      .lean();
+    if (pending) await assertCashLimitAllows(partnerId, pending);
+  }
 
   const order = await FoodOrder.findOneAndUpdate(
     {

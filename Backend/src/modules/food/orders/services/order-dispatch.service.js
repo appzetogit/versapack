@@ -2,6 +2,8 @@ import mongoose from 'mongoose';
 import { FoodOrder, FoodSettings } from '../models/order.model.js';
 import { FoodRestaurant } from '../../restaurant/models/restaurant.model.js';
 import { FoodDeliveryPartner } from '../../delivery/models/deliveryPartner.model.js';
+import { FoodDeliveryWallet } from '../../delivery/models/deliveryWallet.model.js';
+import { FoodDeliveryCashLimit } from '../../admin/models/deliveryCashLimit.model.js';
 import { ValidationError, NotFoundError } from '../../../../core/auth/errors.js';
 import { logger } from '../../../../utils/logger.js';
 import { config } from '../../../../config/env.js';
@@ -139,6 +141,47 @@ function buildIncomingOrderPushData(order, payload, acceptanceDeadlineAt) {
     price: s(payload?.earnings ?? payload?.riderEarning ?? 0),
     distance: s(payload?.tripDistanceKm ?? ''),
   };
+}
+
+/**
+ * Riders who are already holding as much cash as they are allowed to.
+ *
+ * The limit existed as an admin setting and was shown to riders in their wallet, but
+ * nothing enforced it: an over-limit rider kept being offered cash orders and could
+ * keep accepting them, so the cap was advisory only.
+ *
+ * Only applied to orders the rider will physically collect money for. A prepaid
+ * order adds nothing to their float, so blocking those would idle riders for no
+ * reason.
+ *
+ * A limit of 0 means "no limit" — that is the schema default, so an install that has
+ * never configured this must not have every rider silently excluded.
+ *
+ * @returns {Promise<Set<string>>} partner ids to skip
+ */
+async function getCashBlockedPartnerIds(partnerIds) {
+  if (!partnerIds.length) return new Set();
+
+  const settings = await FoodDeliveryCashLimit.findOne({ isActive: true })
+    .select('deliveryCashLimit')
+    .lean();
+  const limit = Number(settings?.deliveryCashLimit) || 0;
+  if (limit <= 0) return new Set();
+
+  const wallets = await FoodDeliveryWallet.find({
+    deliveryPartnerId: { $in: partnerIds },
+    cashInHand: { $gte: limit },
+  })
+    .select('deliveryPartnerId cashInHand')
+    .lean();
+
+  return new Set(wallets.map((w) => String(w.deliveryPartnerId)));
+}
+
+/** Cash the rider has to physically collect, so it counts against their float. */
+function orderCollectsCash(order) {
+  const method = String(order?.payment?.method || order?.paymentMethod || '').toLowerCase();
+  return method === 'cash' || method === 'razorpay_qr';
 }
 
 async function listNearbyOnlineDeliveryPartners(
@@ -320,12 +363,28 @@ export async function tryAutoAssign(orderId, options = {}) {
       }
     }
 
+    // Riders at their cash ceiling are skipped for cash-collect orders only.
+    const cashBlockedIds = orderCollectsCash(order)
+      ? await getCashBlockedPartnerIds(partners.map((p) => p.partnerId))
+      : new Set();
+
     const eligible = partners.filter((partner) => {
       const partnerKey = partner.partnerId.toString();
       if (offeredIds.includes(partnerKey)) return false;
       if (busyPartnerIds.has(partnerKey)) return false;
+      if (cashBlockedIds.has(partnerKey)) return false;
       return true;
     });
+
+    // Without this, a cash order finding nobody looks identical to no riders being
+    // online, and the real reason — everyone is holding too much cash to deposit —
+    // stays invisible.
+    if (cashBlockedIds.size > 0) {
+      logger.warn(
+        `[Dispatch] ${cashBlockedIds.size} rider(s) skipped for order ${order._id}: ` +
+          `cash-in-hand at or above the configured limit.`,
+      );
+    }
 
     if (eligible.length === 0) {
       logger.info(`tryAutoAssign: No NEW eligible partners in ${maxKm}km for order ${order._id}. Restarting hunt...`);
