@@ -141,6 +141,23 @@ const startServer = async () => {
             console.log(`Server URL http://localhost:${config.port}`);
         });
 
+        // Fail fast instead of hanging.
+        //
+        // Node's defaults are requestTimeout 300s and headersTimeout 60s, so a
+        // handler stuck on a slow Mongo query or an unanswered outbound HTTP call
+        // held the socket open for five minutes. The client saw no response and no
+        // error, which is the worst of both: a retry cannot help because nothing
+        // ever came back to retry on.
+        //
+        // 30s is far above every measured endpoint — the slowest observed was
+        // 2.7s — so this only ever fires on something genuinely wedged.
+        server.requestTimeout = Number(process.env.HTTP_REQUEST_TIMEOUT_MS) || 30_000;
+
+        // Must exceed keepAliveTimeout, or Node races the client and returns
+        // spurious 502s through a proxy on reused connections.
+        server.keepAliveTimeout = 65_000;
+        server.headersTimeout = 70_000;
+
         await startBackgroundJobs();
 
         process.on('SIGINT', () => gracefulShutdown('SIGINT'));

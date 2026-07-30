@@ -1719,7 +1719,11 @@ export async function updateOrderStatusRestaurant(
       }
     }
 
-    await notifyOwnersSafely(
+    // Fire-and-forget: notifyOwnersSafely swallows its own failures, and a push
+    // fans out to every device of every recipient with retries and backoff.
+    // Awaiting it put Google's latency inside the restaurant's tap for no benefit
+    // -- nothing in the response depends on it.
+    void notifyOwnersSafely(
       notifyList,
       {
         title: title,
@@ -1751,13 +1755,21 @@ export async function updateOrderStatusRestaurant(
           `[DEBUG] Order ${order._id.toString()} status changed to '${orderStatus}'. Triggering central delivery dispatch.`,
         );
         
-        try {
-            await tryAutoAssign(order._id);
-            // Refresh local order state after assignment search
-            order = await FoodOrder.findById(order._id); 
-        } catch (err) {
+        // Dispatch runs in the background, not inside the request.
+        //
+        // tryAutoAssign does a geo query over online riders, a Google Directions
+        // call for the trip distance, and an FCM batch to every eligible rider.
+        // Awaiting all of that is what made accepting an order take up to 2.7s,
+        // which reads as an unresponsive button.
+        //
+        // Nothing in the response needs it: the restaurant is told its own status
+        // changed, and the rider assignment that follows reaches every client over
+        // the order_status_update socket event and the next refetch. The returned
+        // order simply will not carry dispatch details yet, which is accurate --
+        // at that instant no rider has been offered it.
+        void tryAutoAssign(order._id).catch((err) => {
             console.error(`[DEBUG] Auto-assign in updateOrderStatusRestaurant failed:`, err);
-        }
+        });
       }
 
             // When ready for pickup -> ping assigned delivery partner.
