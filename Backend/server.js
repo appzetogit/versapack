@@ -19,6 +19,7 @@ import { ensureUploadStorageReady } from './src/services/storage.service.js';
 
 const SHUTDOWN_TIMEOUT_MS = 10000;
 let server = null;
+let autoDeliverInterval = null;
 let expireOffersInterval = null;
 let fssaiExpiryInterval = null;
 
@@ -33,6 +34,7 @@ const gracefulShutdown = async (signal) => {
             await disconnectDB();
             await closeRedis();
             await closeBullMQConnection();
+            if (autoDeliverInterval) clearInterval(autoDeliverInterval);
             if (expireOffersInterval) clearInterval(expireOffersInterval);
             if (fssaiExpiryInterval) clearInterval(fssaiExpiryInterval);
             logger.info('Graceful shutdown complete');
@@ -70,6 +72,19 @@ const startBackgroundJobs = async () => {
     };
     await runExpire();
     expireOffersInterval = setInterval(runExpire, 5 * 60 * 1000);
+
+    // Riders forget to tap "delivered", so trips that were picked up but never
+    // completed are closed after a few hours. Hourly is plenty for a 4h threshold.
+    const runAutoDeliver = async () => {
+        try {
+            const { autoDeliverStaleOrders } = await import('./src/modules/food/orders/services/order.service.js');
+            await autoDeliverStaleOrders();
+        } catch (err) {
+            logger.error(`Auto-deliver sweep error: ${err.message}`);
+        }
+    };
+    await runAutoDeliver();
+    autoDeliverInterval = setInterval(runAutoDeliver, 60 * 60 * 1000);
 
     const runFssaiExpirySync = async () => {
         try {

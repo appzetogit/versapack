@@ -1101,6 +1101,91 @@ export async function getDropOtpUser(orderId, userId) {
  * Watchdog: Recovers orders stuck in 'assigned' or 'preparing' status for too long.
  * Should be called on server startup.
  */
+/**
+ * Closes trips that were picked up but never completed.
+ *
+ * Riders forget to tap "delivered", or lose the app mid-trip, and the order then
+ * sits open forever: it blocks them from taking another job, keeps showing as live
+ * to the customer, and never reaches the restaurant's completed list.
+ *
+ * DELIBERATELY LIMITED TO POST-PICKUP STATES. Marking any four-hour-old order
+ * delivered would sweep up ones that were never accepted, never cooked and never
+ * paid for, and record them as fulfilled — which feeds restaurant payouts and rider
+ * earnings for food that does not exist. Orders still in created/confirmed/preparing
+ * were never picked up; those are the acceptance-window expiry's job to cancel, not
+ * this one's to complete.
+ *
+ * Marks the order only. Settlement is left alone on purpose: an auto-closed trip is
+ * unverified — nobody confirmed the customer received anything — so paying it out
+ * automatically would make a guess irreversible. Each one is logged so it can be
+ * reviewed.
+ */
+export async function autoDeliverStaleOrders() {
+  const cutoffHours = Number(process.env.AUTO_DELIVER_AFTER_HOURS) || 4;
+  const cutoff = new Date(Date.now() - cutoffHours * 60 * 60 * 1000);
+
+  const stale = await FoodOrder.find({
+    orderStatus: { $in: ['picked_up', 'reached_drop'] },
+    // Age from the pickup, not order creation: a trip picked up 10 minutes ago on a
+    // five-hour-old scheduled order is perfectly healthy.
+    $or: [
+      { 'deliveryState.pickedUpAt': { $lte: cutoff } },
+      { 'deliveryState.pickedUpAt': null, updatedAt: { $lte: cutoff } },
+    ],
+  })
+    .select('_id order_id orderStatus deliveryState userId restaurantId dispatch')
+    .limit(200)
+    .lean();
+
+  if (!stale.length) return 0;
+
+  let closed = 0;
+  for (const order of stale) {
+    try {
+      const now = new Date();
+      // Guard on the status inside the update so a rider completing the trip in
+      // this same moment wins, rather than being overwritten by the sweep.
+      const updated = await FoodOrder.findOneAndUpdate(
+        { _id: order._id, orderStatus: { $in: ['picked_up', 'reached_drop'] } },
+        {
+          $set: {
+            orderStatus: 'delivered',
+            'deliveryState.deliveredAt': order.deliveryState?.deliveredAt || now,
+          },
+          $push: {
+            statusHistory: {
+              at: now,
+              byRole: 'ADMIN',
+              from: order.orderStatus,
+              to: 'delivered',
+              note: `Auto-closed after ${cutoffHours}h without completion`,
+            },
+          },
+        },
+        { new: true },
+      ).lean();
+
+      if (!updated) continue;
+      closed += 1;
+      logger.warn(
+        `[AutoDeliver] Order ${updated.order_id || updated._id} closed automatically ` +
+          `after ${cutoffHours}h in '${order.orderStatus}'. Settlement NOT run — review manually.`,
+      );
+
+      enqueueOrderEvent('order_auto_delivered', {
+        orderMongoId: updated._id?.toString?.(),
+        orderId: updated._id.toString(),
+        previousStatus: order.orderStatus,
+      });
+    } catch (err) {
+      logger.error(`[AutoDeliver] Failed to close order ${order._id}: ${err?.message || err}`);
+    }
+  }
+
+  if (closed > 0) logger.warn(`[AutoDeliver] Closed ${closed} stale trip(s).`);
+  return closed;
+}
+
 export async function recoverStuckOrders() {
   const now = new Date();
   const FIVE_MIN = 5 * 60 * 1000;
