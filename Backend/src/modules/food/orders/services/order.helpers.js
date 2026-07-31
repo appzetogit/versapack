@@ -515,7 +515,25 @@ export async function notifyRestaurantNewOrder(orderDoc) {
       {
         title: "New order received",
         body: bodyText,
-        dataOnly: true,
+        // HYBRID, not data-only — the same fix the rider dispatch needed.
+        //
+        // A data-only message is delivered only to the app's own background
+        // handler, which requires Android to start the app process. Vivo, Oppo
+        // and Xiaomi refuse that unless the restaurant has granted Autostart, so
+        // FCM reported success and the phone showed nothing. A restaurant that
+        // never learns an order arrived is worse off than one that sees a plain
+        // tray notification.
+        //
+        // With a notification block the OS renders it itself, with sound, no app
+        // start required. Where the background handler DOES run, it cancels this
+        // copy by tag before showing its own richer alert, so nothing is shown
+        // twice.
+        androidTag: `order_${orderDoc._id?.toString?.() || ""}`,
+        // The channel the restaurant app actually creates. The service default
+        // is incoming_orders_channel, which exists only in the rider app —
+        // Android silently demotes an unknown channel to low importance, so the
+        // alert would arrive without sound or a heads-up even once it displayed.
+        androidChannelId: "new_order_channel",
         data: {
           type: "new_order",
           title: "New order received",
