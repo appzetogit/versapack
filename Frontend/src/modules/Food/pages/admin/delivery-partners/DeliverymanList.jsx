@@ -244,6 +244,8 @@ availableCashLimit: deliveryman.availableCashLimit || 0,
   const startEditingWallet = (deliveryman) => {
     setEditingDeliveryId(String(deliveryman._id))
     setEditValues({
+      name: String(deliveryman.name || ""),
+      phone: String(deliveryman.phone || ""),
       pocketBalance: String(Number(deliveryman.pocketBalance) || 0),
       cashInHand: String(Number(deliveryman.cashInHand) || 0),
     })
@@ -251,11 +253,70 @@ availableCashLimit: deliveryman.availableCashLimit || 0,
 
   const cancelEditingWallet = () => {
     setEditingDeliveryId(null)
-    setEditValues({ pocketBalance: "", cashInHand: "" })
+    setEditValues({ name: "", phone: "", pocketBalance: "", cashInHand: "" })
   }
 
   const updateWalletFieldValue = (field, value) => {
     setEditValues((prev) => ({ ...prev, [field]: value }))
+  }
+
+  /**
+   * Saves the profile half of the row (name / phone).
+   *
+   * Split from the wallet save because they are different endpoints, and skipped
+   * entirely when neither field changed — so editing only a balance does not touch
+   * the partner's login identity. Returns false to abort the whole save when the
+   * server rejects, e.g. the number already belongs to someone else.
+   */
+  const saveProfileChanges = async (deliveryman) => {
+    const nextName = String(editValues.name ?? "").trim()
+    const nextPhone = String(editValues.phone ?? "").trim()
+    const currentName = String(deliveryman.name || "").trim()
+    const currentPhone = String(deliveryman.phone || "").trim()
+
+    if (nextName === currentName && nextPhone === currentPhone) {
+      return { changed: false, ok: true }
+    }
+
+    if (!nextName) {
+      toast.error("Name cannot be empty")
+      return { changed: false, ok: false }
+    }
+
+    // Phone is how the rider signs in, so it is validated before we send rather
+    // than letting a typo become a login nobody can use.
+    if (!/^\d{10}$/.test(nextPhone)) {
+      toast.error("Phone must be a 10 digit number")
+      return { changed: false, ok: false }
+    }
+
+    try {
+      const response = await adminAPI.updateDeliveryPartnerProfile(deliveryman._id, {
+        name: nextName,
+        phone: nextPhone,
+      })
+
+      if (!response?.data?.success) {
+        toast.error(response?.data?.message || "Failed to update delivery partner")
+        return { changed: false, ok: false }
+      }
+
+      const patch = { name: nextName, phone: nextPhone }
+      setDeliverymen((prev) =>
+        prev.map((item) =>
+          String(item._id) === String(deliveryman._id) ? { ...item, ...patch } : item,
+        ),
+      )
+      setViewDetails((prev) =>
+        prev && String(prev._id) === String(deliveryman._id) ? { ...prev, ...patch } : prev,
+      )
+
+      return { changed: true, ok: true, phoneChanged: nextPhone !== currentPhone }
+    } catch (err) {
+      debugError("Error updating delivery partner profile:", err)
+      toast.error(err?.response?.data?.message || "Failed to update delivery partner")
+      return { changed: false, ok: false }
+    }
   }
 
   const saveWalletChanges = async (deliveryman) => {
@@ -274,6 +335,29 @@ availableCashLimit: deliveryman.availableCashLimit || 0,
 
     try {
       setSavingDeliveryId(String(deliveryman._id))
+
+      // Profile first: if the number is rejected as a duplicate we stop here rather
+      // than half-applying the row, leaving the wallet edited against a name the
+      // admin already believes they changed.
+      const profile = await saveProfileChanges(deliveryman)
+      if (!profile.ok) return
+
+      const walletUnchanged =
+        Number(deliveryman.pocketBalance) === nextPocketBalance &&
+        Number(deliveryman.cashInHand) === nextCashInHand
+
+      if (walletUnchanged) {
+        if (profile.changed) {
+          toast.success(
+            profile.phoneChanged
+              ? "Delivery partner updated. They will need to sign in again with the new number."
+              : "Delivery partner updated",
+          )
+        }
+        cancelEditingWallet()
+        return
+      }
+
       const response = await adminAPI.updateDeliveryBoyWallet({
         walletId: deliveryman.walletSummary?.walletId,
         deliveryId: deliveryman._id,
@@ -574,13 +658,23 @@ availableCashLimit: deliveryman.availableCashLimit || 0,
                                 )}
                               </div>
                               <div className="flex items-center gap-2">
-                                <span 
-                                  className="text-sm font-medium text-slate-900 cursor-pointer hover:text-blue-600 transition-colors"
-                                  onClick={() => handleView(dm)}
-                                >
-                                  {dm.name}
-                                </span>
-                                {dm.rating > 0 && (
+                                {editingDeliveryId === String(dm._id) ? (
+                                  <input
+                                    type="text"
+                                    value={editValues.name}
+                                    onChange={(e) => updateWalletFieldValue("name", e.target.value)}
+                                    placeholder="Name"
+                                    className="w-36 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400"
+                                  />
+                                ) : (
+                                  <span
+                                    className="text-sm font-medium text-slate-900 cursor-pointer hover:text-blue-600 transition-colors"
+                                    onClick={() => handleView(dm)}
+                                  >
+                                    {dm.name}
+                                  </span>
+                                )}
+                                {dm.rating > 0 && editingDeliveryId !== String(dm._id) && (
                                   <div className="flex items-center gap-1">
                                     <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
                                     <span className="text-xs text-slate-600">{dm.rating.toFixed(1)}</span>
@@ -592,9 +686,26 @@ availableCashLimit: deliveryman.availableCashLimit || 0,
                         )}
                         {visibleColumns.contact && (
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex flex-col">
+                            <div className="flex flex-col gap-1">
                               <span className="text-sm text-slate-700">{dm.email}</span>
-                              <span className="text-xs text-slate-500">{dm.phone}</span>
+                              {editingDeliveryId === String(dm._id) ? (
+                                <input
+                                  type="tel"
+                                  inputMode="numeric"
+                                  maxLength={10}
+                                  value={editValues.phone}
+                                  // Strip anything that is not a digit as it is typed:
+                                  // this becomes the rider's login, and a stray space or
+                                  // +91 would silently make the account unreachable.
+                                  onChange={(e) =>
+                                    updateWalletFieldValue("phone", e.target.value.replace(/\D/g, ""))
+                                  }
+                                  placeholder="10 digit number"
+                                  className="w-36 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400"
+                                />
+                              ) : (
+                                <span className="text-xs text-slate-500">{dm.phone}</span>
+                              )}
                             </div>
                           </td>
                         )}
@@ -663,7 +774,7 @@ availableCashLimit: deliveryman.availableCashLimit || 0,
                                     onClick={() => saveWalletChanges(dm)}
                                     disabled={savingDeliveryId === String(dm._id)}
                                     className="p-1.5 rounded bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors disabled:opacity-50"
-                                    title="Save Wallet"
+                                    title="Save changes"
                                   >
                                     {savingDeliveryId === String(dm._id) ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                                   </button>
@@ -680,7 +791,7 @@ availableCashLimit: deliveryman.availableCashLimit || 0,
                                 <button
                                   onClick={() => startEditingWallet(dm)}
                                   className="p-1.5 rounded bg-amber-50 text-amber-600 hover:bg-amber-100 transition-colors"
-                                  title="Edit Wallet"
+                                  title="Edit name, phone and wallet"
                                 >
                                   <Pencil className="w-4 h-4" />
                                 </button>

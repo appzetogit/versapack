@@ -1,5 +1,8 @@
 import mongoose from 'mongoose';
-import { ValidationError } from '../../../../core/auth/errors.js';
+// NotFoundError was already used further down this file (deleteDeliveryPartner)
+// without ever being imported — that path threw a ReferenceError instead of a 404
+// whenever the partner was missing.
+import { NotFoundError, ValidationError } from '../../../../core/auth/errors.js';
 import { FoodRestaurant } from '../../restaurant/models/restaurant.model.js';
 import { FoodRestaurantOutletTimings } from '../../restaurant/models/outletTimings.model.js';
 import { FoodDeliveryPartner } from '../../delivery/models/deliveryPartner.model.js';
@@ -6017,6 +6020,65 @@ export async function updateDeliveryBoyWallet(data) {
 /**
  * Deactivate a delivery partner (admin)
  */
+/**
+ * Edits a delivery partner's name and phone from the admin panel.
+ *
+ * Phone is not just a display field — it is how the rider logs in, and it carries a
+ * unique index. Two things follow:
+ *
+ *  - A number already used by another partner has to be rejected with a readable
+ *    message. Letting it reach the database surfaces a raw E11000 to the admin, and
+ *    a deactivated partner still holds its number, so the collision is not always
+ *    visible in the list.
+ *  - Changing the number changes who can sign in. The rider's existing sessions are
+ *    invalidated so the old handset cannot keep acting on an identity that has moved.
+ */
+export async function updateDeliveryPartnerProfile(id, { name, phone } = {}) {
+    const partner = await FoodDeliveryPartner.findById(id);
+    if (!partner) throw new NotFoundError('Delivery partner not found');
+
+    const nextName = typeof name === 'string' ? name.trim() : undefined;
+    const nextPhone = typeof phone === 'string' ? phone.trim() : undefined;
+
+    if (nextName !== undefined) {
+        if (!nextName) throw new ValidationError('Name cannot be empty');
+        partner.name = nextName;
+    }
+
+    let phoneChanged = false;
+    if (nextPhone !== undefined && nextPhone !== partner.phone) {
+        if (!/^\d{10}$/.test(nextPhone)) {
+            throw new ValidationError('Phone must be a 10 digit number');
+        }
+
+        const clash = await FoodDeliveryPartner.findOne({
+            phone: nextPhone,
+            _id: { $ne: partner._id },
+        })
+            .select('_id name status')
+            .lean();
+
+        if (clash) {
+            throw new ValidationError(
+                `That number already belongs to ${clash.name || 'another delivery partner'}` +
+                    (clash.status === 'deactivated' ? ' (a deactivated account)' : ''),
+            );
+        }
+
+        partner.phone = nextPhone;
+        phoneChanged = true;
+    }
+
+    // Moving the number moves the login. Bump the token version so sessions issued
+    // against the old identity stop being accepted on their next request.
+    if (phoneChanged) {
+        partner.tokenVersion = (Number(partner.tokenVersion) || 0) + 1;
+    }
+
+    await partner.save();
+    return partner.toObject();
+}
+
 export async function deleteDeliveryPartner(id) {
     const partner = await FoodDeliveryPartner.findById(id);
     if (!partner) throw new NotFoundError('Delivery partner not found');

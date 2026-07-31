@@ -504,6 +504,10 @@ export const adminAPI = {
         contextModule: "admin",
       },
     ),
+  updateDeliveryPartnerProfile: (id, body) =>
+    apiClient.patch(`/food/admin/delivery/${String(id)}`, body ?? {}, {
+      contextModule: "admin",
+    }),
   deleteDeliveryPartner: (id) =>
     apiClient.delete(`/food/admin/delivery/${String(id)}`, {
       contextModule: "admin",

@@ -1669,6 +1669,21 @@ export async function updateDeliveryBoyWallet(req, res, next) {
     }
 }
 
+export async function updateDeliveryPartnerProfile(req, res, next) {
+    try {
+        const { id } = req.params;
+        const { name, phone } = req.body || {};
+        const data = await adminService.updateDeliveryPartnerProfile(id, { name, phone });
+        res.status(200).json({
+            success: true,
+            message: 'Delivery partner updated successfully',
+            data,
+        });
+    } catch (error) {
+        next(error);
+    }
+}
+
 export async function deleteDeliveryPartner(req, res, next) {
     try {
         const { id } = req.params;
