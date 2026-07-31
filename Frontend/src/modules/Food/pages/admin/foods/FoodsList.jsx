@@ -76,6 +76,45 @@ export default function FoodsList() {
   const [categoryPopoverOpen, setCategoryPopoverOpen] = useState(false)
   const [selectedImageFile, setSelectedImageFile] = useState(null)
   const [imagePreviewUrl, setImagePreviewUrl] = useState("")
+
+  /**
+   * The dish's images, primary first.
+   *
+   * Already-saved images and newly picked files live in the same list so the
+   * ordering the admin sees is the ordering that gets saved. An entry is either
+   * `{url}` (already uploaded) or `{file}` (pending upload) — only the latter costs
+   * an upload request on save, so re-saving a dish does not re-upload everything.
+   */
+  const [foodImages, setFoodImages] = useState([])
+
+  const addImageFiles = (files) => {
+    setFoodImages((prev) => [
+      ...prev,
+      ...files.map((file, i) => ({
+        key: `new-${Date.now()}-${i}`,
+        file,
+        previewUrl: URL.createObjectURL(file),
+      })),
+    ])
+  }
+
+  const removeImageAt = (index) => {
+    setFoodImages((prev) => {
+      const target = prev[index]
+      // Release the blob URL, otherwise every removed pick leaks until reload.
+      if (target?.file && target.previewUrl) URL.revokeObjectURL(target.previewUrl)
+      return prev.filter((_, i) => i !== index)
+    })
+  }
+
+  const makePrimaryImage = (index) => {
+    setFoodImages((prev) => {
+      if (index <= 0 || index >= prev.length) return prev
+      const next = [...prev]
+      const [picked] = next.splice(index, 1)
+      return [picked, ...next]
+    })
+  }
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
   const [totalFoods, setTotalFoods] = useState(0)
@@ -318,6 +357,7 @@ export default function FoodsList() {
     })
     setSelectedImageFile(null)
     setImagePreviewUrl("")
+    setFoodImages([])
     setCategorySearch("")
     setCategoryPopoverOpen(false)
     setShowFoodFormModal(true)
@@ -343,6 +383,18 @@ export default function FoodsList() {
     })
     setSelectedImageFile(null)
     setImagePreviewUrl(String(food.image || ""))
+    // Prefer the gallery, but fall back to the single image so dishes saved
+    // before galleries existed still open with their photo attached rather than
+    // appearing to have none — saving would otherwise silently clear it.
+    setFoodImages(
+      (Array.isArray(food.images) && food.images.length
+        ? food.images
+        : (food.image ? [food.image] : [])
+      )
+        .map((url) => String(url || "").trim())
+        .filter(Boolean)
+        .map((url, i) => ({ key: `saved-${i}-${url}`, url, previewUrl: url })),
+    )
     setCategorySearch("")
     setCategoryPopoverOpen(false)
     setShowFoodFormModal(true)
@@ -455,17 +507,34 @@ export default function FoodsList() {
 
     try {
       setSubmittingFood(true)
-      let imageUrl = foodForm.image.trim()
 
-      if (selectedImageFile) {
-        const uploadResponse = await uploadAPI.uploadMedia(selectedImageFile, {
-          folder: "foods",
-        })
-        imageUrl =
-          uploadResponse?.data?.data?.url ||
-          uploadResponse?.data?.url ||
-          imageUrl
+      // Upload only the entries that are new files; already-saved URLs pass
+      // straight through, so re-saving a dish does not re-upload its whole
+      // gallery. Order is preserved because each slot is resolved in place.
+      const uploadedUrls = await Promise.all(
+        foodImages.map(async (img) => {
+          if (img.url) return img.url
+          const uploadResponse = await uploadAPI.uploadMedia(img.file, {
+            folder: "foods",
+          })
+          return (
+            uploadResponse?.data?.data?.url ||
+            uploadResponse?.data?.url ||
+            ""
+          )
+        }),
+      )
+
+      const imageUrls = uploadedUrls.map((u) => String(u || "").trim()).filter(Boolean)
+
+      // A failed upload must not silently drop a photo the admin can see in the
+      // form — they would save, see fewer images, and have no idea why.
+      if (imageUrls.length !== foodImages.length) {
+        toast.error("Some images failed to upload. Please try again.")
+        return
       }
+
+      const imageUrl = imageUrls[0] || ""
 
       const payload = {
         restaurantId: foodForm.restaurantId,
@@ -482,6 +551,7 @@ export default function FoodsList() {
         })),
         description: foodForm.description.trim(),
         image: imageUrl,
+        images: imageUrls,
         foodType: foodForm.foodType === "Veg" ? "Veg" : "Non-Veg",
         isAvailable: foodForm.isAvailable !== false,
         preparationTime: String(foodForm.preparationTime || "").trim(),
@@ -498,6 +568,7 @@ export default function FoodsList() {
       setFoodForm(createFoodForm())
       setSelectedImageFile(null)
       setImagePreviewUrl("")
+      setFoodImages([])
       await fetchAllFoods()
     } catch (error) {
       debugError("Error saving food:", error)
@@ -1053,6 +1124,7 @@ export default function FoodsList() {
             setCategoryPopoverOpen(false)
             setSelectedImageFile(null)
             setImagePreviewUrl("")
+            setFoodImages([])
           }
         }}
       >
@@ -1182,21 +1254,24 @@ export default function FoodsList() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Upload Image</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Upload Images</label>
                 <input
                   type="file"
                   accept="image/*"
+                  multiple
                   onChange={(e) => {
-                    const file = e.target.files?.[0] || null
-                    setSelectedImageFile(file)
-                    if (file) {
-                      setImagePreviewUrl(URL.createObjectURL(file))
-                    } else {
-                      setImagePreviewUrl(foodForm.image.trim())
-                    }
+                    const files = Array.from(e.target.files || [])
+                    if (files.length) addImageFiles(files)
+                    // Reset so picking the same file again still fires onChange —
+                    // otherwise removing an image and re-adding it does nothing.
+                    e.target.value = ""
                   }}
                   className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm bg-white file:mr-3 file:rounded file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-sm"
                 />
+                <p className="mt-1 text-xs text-slate-500">
+                  First image is the one shown in menus and search. Drag is not needed —
+                  use “Make primary”.
+                </p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Timing</label>
@@ -1215,15 +1290,50 @@ export default function FoodsList() {
                   <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
                 </div>
               </div>
-              {imagePreviewUrl ? (
+              {foodImages.length ? (
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Image Preview</label>
-                  <div className="w-28 h-28 rounded-lg overflow-hidden border border-slate-200 bg-slate-50">
-                    <img
-                      src={imagePreviewUrl}
-                      alt="Food preview"
-                      className="w-full h-full object-cover"
-                    />
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Images ({foodImages.length})
+                  </label>
+                  <div className="flex flex-wrap gap-3">
+                    {foodImages.map((img, index) => (
+                      <div
+                        key={img.key}
+                        className={`relative w-28 rounded-lg overflow-hidden border bg-slate-50 ${
+                          index === 0 ? "border-emerald-500 border-2" : "border-slate-200"
+                        }`}
+                      >
+                        <div className="w-28 h-28">
+                          <img
+                            src={img.previewUrl}
+                            alt={`Food ${index + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        {index === 0 ? (
+                          <span className="absolute top-1 left-1 rounded bg-emerald-600 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                            Primary
+                          </span>
+                        ) : null}
+                        <button
+                          type="button"
+                          onClick={() => removeImageAt(index)}
+                          title="Remove"
+                          className="absolute top-1 right-1 rounded bg-black/60 p-1 text-white hover:bg-black/80"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                        {index !== 0 ? (
+                          <button
+                            type="button"
+                            onClick={() => makePrimaryImage(index)}
+                            className="w-full bg-slate-100 py-1 text-[11px] text-slate-700 hover:bg-slate-200"
+                          >
+                            Make primary
+                          </button>
+                        ) : null}
+                      </div>
+                    ))}
                   </div>
                 </div>
               ) : null}

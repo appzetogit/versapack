@@ -3788,6 +3788,12 @@ export async function getFoods(query) {
         variants: serializeFoodVariants(f.variants),
         variations: serializeFoodVariants(f.variants),
         image: f.image || '',
+        // Falls back to the single image so a dish saved before galleries existed
+        // still returns a one-entry list, rather than the panel having to special
+        // case "no images but there is an image".
+        images: Array.isArray(f.images) && f.images.length
+            ? f.images
+            : (f.image ? [f.image] : []),
         foodType: f.foodType || 'Non-Veg',
         isAvailable: f.isAvailable !== false,
         preparationTime: f.preparationTime || '',
@@ -3906,6 +3912,50 @@ const getAdminFoodUpdatedPricing = (existing = {}, body = {}) => {
     return update;
 };
 
+/**
+ * Normalises the dish image fields so `image` and `images` can never disagree.
+ *
+ * Callers send either shape: the admin panel now sends `images`, the restaurant
+ * app and older admin builds still send a single `image`. Both are accepted, and
+ * whichever arrives, `image` ends up as `images[0]`.
+ *
+ * Keeping them in sync matters because the two are read by different consumers —
+ * the dish detail screen uses the gallery, while the menu list, cart lines, share
+ * previews and push payloads all use `image`. Letting them drift means a dish that
+ * shows one photo in the list and a different one when opened.
+ *
+ * Returns undefined when the caller mentioned neither, so an unrelated update
+ * (a price edit, say) does not wipe existing images.
+ */
+function normalizeFoodImages(body, existing = {}) {
+    const clean = (list) =>
+        (Array.isArray(list) ? list : [])
+            .map((v) => String(v || '').trim())
+            .filter(Boolean);
+
+    const hasImages = body.images !== undefined;
+    const hasImage = body.image !== undefined;
+    if (!hasImages && !hasImage) return undefined;
+
+    let images = hasImages ? clean(body.images) : clean(existing.images);
+
+    if (hasImage) {
+        const primary = String(body.image || '').trim();
+        if (!hasImages) {
+            // Single-image caller: replace the primary, keep any extras behind it.
+            images = primary ? [primary, ...images.filter((u) => u !== primary)] : [];
+        } else if (primary && !images.includes(primary)) {
+            images = [primary, ...images];
+        }
+    }
+
+    // De-duplicate: the panel can re-upload a file that is already attached, and a
+    // repeated URL renders as a duplicate slide in the gallery.
+    images = [...new Set(images)];
+
+    return { images, image: images[0] || '' };
+}
+
 export async function createFood(body) {
     const restaurantId = body.restaurantId;
     if (!restaurantId || !mongoose.Types.ObjectId.isValid(restaurantId)) {
@@ -3943,7 +3993,7 @@ export async function createFood(body) {
         price,
         otherPrice,
         variants,
-        image: typeof body.image === 'string' ? body.image.trim() : '',
+        ...(normalizeFoodImages(body) ?? { image: '', images: [] }),
         foodType,
         isAvailable: body.isAvailable !== false,
         preparationTime: typeof body.preparationTime === 'string' ? body.preparationTime.trim() : '',
@@ -3973,7 +4023,11 @@ export async function updateFood(id, body) {
     if (pricingUpdate.price !== undefined) doc.price = pricingUpdate.price;
     if (pricingUpdate.otherPrice !== undefined) doc.otherPrice = pricingUpdate.otherPrice;
     if (pricingUpdate.variants !== undefined) doc.variants = pricingUpdate.variants;
-    if (body.image !== undefined) doc.image = String(body.image || '').trim();
+    const nextImages = normalizeFoodImages(body, doc.toObject());
+    if (nextImages) {
+        doc.images = nextImages.images;
+        doc.image = nextImages.image;
+    }
     if (body.foodType !== undefined) doc.foodType = targetFoodType;
     if (body.isAvailable !== undefined) doc.isAvailable = body.isAvailable !== false;
     if (body.preparationTime !== undefined) doc.preparationTime = String(body.preparationTime || '').trim();

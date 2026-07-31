@@ -20,7 +20,23 @@ const foodSchema = new mongoose.Schema(
         /** Compare-at / other-platform price for strikethrough UI. Existing items stay 0. */
         otherPrice: { type: Number, min: 0, default: 0 },
         variants: { type: [foodVariantSchema], default: [] },
+        /**
+         * The dish's primary image, kept as the first entry of [images].
+         *
+         * Retained as its own field rather than being derived: every existing
+         * document has it, and the user app, admin list, share previews and push
+         * payloads all read it. Dropping it would have meant a migration plus a
+         * change in four consumers to gain nothing.
+         */
         image: { type: String, trim: true, default: '' },
+
+        /**
+         * All images for the dish, primary first.
+         *
+         * Empty on existing documents, which is why every read falls back to
+         * `image` rather than assuming this is populated.
+         */
+        images: { type: [String], default: [] },
         foodType: { type: String, enum: ['Veg', 'Non-Veg'], default: 'Non-Veg' },
         isAvailable: { type: Boolean, default: true, index: true },
         /** Running average of per-dish ratings left by customers. */
