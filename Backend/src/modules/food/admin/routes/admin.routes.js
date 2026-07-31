@@ -12,6 +12,7 @@ import * as orderController from '../../orders/controllers/order.controller.js';
 import { listUserCartsAdminController, getUserCartPricingAdminController } from '../controllers/userCartAdmin.controller.js';
 import { getAdminPageController, upsertAdminPageController } from '../controllers/pageContent.controller.js';
 import { upload } from '../../../../middleware/upload.js';
+import { invalidateCache } from '../../../../middleware/cache.js';
 import {
     downloadBulkMenuTemplateController,
     uploadAdminBulkMenuController,
@@ -264,9 +265,29 @@ router.get('/foods', adminController.getFoods);
 router.get('/foods/bulk-upload/template', downloadBulkMenuTemplateController);
 router.post('/foods/bulk-upload', upload.single('file'), uploadAdminBulkMenuController);
 router.post('/foods/bulk-delete', adminController.bulkDeleteFoodItems);
-router.post('/foods', adminController.createFood);
-router.patch('/foods/:id', adminController.updateFood);
-router.delete('/foods/:id', adminController.deleteFood);
+/**
+ * Drops the cached customer-facing menus after any admin change to a dish.
+ *
+ * The public feed is cached for 5 minutes and each restaurant menu for 10, and
+ * nothing on the admin side was clearing them. An admin edited a dish, refreshed
+ * the app, saw no change, and edited it again — the write had always worked, the
+ * customer was simply being served a stale copy. The restaurant-side menu routes
+ * already do this; the admin ones were missed.
+ */
+const invalidatePublicMenus = async (_req, _res, next) => {
+    try {
+        await invalidateCache('restaurant_menu:*');
+        await invalidateCache('public_foods:*');
+    } catch (_) {
+        // A cache that will not clear must not fail the write itself; the entry
+        // expires on its own within the TTL.
+    }
+    next();
+};
+
+router.post('/foods', invalidatePublicMenus, adminController.createFood);
+router.patch('/foods/:id', invalidatePublicMenus, adminController.updateFood);
+router.delete('/foods/:id', invalidatePublicMenus, adminController.deleteFood);
 // Food approval queue (pending items created by restaurants)
 router.get('/foods/pending-approvals', foodApprovalController.getPendingFoodApprovals);
 router.patch('/foods/:id/approve', foodApprovalController.approveFoodItemController);
