@@ -670,21 +670,31 @@ export async function createOrder(userId, dto) {
 
     // Realtime + push notifications.
     try {
-      await notifyOwnersSafely([{ ownerType: "USER", ownerId: userId }], {
-        title: isAwaitingOnlinePayment
-          ? "Complete Payment to Confirm Order"
-          : "Order Confirmed! 🍔",
-        body: isAwaitingOnlinePayment
-          ? `Order #${order.order_id || order._id} is created. Please complete payment to send it to ${restaurant.restaurantName || "the restaurant"}.`
-          : `Your order #${order.order_id || order._id} from ${restaurant.restaurantName || "the restaurant"} has been placed successfully.`,
-        image: "https://i.ibb.co/5GzXz7r/Switcheats-Brand-Image.png",
-        data: {
-          type: isAwaitingOnlinePayment ? "order_created_pending_payment" : "order_created",
-          orderId: String(order._id),
-          orderMongoId: order._id.toString(),
-          link: `/food/user/orders/${order._id.toString()}`,
-        },
-      });
+      // Nothing is pushed for an order still awaiting online payment.
+      //
+      // That push fired the instant the order record was created — while the
+      // customer was sitting on the Razorpay sheet actually paying. Telling
+      // someone to complete a payment they are in the middle of completing is
+      // pure interruption, and it landed mid-transaction where it is most
+      // likely to make them abandon.
+      //
+      // The customer cannot miss this state either: they are in the app, on the
+      // payment screen, and an abandoned order is already handled by
+      // abandonOnlinePaymentOrder. A push adds nothing a screen they are
+      // looking at does not already say.
+      if (!isAwaitingOnlinePayment) {
+        await notifyOwnersSafely([{ ownerType: "USER", ownerId: userId }], {
+          title: "Order Confirmed! 🍔",
+          body: `Your order #${order.order_id || order._id} from ${restaurant.restaurantName || "the restaurant"} has been placed successfully.`,
+          image: "https://i.ibb.co/5GzXz7r/Switcheats-Brand-Image.png",
+          data: {
+            type: "order_created",
+            orderId: String(order._id),
+            orderMongoId: order._id.toString(),
+            link: `/food/user/orders/${order._id.toString()}`,
+          },
+        });
+      }
 
       if (!isAwaitingOnlinePayment) {
         await notifyRestaurantNewOrder(order);
@@ -827,18 +837,17 @@ export async function verifyPayment(userId, dto) {
   // After online payment is verified, now notify restaurant about the new order.
   await notifyRestaurantNewOrder(order);
 
-  // Notify Customer about payment success
-  await notifyOwnersSafely([{ ownerType: "USER", ownerId: userId }], {
-    title: "Payment Successful! ✅",
-    body: `We have received your payment of ₹${order.payment.amountDue} for Order #${order._id.toString()}.`,
-    image: "https://i.ibb.co/5GzXz7r/Switcheats-Brand-Image.png",
-    data: {
-      type: "payment_success",
-      orderId: String(order._id.toString()),
-      orderMongoId: String(order._id),
-    },
-  });
-
+  // No "Payment Successful" push.
+  //
+  // This can only ever fire while the customer is watching the confirmation
+  // screen that says the same thing — verification happens in the same request
+  // that returns them to it. Between this and the pending-payment prompt above,
+  // a single online checkout produced three notifications before the restaurant
+  // had even seen the order.
+  //
+  // The pushes that survive are the ones a customer genuinely cannot see
+  // without them: the restaurant accepting, the rider collecting, and delivery.
+  // Those arrive minutes later, when the app is likely closed.
 
   return { order: normalizeOrderForClient(order), payment: order.payment };
 }
@@ -1773,15 +1782,38 @@ export async function updateOrderStatusRestaurant(
       }
     }
 
-    const notifyList = [
-      { ownerType: "USER", ownerId: order.userId },
-      { ownerType: "RESTAURANT", ownerId: restaurantId },
-    ];
+    // Who actually needs telling about THIS status.
+    //
+    // Everyone used to be pushed for every transition, which meant a customer
+    // got five notifications between paying and eating, and the restaurant got
+    // pushed about a status it had just set itself on the screen it was looking
+    // at. Volume like that trains people to swipe alerts away, which is how a
+    // genuinely important one gets missed.
+    const status = String(orderStatus || "");
+    const isCancellation = status.includes("cancel");
+
+    // ready_for_pickup and preparing are kitchen states. The customer already
+    // knows the order was accepted and cannot act on either, so they are noise
+    // to them — but they matter to the rider, who is being dispatched on them.
+    const CUSTOMER_RELEVANT = ["confirmed", "picked_up", "delivered"];
+    const notifyList = [];
+
+    if (isCancellation || CUSTOMER_RELEVANT.includes(status)) {
+      notifyList.push({ ownerType: "USER", ownerId: order.userId });
+    }
+
+    // The restaurant is the one making these changes; a push echoing its own tap
+    // back at it is pure noise. A cancellation may come from support or the
+    // customer, so that one it does need.
+    if (isCancellation) {
+      notifyList.push({ ownerType: "RESTAURANT", ownerId: restaurantId });
+    }
 
     const assignedRiderId = order.dispatch?.deliveryPartnerId;
     if (assignedRiderId) {
       notifyList.push({ ownerType: "DELIVERY_PARTNER", ownerId: assignedRiderId });
     }
+
 
     let riderTitle = `Order #${order.order_id || order._id} updated`;
     let riderBody = `The order status is now ${String(orderStatus).replace(/_/g, " ")}.`;
@@ -1808,7 +1840,11 @@ export async function updateOrderStatusRestaurant(
     // fans out to every device of every recipient with retries and backoff.
     // Awaiting it put Google's latency inside the restaurant's tap for no benefit
     // -- nothing in the response depends on it.
-    void notifyOwnersSafely(
+    //
+    // Guarded rather than returned early: the delivery dispatch below this block
+    // must still run for a status nobody is pushed about, or riders stop being
+    // offered orders entirely.
+    if (notifyList.length > 0) void notifyOwnersSafely(
       notifyList,
       {
         title: title,
