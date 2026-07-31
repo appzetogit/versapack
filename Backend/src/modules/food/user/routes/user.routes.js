@@ -32,6 +32,13 @@ import {
 } from '../controllers/supportTicket.controller.js';
 import { syncUserCartController } from '../controllers/userCart.controller.js';
 import {
+    getFavoritesController,
+    addFavoriteRestaurantController,
+    removeFavoriteRestaurantController,
+    addFavoriteFoodController,
+    removeFavoriteFoodController
+} from '../controllers/userFavorite.controller.js';
+import {
     getCashbackHistoryController,
     getRefundHistoryController
 } from '../controllers/cashback.controller.js';
@@ -69,6 +76,13 @@ router.post('/addresses', addAddressController);
 router.patch('/addresses/:addressId', updateAddressController);
 router.delete('/addresses/:addressId', deleteAddressController);
 router.patch('/addresses/:addressId/default', setDefaultAddressController);
+
+// Favourites. Auth + USER role are applied where this router is mounted.
+router.get('/favorites', getFavoritesController);
+router.post('/favorites/restaurants/:restaurantId', addFavoriteRestaurantController);
+router.delete('/favorites/restaurants/:restaurantId', removeFavoriteRestaurantController);
+router.post('/favorites/foods/:foodId', addFavoriteFoodController);
+router.delete('/favorites/foods/:foodId', removeFavoriteFoodController);
 
 router.put('/cart', syncUserCartController);
 
