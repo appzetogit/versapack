@@ -606,6 +606,24 @@ export async function acceptOrderDelivery(orderId, deliveryPartnerId) {
       );
     }
 
+    // Everyone who was offered this order and did not win it. Deduped: a partner
+    // can appear once per re-offer round, and pushing the same withdrawal three
+    // times is just noise.
+    const winner = deliveryPartnerId.toString();
+    const losingPartnerIds = [
+      ...new Set(
+        (order.dispatch?.offeredTo || [])
+          .map((offer) => offer.partnerId?.toString?.())
+          .filter((pid) => pid && pid !== winner),
+      ),
+    ];
+
+    const claimedPayload = {
+      orderId: order._id.toString(),
+      orderMongoId: order._id?.toString?.(),
+      claimedBy: winner,
+    };
+
     try {
       const io = getIO();
       if (io) {
@@ -619,20 +637,43 @@ export async function acceptOrderDelivery(orderId, deliveryPartnerId) {
         io.to(rooms.restaurant(order.restaurantId)).emit('order_status_update', payload);
         io.to(rooms.user(order.userId)).emit('order_status_update', payload);
 
-        // Notify ALL other delivery partners who were offered this order to dismiss it
-        const offeredPartners = order.dispatch?.offeredTo || [];
-        const claimedPayload = {
-          orderId: order._id.toString(),
-          orderMongoId: order._id?.toString?.(),
-          claimedBy: deliveryPartnerId.toString(),
-        };
-        for (const offer of offeredPartners) {
-          const pid = offer.partnerId?.toString?.();
-          if (pid && pid !== deliveryPartnerId.toString()) {
-            io.to(rooms.delivery(pid)).emit('order_claimed', claimedPayload);
-          }
+        for (const pid of losingPartnerIds) {
+          io.to(rooms.delivery(pid)).emit('order_claimed', claimedPayload);
         }
-        logger.info(`[DeliveryDispatch] Broadcasted order_claimed to ${offeredPartners.length - 1} other partners for order ${order._id.toString()}`);
+        logger.info(
+          `[DeliveryDispatch] Broadcast order_claimed to ${losingPartnerIds.length} other partners for order ${order._id.toString()}`,
+        );
+      }
+
+      // The socket emit above only reaches riders whose app is open and connected.
+      // The offer itself is delivered by a data-only push that the app raises as a
+      // full-screen alert from its background isolate, so the rider most likely to
+      // still be staring at a dead offer is exactly the one the socket cannot reach.
+      // Withdraw over the same transport the offer arrived on.
+      if (losingPartnerIds.length > 0) {
+        try {
+          await notifyOwnersSafely(
+            losingPartnerIds.map((pid) => ({
+              ownerType: 'DELIVERY_PARTNER',
+              ownerId: pid,
+            })),
+            {
+              title: 'Order taken',
+              body: 'Another partner accepted this order.',
+              // Data-only, like the offer: this must dismiss a UI, never add one.
+              dataOnly: true,
+              data: {
+                type: 'order_taken',
+                orderId: order._id.toString(),
+                orderMongoId: order._id?.toString?.() || '',
+              },
+            },
+          );
+        } catch (err) {
+          logger.warn(
+            `order_taken push failed for order ${order._id}: ${err.message}`,
+          );
+        }
       }
 
       await notifyOwnersSafely(
