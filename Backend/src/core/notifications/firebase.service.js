@@ -240,10 +240,18 @@ const buildMessagePayload = (payload = {}, token) => {
     }
     if (!isDataOnlyPush) {
         message.android.notification = {
-            channel_id: isNewOrderAlert ? NEW_ORDER_CHANNEL_ID : DEFAULT_CHANNEL_ID,
+            channel_id: sanitizeString(payload.androidChannelId) ||
+                (isNewOrderAlert ? NEW_ORDER_CHANNEL_ID : DEFAULT_CHANNEL_ID),
             default_vibrate_timings: true,
             default_light_settings: true,
             click_action: 'FLUTTER_NOTIFICATION_CLICK',
+            // A tag makes the OS-rendered copy addressable: the app can cancel
+            // exactly this notification (cancel(0, tag)) once its own richer
+            // alert is on screen, so hybrid pushes don't double-notify on
+            // devices where the app's background handler actually runs.
+            ...(sanitizeString(payload.androidTag)
+                ? { tag: sanitizeString(payload.androidTag) }
+                : {}),
             ...(isNewOrderAlert ? { sound: 'tujh_bin' } : {})
         };
     }

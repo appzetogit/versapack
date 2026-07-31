@@ -475,24 +475,27 @@ export async function tryAutoAssign(orderId, options = {}) {
           {
             title: 'New order available!',
             body: `Order #${order.order_id || order._id} is available. You have ${Math.round(DRIVER_ACCEPT_WINDOW_MS / 1000)} seconds to accept!`,
-            // Data-only: no top-level notification block, at the delivery app team's
-            // request. Including one made Android post its own system notification
-            // alongside the app's full-screen accept alert, so drivers got two
-            // competing notifications per order.
+            // HYBRID, not data-only. This was dataOnly for a while because the
+            // notification block double-notified alongside the app's full-screen
+            // alert — but data-only turned out to fail completely on Vivo/Oppo/
+            // Xiaomi ROMs: a data-only message needs Android to START the app
+            // process to be handled at all, and those ROMs refuse background
+            // starts unless the rider has granted Autostart. FCM reported
+            // Success while the handset showed nothing.
             //
-            // The app owns the display instead: its background isolate handles
-            // data['type'] === 'new_order' and raises the full-screen alert on
-            // incoming_orders_channel. android.priority stays 'high' so the message
-            // still wakes the device out of Doze.
+            // Hybrid gets the best of both. The OS renders this tray alert
+            // itself, with sound, no app start needed — so restricted ROMs ring.
+            // On ROMs where our background isolate DOES run, it raises the
+            // full-screen alert and cancels this tray copy by its tag, so
+            // well-behaved devices still see exactly one alert.
             //
-            // Two consequences to keep in mind before flipping this back:
-            //  - android.notification (channel_id, sound) is ignored without a
-            //    notification block; the channel is whatever the app's local
-            //    notification uses.
-            //  - iOS drops to apns-priority 5 / push-type background, which Apple
-            //    throttles and will not deliver to a terminated app. Android-only
-            //    fleets are unaffected; an iOS fleet needs platform-aware tokens.
-            dataOnly: true,
+            // The tag is the contract with the app (cancel(0, tag:) in
+            // fcm_service.dart) — change one and you must change the other.
+            androidTag: `order_${order._id.toString()}`,
+            // The app's incoming channel is the _v3 id; the service default is
+            // the stale v1 name, and Android silently downgrades an unknown
+            // channel to low importance — no sound, no heads-up.
+            androidChannelId: 'incoming_orders_channel_v3',
             data: buildIncomingOrderPushData(order, payload, acceptanceDeadlineAt),
           }
         );
