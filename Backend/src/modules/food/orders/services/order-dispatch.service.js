@@ -422,8 +422,16 @@ export async function tryAutoAssign(orderId, options = {}) {
             {
               title: 'New order available!',
               body: `Order #${order.order_id || order._id} is still available. Tap to accept.`,
-              // Data-only — see the broadcast push below for the full reasoning.
-              dataOnly: true,
+              // Hybrid, matching the first-round broadcast below.
+              //
+              // This was left data-only when that one was converted, which meant
+              // re-offer rounds still relied on Android starting the app — the
+              // exact thing Vivo, Oppo and Xiaomi refuse. A rider who missed the
+              // first round because of it would silently miss every retry too,
+              // which is the worst case: the order looks unwanted rather than
+              // undelivered.
+              androidTag: `order_${order._id.toString()}`,
+              androidChannelId: 'incoming_orders_channel_v3',
               data: buildIncomingOrderPushData(order, payload, acceptanceDeadlineAt),
             },
           );
