@@ -6,6 +6,7 @@ import morgan from 'morgan';
 import mongoSanitize from 'mongo-sanitize';
 import xssClean from 'xss-clean';
 import routes from './routes/index.js';
+import shareLinksRoutes from './modules/food/public/shareLinks.routes.js';
 import errorHandler from './middleware/errorHandler.js';
 import { apiRateLimiter } from './middleware/rateLimit.js';
 import { responseTimeLogger } from './middleware/responseTimeLogger.js';
@@ -72,6 +73,11 @@ app.use('/api', responseTimeLogger);
 
 // API Routes
 app.use('/api', routes);
+
+// Public share-link landing pages and the Android App Links manifest.
+// Mounted at the root, not under /api, because these paths are what shared links
+// point at and what Android matches its intent filter against.
+app.use(shareLinksRoutes);
 
 // Dev-only: serve uploaded files when nginx is not in front (production uses nginx)
 if (config.nodeEnv === 'development') {
