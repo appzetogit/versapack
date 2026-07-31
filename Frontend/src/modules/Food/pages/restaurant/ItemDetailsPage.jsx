@@ -375,28 +375,54 @@ export default function ItemDetailsPage() {
     }
   ]
 
-  const handleImageAdd = (file) => {
-    if (!file) return
+  const MAX_ITEM_IMAGES = 6
 
-    // Single-image mode: keep only the first selected valid file
-    const previewUrl = URL.createObjectURL(file)
+  /// Appends to the gallery instead of replacing it.
+  ///
+  /// This used to keep only the newest file — the carousel, the index state and
+  /// the delete-by-index handler were all already written for a list, so the
+  /// single-image behaviour was the only thing standing in the way of galleries
+  /// here. The first image stays the primary one.
+  const handleImageAdd = (files) => {
+    const incoming = (Array.isArray(files) ? files : [files]).filter(Boolean)
+    if (incoming.length === 0) return
 
-    images.forEach((img) => {
-      if (img && img.startsWith('blob:')) {
-        URL.revokeObjectURL(img)
-      }
+    const room = MAX_ITEM_IMAGES - images.length
+    if (room <= 0) {
+      toast.error(`You can add up to ${MAX_ITEM_IMAGES} images per item`)
+      return
+    }
+    // Told, not silently truncated: dropping the extras without a word looks
+    // like the picker failed.
+    if (incoming.length > room) {
+      toast.error(`Only ${room} more image${room === 1 ? "" : "s"} can be added`)
+    }
+
+    const accepted = incoming.slice(0, room)
+    const newImageFilesMap = new Map(imageFiles)
+    const previews = accepted.map((file) => {
+      const previewUrl = URL.createObjectURL(file)
+      newImageFilesMap.set(previewUrl, file)
+      return previewUrl
     })
 
-    const newImageFilesMap = new Map()
-    newImageFilesMap.set(previewUrl, file)
-
-    setImages([previewUrl])
+    setImages([...images, ...previews])
     setImageFiles(newImageFilesMap)
-    setCurrentImageIndex(0)
+    // Jump to the first newly added image so the admin sees what they picked.
+    setCurrentImageIndex(images.length)
 
     if (fileInputRef.current) {
       fileInputRef.current.value = ""
     }
+  }
+
+  /// Promotes an image to primary — the one used in menus, search and sharing.
+  const handleMakePrimary = (index) => {
+    if (index <= 0 || index >= images.length) return
+    const next = [...images]
+    const [picked] = next.splice(index, 1)
+    setImages([picked, ...next])
+    setCurrentImageIndex(0)
   }
 
   const handleCameraClick = () => {
@@ -694,6 +720,9 @@ export default function ItemDetailsPage() {
           otherPrice: hasVariants ? 0 : parsedOtherPrice,
           variants: variantPayload,
           image: allImageUrls.length > 0 ? allImageUrls[0] : "",
+          // The full gallery, primary first. `image` stays as [0] so callers
+          // that only read a single image are unaffected.
+          images: allImageUrls,
           foodType: foodType,
           isAvailable: isInStock,
           preparationTime: preparationTime || "",
@@ -718,6 +747,9 @@ export default function ItemDetailsPage() {
           otherPrice: hasVariants ? 0 : parsedOtherPrice,
           variants: variantPayload,
           image: allImageUrls.length > 0 ? allImageUrls[0] : "",
+          // The full gallery, primary first. `image` stays as [0] so callers
+          // that only read a single image are unaffected.
+          images: allImageUrls,
           foodType: foodType,
           isAvailable: isInStock,
           preparationTime: preparationTime || "",
@@ -884,6 +916,24 @@ export default function ItemDetailsPage() {
                     </span>
                   </div>
                 )}
+
+                {/* Which image leads everywhere else in the app. Shown as a
+                    badge on the first image, and as an action on any other, so
+                    the choice is visible rather than implied by ordering. */}
+                {images.length > 1 && (
+                  currentImageIndex === 0 ? (
+                    <div className="absolute bottom-4 left-4 bg-emerald-600 px-3 py-1.5 rounded-full z-10 shadow-lg">
+                      <span className="text-white text-xs font-semibold">Primary</span>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => handleMakePrimary(currentImageIndex)}
+                      className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full z-10 shadow-lg hover:bg-white transition-all"
+                    >
+                      <span className="text-gray-900 text-xs font-semibold">Make primary</span>
+                    </button>
+                  )
+                )}
               </div>
 
               {/* Carousel dots */}
@@ -912,7 +962,7 @@ export default function ItemDetailsPage() {
                   <Camera className="w-10 h-10 text-gray-400" />
                 </div>
                 <p className="text-sm font-medium text-gray-600">No images added yet</p>
-                <p className="text-xs text-gray-500 mt-1">Tap the button below to add one image</p>
+                <p className="text-xs text-gray-500 mt-1">Tap below to add photos — you can select several at once</p>
               </div>
             </div>
           )}
@@ -923,7 +973,8 @@ export default function ItemDetailsPage() {
               ref={fileInputRef}
               type="file"
               accept="image/*"
-              onChange={(e) => handleImageAdd(e.target.files?.[0])}
+              multiple
+              onChange={(e) => handleImageAdd(Array.from(e.target.files || []))}
               className="hidden"
             />
             <button

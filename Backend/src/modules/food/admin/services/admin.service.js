@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 // without ever being imported — that path threw a ReferenceError instead of a 404
 // whenever the partner was missing.
 import { NotFoundError, ValidationError } from '../../../../core/auth/errors.js';
+import { normalizeFoodImages } from './foodImages.util.js';
 import { FoodRestaurant } from '../../restaurant/models/restaurant.model.js';
 import { FoodRestaurantOutletTimings } from '../../restaurant/models/outletTimings.model.js';
 import { FoodDeliveryPartner } from '../../delivery/models/deliveryPartner.model.js';
@@ -3911,50 +3912,6 @@ const getAdminFoodUpdatedPricing = (existing = {}, body = {}) => {
 
     return update;
 };
-
-/**
- * Normalises the dish image fields so `image` and `images` can never disagree.
- *
- * Callers send either shape: the admin panel now sends `images`, the restaurant
- * app and older admin builds still send a single `image`. Both are accepted, and
- * whichever arrives, `image` ends up as `images[0]`.
- *
- * Keeping them in sync matters because the two are read by different consumers —
- * the dish detail screen uses the gallery, while the menu list, cart lines, share
- * previews and push payloads all use `image`. Letting them drift means a dish that
- * shows one photo in the list and a different one when opened.
- *
- * Returns undefined when the caller mentioned neither, so an unrelated update
- * (a price edit, say) does not wipe existing images.
- */
-function normalizeFoodImages(body, existing = {}) {
-    const clean = (list) =>
-        (Array.isArray(list) ? list : [])
-            .map((v) => String(v || '').trim())
-            .filter(Boolean);
-
-    const hasImages = body.images !== undefined;
-    const hasImage = body.image !== undefined;
-    if (!hasImages && !hasImage) return undefined;
-
-    let images = hasImages ? clean(body.images) : clean(existing.images);
-
-    if (hasImage) {
-        const primary = String(body.image || '').trim();
-        if (!hasImages) {
-            // Single-image caller: replace the primary, keep any extras behind it.
-            images = primary ? [primary, ...images.filter((u) => u !== primary)] : [];
-        } else if (primary && !images.includes(primary)) {
-            images = [primary, ...images];
-        }
-    }
-
-    // De-duplicate: the panel can re-upload a file that is already attached, and a
-    // repeated URL renders as a duplicate slide in the gallery.
-    images = [...new Set(images)];
-
-    return { images, image: images[0] || '' };
-}
 
 export async function createFood(body) {
     const restaurantId = body.restaurantId;

@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import { ValidationError } from '../../../../core/auth/errors.js';
 import { FoodItem } from '../../admin/models/food.model.js';
 import { FoodCategory } from '../../admin/models/category.model.js';
+import { normalizeFoodImages } from '../../admin/services/foodImages.util.js';
 import { FoodRestaurant } from '../models/restaurant.model.js';
 import {
     extractRawFoodVariants,
@@ -247,7 +248,6 @@ export async function createRestaurantFood(restaurantId, body = {}) {
     const { price, otherPrice, variants } = getCreateFoodPricing(body);
 
     const description = toStr(body.description);
-    const image = toStr(body.image);
     const isAvailable = body.isAvailable !== false;
     const foodType = normalizeFoodType(body.foodType);
     const preparationTime = toStr(body.preparationTime);
@@ -262,7 +262,9 @@ export async function createRestaurantFood(restaurantId, body = {}) {
         price,
         otherPrice,
         variants,
-        image,
+        // Same normaliser the admin service uses, so a dish gets the same
+        // image/images relationship regardless of which panel created it.
+        ...(normalizeFoodImages(body) ?? { image: '', images: [] }),
         foodType,
         isAvailable,
         isRecommended: body.isRecommended === true,
@@ -308,7 +310,11 @@ export async function updateRestaurantFood(restaurantId, foodId, body = {}) {
         update.name = name;
     }
     if (body.description !== undefined) update.description = toStr(body.description);
-    if (body.image !== undefined) update.image = toStr(body.image);
+    const nextImages = normalizeFoodImages(body, existing);
+    if (nextImages) {
+        update.images = nextImages.images;
+        update.image = nextImages.image;
+    }
     Object.assign(update, getUpdatedFoodPricing(existing, body));
     const availabilityUpdate = buildAvailabilityUpdate(body);
     Object.assign(update, availabilityUpdate.update);
@@ -333,7 +339,10 @@ export async function updateRestaurantFood(restaurantId, foodId, body = {}) {
     }
 
     const CRITICAL_APPROVAL_FIELDS = [
-        'name', 'description', 'image', 'price', 'variants',
+        // `images` alongside `image`: adding or reordering photos changes what
+        // customers are shown, so it goes back through approval for the same
+        // reason a changed primary image always did.
+        'name', 'description', 'image', 'images', 'price', 'variants',
         'foodType', 'categoryId', 'categoryName', 'preparationTime'
     ];
     const shouldResubmitForApproval = Object.keys(update).some(key => CRITICAL_APPROVAL_FIELDS.includes(key));
