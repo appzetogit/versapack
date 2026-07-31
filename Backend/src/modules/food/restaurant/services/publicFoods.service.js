@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import { FoodItem } from '../../admin/models/food.model.js';
 import { FoodRestaurant } from '../models/restaurant.model.js';
-import { getFoodDisplayOtherPrice, getFoodDisplayPrice } from '../../admin/services/foodVariant.service.js';
+import { getFoodDisplayOtherPrice, getFoodDisplayPrice, serializeFoodVariants } from '../../admin/services/foodVariant.service.js';
 import { restoreExpiredFoodAvailability } from './foodAvailability.service.js';
 
 const escapeRegex = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -82,6 +82,16 @@ export async function listPublicFoods(query = {}) {
             description: food.description || '',
             price,
             otherPrice: getFoodDisplayOtherPrice(food),
+            // Both keys, exactly as the restaurant-menu payload sends them.
+            //
+            // These were missing entirely, so a dish with sizes arrived here
+            // looking like a plain one. The app added it to the cart with no
+            // variant and had nothing to render a size picker from, while
+            // checkout — which reads the dish from the database — correctly
+            // refused with "please select a size". The customer was left with an
+            // error and no control that could clear it.
+            variants: serializeFoodVariants(food.variants),
+            variations: serializeFoodVariants(food.variants),
             image: food.image || '',
             // Falls back to the single image so a dish saved before galleries
             // existed still returns a one-entry list — the app can then always
