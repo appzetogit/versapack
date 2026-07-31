@@ -440,9 +440,27 @@ export const replaceFirebaseDeviceToken = async ({ ownerType, ownerId, token, pl
 
 export const removeFirebaseDeviceToken = async ({ ownerType, ownerId, token }) => {
     const normalizedToken = sanitizeString(token);
-    if (!ownerType || !ownerId || !normalizedToken) {
-        throw new Error('ownerType, ownerId, and token are required.');
+    if (!ownerType || !ownerId) {
+        throw new Error('ownerType and ownerId are required.');
     }
+
+    // Logout without a token used to throw here. The delivery and restaurant apps
+    // call this on logout with no body, so every logout raised a 500 that the app
+    // swallowed ("logging out locally regardless") and the token stayed attached --
+    // the rider signed out and kept getting new-order alerts.
+    //
+    // No token means "this authenticated owner is signing out": clear the whole
+    // list. Scoped by ownerId, so it can only ever affect the caller's own account.
+    if (!normalizedToken) {
+        const model = getOwnerModel(ownerType);
+        if (!model) throw new Error(`Unsupported owner type: ${ownerType}`);
+        await model.updateOne(
+            { _id: ownerId },
+            { $set: { fcmTokens: [], fcmTokenMobile: [] } },
+        );
+        return { success: true, cleared: 'all' };
+    }
+
     // Token identity is global: scrub every owner/platform so leftovers cannot cause duplicate pushes.
     await detachFirebaseDeviceTokenEverywhere(normalizedToken);
     return { success: true };
