@@ -83,6 +83,12 @@ export async function listPublicFoods(query = {}) {
             price,
             otherPrice: getFoodDisplayOtherPrice(food),
             image: food.image || '',
+            // Falls back to the single image so a dish saved before galleries
+            // existed still returns a one-entry list — the app can then always
+            // read `images` without special-casing the old shape.
+            images: Array.isArray(food.images) && food.images.length
+                ? food.images
+                : (food.image ? [food.image] : []),
             foodType: food.foodType || 'Non-Veg',
             isAvailable: food.isAvailable !== false,
             preparationTime: food.preparationTime || '',

@@ -56,6 +56,12 @@ const buildMenuFromFoods = async (foods = []) => {
             variants: serializeFoodVariants(food.variants),
             variations: serializeFoodVariants(food.variants),
             image: food.image || '',
+            // Same fallback as the public feed: existing dishes have no gallery,
+            // so return their single image as a one-entry list rather than an
+            // empty one the detail screen would have to work around.
+            images: Array.isArray(food.images) && food.images.length
+                ? food.images
+                : (food.image ? [food.image] : []),
             foodType: food.foodType || 'Non-Veg',
             isAvailable: food.isAvailable !== false,
             approvalStatus: food.approvalStatus || 'approved',
