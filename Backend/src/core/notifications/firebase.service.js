@@ -402,6 +402,42 @@ export const upsertFirebaseDeviceToken = async ({ ownerType, ownerId, token, pla
     return { success: true };
 };
 
+/**
+ * Makes [token] the owner's ONLY device token, dropping every token it had before.
+ *
+ * For roles whose sessions are single-device (see SESSION_SCOPED_MODELS in
+ * auth.middleware), logging in elsewhere already evicts the previous session's JWT.
+ * Its push token used to survive that, so the signed-out phone kept receiving
+ * pushes for the account: a rider's old handset went on raising full-screen order
+ * alerts it could no longer accept, and a restaurant's old device kept getting new
+ * order notifications. Killing the session and leaving its notifications alive is
+ * half a logout.
+ *
+ * upsertFirebaseDeviceToken alone does not cover this. It detaches the token from
+ * OTHER owners — which is the same-device-new-account case — but appends to the
+ * current owner's list, which is exactly the list that needs emptying here.
+ *
+ * Only ever called with a real replacement token in hand. Clearing the list when
+ * login could not supply one would leave the device that just signed in unable to
+ * receive anything at all.
+ */
+export const replaceFirebaseDeviceToken = async ({ ownerType, ownerId, token, platform = 'mobile' }) => {
+    const normalizedToken = sanitizeString(token);
+    if (!ownerType || !ownerId || !normalizedToken) {
+        throw new Error('ownerType, ownerId, and token are required.');
+    }
+
+    const model = getOwnerModel(ownerType);
+    if (!model) throw new Error(`Unsupported owner type: ${ownerType}`);
+
+    await model.updateOne(
+        { _id: ownerId },
+        { $set: { fcmTokens: [], fcmTokenMobile: [] } },
+    );
+
+    return upsertFirebaseDeviceToken({ ownerType, ownerId, token: normalizedToken, platform });
+};
+
 export const removeFirebaseDeviceToken = async ({ ownerType, ownerId, token }) => {
     const normalizedToken = sanitizeString(token);
     if (!ownerType || !ownerId || !normalizedToken) {

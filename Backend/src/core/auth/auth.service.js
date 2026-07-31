@@ -21,6 +21,7 @@ import { ADMIN_FULL_PERMISSIONS, sanitizeAdminPermissions } from '../../constant
 import { isMobilePlatform } from "../../utils/platform.js";
 import {
   detachFirebaseDeviceTokenEverywhere,
+  replaceFirebaseDeviceToken,
   upsertFirebaseDeviceToken,
 } from "../notifications/firebase.service.js";
 
@@ -31,10 +32,29 @@ const ROLES = {
   ADMIN: "ADMIN",
 };
 
+/**
+ * Roles whose sessions are single-device, and whose push tokens must therefore be
+ * single-device too. Mirrors SESSION_SCOPED_MODELS in auth.middleware — admins are
+ * excluded there because the panel is used across several tabs and machines, and
+ * evicting those would be a regression rather than a safeguard.
+ */
+const SINGLE_DEVICE_ROLES = new Set([
+  ROLES.USER,
+  ROLES.RESTAURANT,
+  ROLES.DELIVERY_PARTNER,
+]);
+
 const saveLoginFcmToken = async ({ ownerType, ownerId, fcmToken, platform, ownerDoc }) => {
   if (!fcmToken || !ownerId) return;
   try {
-    await upsertFirebaseDeviceToken({
+    // Logging in already invalidated every earlier session for this account. Its
+    // push tokens have to go with it, or the signed-out device keeps receiving
+    // pushes it can no longer act on.
+    const save = SINGLE_DEVICE_ROLES.has(ownerType)
+      ? replaceFirebaseDeviceToken
+      : upsertFirebaseDeviceToken;
+
+    await save({
       ownerType,
       ownerId: String(ownerId),
       token: fcmToken,
