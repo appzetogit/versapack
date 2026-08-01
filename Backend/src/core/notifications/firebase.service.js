@@ -690,13 +690,17 @@ export const notifyOwnersSafely = async (targets = [], payload = {}) => {
 export const notifyOwnersActionableAlert = async (targets = [], payload = {}) => {
     const { androidTag, androidChannelId, ...rest } = payload;
 
-    // Data-only first: it is the one that can produce the real alert, and
-    // sending it first shortens the window where the plain copy is visible
-    // before the handler cancels it.
-    const primary = await notifyOwnersSafely(targets, { ...rest, dataOnly: true });
-
-    // Fallback copy, rendered by the OS with no app start required.
+    // Notification leg FIRST, data-only second — the order matters.
+    //
+    // The app cancels the plain copy by tag when its handler runs. Sending
+    // data-only first meant the handler cancelled a notification that had not
+    // arrived yet, and the plain copy then appeared afterwards and stayed —
+    // leaving two alerts on screen instead of one, on exactly the devices that
+    // were working correctly.
+    //
+    // This way the plain copy is posted first, and the handler cancels
+    // something that actually exists.
     await notifyOwnersSafely(targets, { ...rest, androidTag, androidChannelId });
 
-    return primary;
+    return notifyOwnersSafely(targets, { ...rest, dataOnly: true });
 };
