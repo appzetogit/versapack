@@ -651,3 +651,40 @@ export const notifyOwnersSafely = async (targets = [], payload = {}) => {
         return [];
     }
 };
+
+/**
+ * An alert that needs BOTH action buttons and delivery on locked-down ROMs.
+ *
+ * These two requirements cannot be met by one FCM message, which is the trap a
+ * single "hybrid" message fell into:
+ *
+ *  - A message carrying a notification block is rendered by Android itself, and
+ *    the app's background handler is never called. FCM's notification block has
+ *    no concept of action buttons, so Accept/Reject cannot exist on it.
+ *  - A data-only message DOES reach the handler, which can build a rich
+ *    notification with Accept/Reject — but delivering it requires Android to
+ *    start the app process, which Vivo, Oppo and Xiaomi refuse without
+ *    Autostart. There the message is accepted and silently dropped.
+ *
+ * So both are sent. On a healthy device the data-only message arrives, the
+ * handler posts the rich notification and cancels the plain one by its tag, and
+ * the user sees exactly one alert with buttons. On a restricted ROM the
+ * data-only message goes nowhere and the plain one is all that renders — no
+ * buttons, but the order is not missed, which is the outcome that matters.
+ *
+ * The tag is the contract that keeps a healthy device from showing two: the app
+ * cancels id 0 with this tag. Change it here and the app must change with it.
+ */
+export const notifyOwnersActionableAlert = async (targets = [], payload = {}) => {
+    const { androidTag, androidChannelId, ...rest } = payload;
+
+    // Data-only first: it is the one that can produce the real alert, and
+    // sending it first shortens the window where the plain copy is visible
+    // before the handler cancels it.
+    const primary = await notifyOwnersSafely(targets, { ...rest, dataOnly: true });
+
+    // Fallback copy, rendered by the OS with no app start required.
+    await notifyOwnersSafely(targets, { ...rest, androidTag, androidChannelId });
+
+    return primary;
+};

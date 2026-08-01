@@ -15,13 +15,14 @@ import {
   getBusyDeliveryPartnerIds,
   haversineKm,
   notifyOwnerSafely,
+  notifyOwnersActionableAlert,
   notifyOwnersSafely,
 } from './order.helpers.js';
 import { fetchDrivingRoute } from '../utils/googleMaps.js';
 import { parseGeoPoint } from '../../shared/geo.utils.js';
 
 /**
- * Resolve restaurant → customer road distance once per dispatch broadcast.
+ * Resolve restaurant â†’ customer road distance once per dispatch broadcast.
  * Falls back to pricing Haversine when Directions is unavailable.
  */
 async function enrichPayloadWithTripRoadDistance(order, payload) {
@@ -87,7 +88,7 @@ async function enrichPayloadWithTripRoadDistance(order, payload) {
 }
 
 /**
- * Driver acceptance window. Single source of truth — the client countdown, the re-queue
+ * Driver acceptance window. Single source of truth â€” the client countdown, the re-queue
  * delay and acceptanceDeadlineAt all derive from this, so they can't drift apart.
  */
 const DRIVER_ACCEPT_WINDOW_MS = 45000;
@@ -96,7 +97,7 @@ const DRIVER_ACCEPT_WINDOW_MS = 45000;
  * Flat, string-only data map for the incoming-order push.
  *
  * FCM data values must be strings. Everything the full-screen alert needs is included so
- * the app can render it with no follow-up API call — important when the device is locked
+ * the app can render it with no follow-up API call â€” important when the device is locked
  * or the app was killed.
  */
 function buildIncomingOrderPushData(order, payload, acceptanceDeadlineAt) {
@@ -117,7 +118,7 @@ function buildIncomingOrderPushData(order, payload, acceptanceDeadlineAt) {
     //
     // This push is data-only, so FCM omits the notification block and
     // message.notification is null on the device. An app reading
-    // message.notification.title therefore renders a blank notification — which
+    // message.notification.title therefore renders a blank notification â€” which
     // reads as a broken push rather than a missing field. The restaurant app hit
     // exactly this. These give the rider app ready-made strings straight from
     // message.data.
@@ -154,7 +155,7 @@ function buildIncomingOrderPushData(order, payload, acceptanceDeadlineAt) {
  * order adds nothing to their float, so blocking those would idle riders for no
  * reason.
  *
- * A limit of 0 means "no limit" — that is the schema default, so an install that has
+ * A limit of 0 means "no limit" â€” that is the schema default, so an install that has
  * never configured this must not have every rider silently excluded.
  *
  * @returns {Promise<Set<string>>} partner ids to skip
@@ -216,7 +217,7 @@ async function listNearbyOnlineDeliveryPartners(
   // stays stale. A rider sitting outside the restaurant with the app backgrounded
   // would never be told about a new order.
   //
-  // Excluding them was never what stopped cross-city offers — the distanceKm <= maxKm
+  // Excluding them was never what stopped cross-city offers â€” the distanceKm <= maxKm
   // gate below does that. The original bug was that missing-GPS riders were being
   // scored as distanceKm: 999, which BYPASSED the gate. Coordinates that are half an
   // hour old and 3 km from the restaurant are still a far better candidate than
@@ -227,7 +228,7 @@ async function listNearbyOnlineDeliveryPartners(
   for (const p of allOnline) {
     if (!allowedStatuses.includes(p.status)) continue;
 
-    // No coordinates at all → genuinely unplaceable, must skip (never score as 999).
+    // No coordinates at all â†’ genuinely unplaceable, must skip (never score as 999).
     if (p.lastLat == null || p.lastLng == null) {
       droppedStale += 1;
       continue;
@@ -377,7 +378,7 @@ export async function tryAutoAssign(orderId, options = {}) {
     });
 
     // Without this, a cash order finding nobody looks identical to no riders being
-    // online, and the real reason — everyone is holding too much cash to deposit —
+    // online, and the real reason â€” everyone is holding too much cash to deposit â€”
     // stays invisible.
     if (cashBlockedIds.size > 0) {
       logger.warn(
@@ -414,22 +415,14 @@ export async function tryAutoAssign(orderId, options = {}) {
         }
 
         // This branch previously emitted a socket event only, so a backgrounded or locked
-        // driver was never woken on a re-offer round — the order could sit unassigned while
+        // driver was never woken on a re-offer round â€” the order could sit unassigned while
         // every nearby rider was simply not looking at the app. Push on every round.
         try {
-          await notifyOwnersSafely(
+          await notifyOwnersActionableAlert(
             reofferEligible.map((p) => ({ ownerType: 'DELIVERY_PARTNER', ownerId: p.partnerId })),
             {
               title: 'New order available!',
               body: `Order #${order.order_id || order._id} is still available. Tap to accept.`,
-              // Hybrid, matching the first-round broadcast below.
-              //
-              // This was left data-only when that one was converted, which meant
-              // re-offer rounds still relied on Android starting the app — the
-              // exact thing Vivo, Oppo and Xiaomi refuse. A rider who missed the
-              // first round because of it would silently miss every retry too,
-              // which is the worst case: the order looks unwanted rather than
-              // undelivered.
               androidTag: `order_${order._id.toString()}`,
               androidChannelId: 'incoming_orders_channel_v3',
               data: buildIncomingOrderPushData(order, payload, acceptanceDeadlineAt),
@@ -456,7 +449,7 @@ export async function tryAutoAssign(orderId, options = {}) {
     const payload = await enrichPayloadWithTripRoadDistance(order, basePayload);
 
     // BROADCAST: Notify all eligible riders
-    // tripDistanceKm = restaurant ↔ customer (road); pickupDistanceKm = rider → restaurant (ranking only)
+    // tripDistanceKm = restaurant â†” customer (road); pickupDistanceKm = rider â†’ restaurant (ranking only)
     logger.info(`Broadcasting order ${order._id} to ${eligible.length} riders. tripDistanceKm=${payload.tripDistanceKm}`);
     const acceptanceDeadlineAt = new Date(Date.now() + DRIVER_ACCEPT_WINDOW_MS);
     for (const p of eligible) {
@@ -478,31 +471,26 @@ export async function tryAutoAssign(orderId, options = {}) {
 
     if (pushTargets.length > 0) {
       try {
-        await notifyOwnersSafely(
+        await notifyOwnersActionableAlert(
           pushTargets,
           {
             title: 'New order available!',
             body: `Order #${order.order_id || order._id} is available. You have ${Math.round(DRIVER_ACCEPT_WINDOW_MS / 1000)} seconds to accept!`,
-            // HYBRID, not data-only. This was dataOnly for a while because the
-            // notification block double-notified alongside the app's full-screen
-            // alert — but data-only turned out to fail completely on Vivo/Oppo/
-            // Xiaomi ROMs: a data-only message needs Android to START the app
-            // process to be handled at all, and those ROMs refuse background
-            // starts unless the rider has granted Autostart. FCM reported
-            // Success while the handset showed nothing.
+            // Two messages â€” see notifyOwnersActionableAlert.
             //
-            // Hybrid gets the best of both. The OS renders this tray alert
-            // itself, with sound, no app start needed — so restricted ROMs ring.
-            // On ROMs where our background isolate DOES run, it raises the
-            // full-screen alert and cancels this tray copy by its tag, so
-            // well-behaved devices still see exactly one alert.
+            // This alert needs the app's own full-screen UI (which only a
+            // data-only message can trigger) AND delivery on ROMs that refuse
+            // to start the app (which only a notification block achieves).
+            // Blending them into one message quietly lost the first: Android
+            // renders a message that has a notification block and never calls
+            // the handler that would have raised the overlay.
             //
             // The tag is the contract with the app (cancel(0, tag:) in
-            // fcm_service.dart) — change one and you must change the other.
+            // fcm_service.dart) â€” change one and you must change the other.
             androidTag: `order_${order._id.toString()}`,
             // The app's incoming channel is the _v3 id; the service default is
             // the stale v1 name, and Android silently downgrades an unknown
-            // channel to low importance — no sound, no heads-up.
+            // channel to low importance â€” no sound, no heads-up.
             androidChannelId: 'incoming_orders_channel_v3',
             data: buildIncomingOrderPushData(order, payload, acceptanceDeadlineAt),
           }
@@ -519,7 +507,7 @@ export async function tryAutoAssign(orderId, options = {}) {
     }));
 
     // Conditional update, NOT order.save(). This doc was loaded before several awaits
-    // (rider lookup, Directions fetch, FCM batch) — seconds of wall time during which a
+    // (rider lookup, Directions fetch, FCM batch) â€” seconds of wall time during which a
     // rider may have accepted. A blind save reverted that accept to unassigned/null, so
     // the order was re-broadcast and a second rider could claim the same trip.
     const reoffer = await FoodOrder.updateOne(
@@ -536,7 +524,7 @@ export async function tryAutoAssign(orderId, options = {}) {
 
     if (reoffer.modifiedCount === 0) {
       logger.info(
-        `tryAutoAssign: order ${order._id} was accepted during broadcast — leaving assignment intact.`,
+        `tryAutoAssign: order ${order._id} was accepted during broadcast â€” leaving assignment intact.`,
       );
       return order;
     }

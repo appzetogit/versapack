@@ -3,6 +3,7 @@ import { FoodOrder } from '../models/order.model.js';
 import { logger } from '../../../../utils/logger.js';
 import { haversineKm as geoHaversineKm, parseGeoPoint } from '../../shared/geo.utils.js';
 import {
+  notifyOwnersActionableAlert,
   sendNotificationToOwner,
   sendNotificationToOwners,
 } from "../../../../core/notifications/firebase.service.js";
@@ -93,6 +94,9 @@ export async function notifyOwnersSafely(targets, payload) {
     logger.warn(`FCM notification failed: ${error?.message || error}`);
   }
 }
+
+/** Re-exported so dispatch and the order helpers share one definition. */
+export { notifyOwnersActionableAlert };
 
 export async function notifyOwnerSafely(target, payload) {
   try {
@@ -510,24 +514,17 @@ export async function notifyRestaurantNewOrder(orderDoc) {
     if (orderDoc.customerName) bodyText += `\nCustomer: ${orderDoc.customerName}`;
     if (addressStr) bodyText += `\nAddress: ${addressStr}`;
 
-    await notifyOwnersSafely(
+    // Two messages, not one — see notifyOwnersActionableAlert.
+    //
+    // Accept/Reject can only be attached by the app itself, and the app is only
+    // called for a data-only message. Blending both into a single message with a
+    // notification block silently removed the buttons, because Android renders
+    // such a message and never wakes the handler that would have added them.
+    await notifyOwnersActionableAlert(
       [{ ownerType: "RESTAURANT", ownerId: orderDoc.restaurantId }],
       {
         title: "New order received",
         body: bodyText,
-        // HYBRID, not data-only — the same fix the rider dispatch needed.
-        //
-        // A data-only message is delivered only to the app's own background
-        // handler, which requires Android to start the app process. Vivo, Oppo
-        // and Xiaomi refuse that unless the restaurant has granted Autostart, so
-        // FCM reported success and the phone showed nothing. A restaurant that
-        // never learns an order arrived is worse off than one that sees a plain
-        // tray notification.
-        //
-        // With a notification block the OS renders it itself, with sound, no app
-        // start required. Where the background handler DOES run, it cancels this
-        // copy by tag before showing its own richer alert, so nothing is shown
-        // twice.
         androidTag: `order_${orderDoc._id?.toString?.() || ""}`,
         // The channel the restaurant app actually creates. The service default
         // is incoming_orders_channel, which exists only in the rider app —
