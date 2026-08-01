@@ -388,25 +388,37 @@ export const upsertFirebaseDeviceToken = async ({ ownerType, ownerId, token, pla
     // Detach first so this token cannot live on another user or the wrong platform list.
     await detachFirebaseDeviceTokenEverywhere(normalizedToken);
 
-    const doc = await model.findById(ownerId);
-    if (!doc) {
+    const field = getTokenFieldForPlatform(normalizedPlatform);
+    const otherField = field === OWNER_TOKEN_FIELDS.web ? OWNER_TOKEN_FIELDS.mobile : OWNER_TOKEN_FIELDS.web;
+
+    // Atomic, NOT load-modify-save.
+    //
+    // This used to findById, mutate the arrays, and save(). Mongoose stamps a
+    // version on documents with arrays, and save() fails with a VersionError
+    // when anything else touched them in between — which happens constantly
+    // here: detachFirebaseDeviceTokenEverywhere above rewrites those very
+    // arrays, and a client retrying its registration fires several saves within
+    // a second. The endpoint then returned 500 and the device never registered,
+    // so pushes stopped for that account entirely.
+    //
+    // $addToSet / $pull are applied by the server against whatever the document
+    // currently holds, so concurrent writers cannot invalidate each other and no
+    // version is consulted at all.
+    const result = await model.updateOne(
+        { _id: ownerId },
+        {
+            $addToSet: { [field]: normalizedToken },
+            // Never keep the same token in both buckets on this document.
+            $pull: { [otherField]: normalizedToken },
+        },
+    );
+
+    if (!result.matchedCount) {
         console.error(`[FCM-DEBUG] upsert - Owner profile not found for id ${ownerId}`);
         throw new Error('Owner profile not found.');
     }
 
-    const field = getTokenFieldForPlatform(normalizedPlatform);
-    const otherField = field === OWNER_TOKEN_FIELDS.web ? OWNER_TOKEN_FIELDS.mobile : OWNER_TOKEN_FIELDS.web;
-    const existingTokens = Array.isArray(doc[field]) ? doc[field] : [];
-    console.log(`[FCM-DEBUG] upsert - Current tokens in DB count: ${existingTokens.length}`);
-
-    doc[field] = normalizeTokenList([...existingTokens, normalizedToken]);
-    // Defense in depth: never keep the same token in both buckets on this document.
-    doc[otherField] = normalizeTokenList(
-        (Array.isArray(doc[otherField]) ? doc[otherField] : []).filter((t) => t !== normalizedToken)
-    );
-
-    await doc.save();
-    console.log(`[FCM-DEBUG] upsert - Token list updated. New count: ${doc[field].length}`);
+    console.log('[FCM-DEBUG] upsert - Token list updated atomically.');
     return { success: true };
 };
 
