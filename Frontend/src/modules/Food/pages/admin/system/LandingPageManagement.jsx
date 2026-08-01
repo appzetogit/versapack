@@ -344,11 +344,31 @@ export default function LandingPageManagement() {
     }
   }
 
+  /**
+   * Server ceiling, mirrored here so an oversized file is rejected instantly
+   * rather than after uploading megabytes only to be refused.
+   *
+   * Animated GIFs are the reason this matters — they are by far the largest
+   * thing a banner upload carries, and a slow connection can spend minutes on
+   * one before the server says no.
+   */
+  const MAX_BANNER_MB = 25
+
+  const oversizedFile = (files) =>
+    files.find((file) => file.size > MAX_BANNER_MB * 1024 * 1024)
+
   const handleBannerFileSelect = (e) => {
     const files = Array.from(e.target?.files || e.files || [])
     if (files.length === 0) return
     if (files.length > 5) {
       setError('You can upload a maximum of 5 images at once')
+      return
+    }
+    const tooBig = oversizedFile(files)
+    if (tooBig) {
+      setError(
+        `"${tooBig.name}" is ${(tooBig.size / (1024 * 1024)).toFixed(1)}MB. Maximum is ${MAX_BANNER_MB}MB.`,
+      )
       return
     }
     uploadBanners(files)

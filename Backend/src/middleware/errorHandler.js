@@ -1,5 +1,6 @@
 import { config } from '../config/env.js';
 import { logger } from '../utils/logger.js';
+import { MAX_UPLOAD_MB } from './upload.js';
 
 const errorHandler = (err, req, res, next) => {
     let statusCode = err.statusCode || 500;
@@ -8,7 +9,10 @@ const errorHandler = (err, req, res, next) => {
     if (err.name === 'MulterError') {
         statusCode = 400;
         if (err.code === 'LIMIT_FILE_SIZE') {
-            message = 'Image is too large';
+            // Names the actual limit. "Image is too large" left an admin with a
+            // 30MB GIF no way to know whether to shrink it a little or a lot.
+            statusCode = 413;
+            message = `File is too large. Maximum size is ${MAX_UPLOAD_MB}MB.`;
         } else if (err.code === 'LIMIT_FILE_COUNT') {
             message = 'Only one file can be uploaded at a time';
         } else {
