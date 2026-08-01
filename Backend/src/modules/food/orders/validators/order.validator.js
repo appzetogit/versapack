@@ -12,7 +12,31 @@ const orderItemSchema = z.object({
     quantity: z.number().int().min(1),
     isVeg: z.boolean().optional().default(true),
     image: z.string().optional(),
-    notes: z.string().optional()
+    notes: z.string().optional(),
+    /**
+     * Add-ons chosen for this line.
+     *
+     * Zod strips keys it does not declare, so omitting this discarded the
+     * customer's add-ons before any pricing code could see them — the reason
+     * they were never billed and never appeared on the order.
+     *
+     * Ids or names, as strings or objects, because the shipped apps send names
+     * while a corrected client sends ids. Nothing here is trusted for price:
+     * resolveOrderCartItems looks each one up against the restaurant's
+     * published add-ons and ignores anything it cannot identify.
+     */
+    addons: z
+        .array(
+            z.union([
+                z.string(),
+                z.object({
+                    addonId: z.string().optional(),
+                    id: z.string().optional(),
+                    name: z.string().optional()
+                })
+            ])
+        )
+        .optional()
 });
 
 const addressSchema = z.object({
