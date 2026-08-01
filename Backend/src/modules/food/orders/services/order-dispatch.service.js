@@ -141,6 +141,27 @@ function buildIncomingOrderPushData(order, payload, acceptanceDeadlineAt) {
     dropAddress: s(payload?.customerAddress),
     price: s(payload?.earnings ?? payload?.riderEarning ?? 0),
     distance: s(payload?.tripDistanceKm ?? ''),
+
+    // Everything below exists so the alert can be drawn with ZERO network
+    // calls.
+    //
+    // The background isolate that renders this alert often runs while the
+    // device is in Doze or the app has just been woken to handle the push —
+    // conditions where an HTTP request is deferred or refused outright. An
+    // alert that has to fetch anything is an alert that sometimes never
+    // appears, and the rider is given 45 seconds to decide.
+    //
+    // The coordinates in particular let the app draw the pickup/drop pins and
+    // a straight-line preview before the app is even opened.
+    orderNumber: s(order?.order_id || ''),
+    restaurantImage: s(payload?.restaurantCoverImage || ''),
+    pickupLat: s(payload?.restaurantLocation?.latitude ?? ''),
+    pickupLng: s(payload?.restaurantLocation?.longitude ?? ''),
+    dropLat: s(payload?.customerLocation?.latitude ?? ''),
+    dropLng: s(payload?.customerLocation?.longitude ?? ''),
+    customerName: s(payload?.customerName || order?.customerName || ''),
+    customerPhone: s(payload?.customerPhone || order?.customerPhone || ''),
+    itemsCount: s(Array.isArray(order?.items) ? order.items.length : ''),
   };
 }
 
