@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react"
-import { Search, Download, ChevronDown, Eye, User, Star, ArrowUpDown, Settings, FileText, FileSpreadsheet, Loader2, Check, Columns, ExternalLink, Calendar, MapPin, CreditCard, Mail, Phone, Bike, FileCheck, Pencil, Save, Trash2, X } from "lucide-react"
+import { Search, Download, ChevronDown, Eye, User, Star, ArrowUpDown, Settings, FileText, FileSpreadsheet, Loader2, Check, Columns, ExternalLink, Calendar, MapPin, CreditCard, Mail, Phone, Bike, FileCheck, Pencil, Save, Trash2, X, AlertTriangle } from "lucide-react"
 import { adminAPI } from "@food/api"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@food/components/ui/dropdown-menu"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@food/components/ui/dialog"
@@ -758,10 +758,24 @@ availableCashLimit: deliveryman.availableCashLimit || 0,
                         )}
                         {visibleColumns.availabilityStatus && (
                           <td className="px-6 py-4">
-                            <div className="flex flex-col">
+                            <div className="flex flex-col gap-1">
                               <span className="text-xs">
                                 Active Status: <span className={`${dm.status === 'Online' ? 'text-blue-600' : 'text-slate-600'} underline`}>{dm.status}</span>
                               </span>
+                              {/* A rider with no push token cannot be sent an
+                                  order however online they look, so say it here
+                                  rather than leave it invisible. Only flagged
+                                  while online — offline riders are not expected
+                                  to be reachable. */}
+                              {dm.status === "Online" && dm.hasPushToken === false ? (
+                                <span
+                                  title="This rider has no push token, so new orders cannot reach them. They need to open the app once."
+                                  className="inline-flex w-fit items-center gap-1 rounded bg-red-50 px-1.5 py-0.5 text-[10px] font-semibold text-red-700"
+                                >
+                                  <AlertTriangle className="w-3 h-3" />
+                                  No push token
+                                </span>
+                              ) : null}
                             </div>
                           </td>
                         )}

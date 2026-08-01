@@ -4903,6 +4903,16 @@ export async function getDeliveryPartners(query) {
             lastLat,
             lastLng,
             lastLocationAt: doc.lastLocationAt || null,
+            // Whether this rider can actually be sent an order offer.
+            //
+            // A rider with no push token is invisible to dispatch no matter how
+            // online they look, and nothing surfaced that: five of six online
+            // riders sat unreachable for hours while the list showed them green.
+            // Exposed as a field so the panel can say so instead of it being
+            // discoverable only from server logs.
+            hasPushToken:
+                (Array.isArray(doc.fcmTokenMobile) && doc.fcmTokenMobile.length > 0) ||
+                (Array.isArray(doc.fcmTokens) && doc.fcmTokens.length > 0),
             profilePhoto: doc.profilePhoto || null,
             profileImage: doc.profilePhoto ? { url: doc.profilePhoto } : null,
             // Stats fields
