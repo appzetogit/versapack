@@ -76,6 +76,59 @@ export async function resolveOrderCartItems(restaurantId, rawItems = []) {
 
   const foodById = new Map(foodDocs.map((doc) => [String(doc._id), doc]));
   const addonById = new Map(addonDocs.map((doc) => [String(doc._id), doc]));
+
+  // Add-ons attached to a line, rather than sent as their own line item.
+  //
+  // These were dropped entirely: resolveFoodItemPrice only ever looked at
+  // variants, so a customer who picked "Extra Cheese" was shown a total
+  // including it and then billed without it, with nothing recorded on the
+  // order. The restaurant absorbed the difference.
+  //
+  // Looked up across the whole restaurant, not just the ids in the cart, since
+  // an attached add-on's id never appears in items[].itemId.
+  const restaurantAddons = await FoodAddon.find({
+    restaurantId: rId,
+    isDeleted: { $ne: true },
+    approvalStatus: 'approved',
+  }).lean();
+
+  const attachableById = new Map();
+  const attachableByName = new Map();
+  for (const doc of restaurantAddons) {
+    const published = doc?.published;
+    if (!published?.name) continue;
+    const entry = {
+      addonId: String(doc._id),
+      name: String(published.name).trim(),
+      price: Number(published.price) || 0,
+    };
+    attachableById.set(entry.addonId, entry);
+    attachableByName.set(entry.name.toLowerCase(), entry);
+  }
+
+  /**
+   * Resolves whatever the client attached to a line into priced add-ons.
+   *
+   * Accepts ids or names, and objects or bare strings, because the shipped
+   * apps send names while a corrected client sends ids — matching both means
+   * live orders are billed correctly today without waiting on an app release.
+   * Anything unrecognised is ignored rather than guessed at: charging for an
+   * add-on we cannot identify is worse than omitting it.
+   */
+  const resolveAttachedAddons = (raw) => {
+    if (!Array.isArray(raw) || raw.length === 0) return [];
+    const out = [];
+    for (const entry of raw) {
+      const key = String(
+        (entry && typeof entry === 'object' ? entry.addonId ?? entry.id ?? entry.name : entry) ?? '',
+      ).trim();
+      if (!key) continue;
+      const match = attachableById.get(key) || attachableByName.get(key.toLowerCase());
+      if (match) out.push({ ...match });
+    }
+    return out;
+  };
+
   const resolved = [];
 
   for (const rawItem of items) {
@@ -93,10 +146,17 @@ export async function resolveOrderCartItems(restaurantId, rawItems = []) {
       }
 
       const pricing = resolveFoodItemPrice(foodDoc, rawItem);
+      const addons = resolveAttachedAddons(rawItem?.addons);
+      const addonsTotal = addons.reduce((sum, a) => sum + a.price, 0);
+
       resolved.push({
         itemId,
         name: String(foodDoc.name || rawItem?.name || 'Item').trim(),
         ...pricing,
+        // The unit price the customer pays, add-ons included, so subtotal and
+        // every total derived from it match what the app displayed.
+        price: pricing.price + addonsTotal,
+        addons,
         quantity,
         isVeg: String(foodDoc.foodType || '').toLowerCase() === 'veg',
         image: String(foodDoc.image || rawItem?.image || ''),

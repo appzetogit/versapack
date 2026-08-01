@@ -13,7 +13,30 @@ const orderItemSchema = new mongoose.Schema(
         quantity: { type: Number, required: true, min: 1 },
         isVeg: { type: Boolean, default: true },
         image: { type: String, default: '' },
-        notes: { type: String, default: '' }
+        notes: { type: String, default: '' },
+        /**
+         * Add-ons chosen for this line, priced and named as at order time.
+         *
+         * Recorded rather than derived: an add-on's price can change, and the
+         * order must keep what the customer was actually charged. `price` here
+         * is per unit of the line, already folded into `price` above.
+         *
+         * The field did not exist before, so add-ons the customer selected were
+         * dropped entirely — not billed, not shown, not recoverable afterwards.
+         */
+        addons: {
+            type: [
+                new mongoose.Schema(
+                    {
+                        addonId: { type: String, trim: true, default: '' },
+                        name: { type: String, trim: true, default: '' },
+                        price: { type: Number, min: 0, default: 0 }
+                    },
+                    { _id: false }
+                )
+            ],
+            default: []
+        }
     },
     { _id: false }
 );
