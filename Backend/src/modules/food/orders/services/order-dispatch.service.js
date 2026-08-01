@@ -137,6 +137,15 @@ function buildIncomingOrderPushData(order, payload, acceptanceDeadlineAt) {
     paymentMethod: s(payload?.paymentMethod || order?.payment?.method),
     total: s(payload?.total ?? order?.pricing?.total ?? 0),
     acceptanceDeadlineAt: s(acceptanceDeadlineAt?.toISOString?.() || acceptanceDeadlineAt),
+    // The offer window, so the client countdown is driven by the server rather
+    // than a constant compiled into the app.
+    //
+    // The absolute deadline above is the more accurate of the two — it cannot
+    // drift with delivery latency — but a message delayed in Doze arrives with
+    // an already-expired deadline, and a card that opens at 0 seconds is worse
+    // than one that opens short. Sending both lets the app prefer the deadline
+    // and fall back to this when the deadline is already in the past.
+    acceptTimeoutSeconds: s(Math.round(DRIVER_ACCEPT_WINDOW_MS / 1000)),
     pickupAddress: s(payload?.restaurantAddress),
     dropAddress: s(payload?.customerAddress),
     price: s(payload?.earnings ?? payload?.riderEarning ?? 0),
