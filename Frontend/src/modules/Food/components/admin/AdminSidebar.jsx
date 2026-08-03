@@ -447,16 +447,18 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
 
   const [isCollapsed, setIsCollapsed] = useState(() => getInitialStates().isCollapsed)
   const [expandedSections, setExpandedSections] = useState(() => {
-    const initialState = getInitialStates().expandedSections
-    if (Object.keys(initialState || {}).length > 0) return initialState
+    const saved = getInitialStates().expandedSections || {}
 
-    // Generate defaults if empty
+    // Defaults are always built, then the saved state layered on top. Returning
+    // the saved object wholesale left renamed or newly added menu items missing
+    // from state entirely, so the menu remembered a shape that no longer exists.
     const state = {}
     adminSidebarMenu.forEach((item) => {
       if (item.type === "section") {
         item.items.forEach((subItem) => {
           if (subItem.type === "expandable") {
-            state[subItem.label.toLowerCase().replace(/\s+/g, "")] = false
+            const key = subItem.label.toLowerCase().replace(/\s+/g, "")
+            state[key] = Boolean(saved[key])
           }
         })
       }
@@ -625,9 +627,14 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
         }
       }
 
-      const next = {}
+      // Seeded with the section being opened rather than built purely from the
+      // keys already in state. Iterating only over existing keys meant a
+      // section absent from state could never be added, so it never opened --
+      // which is any menu item renamed or added since the visitor's saved
+      // sidebar state was written.
+      const next = { [sectionKey]: true }
       Object.keys(prev).forEach((key) => {
-        next[key] = key === sectionKey
+        if (key !== sectionKey) next[key] = false
       })
       return next
     })
