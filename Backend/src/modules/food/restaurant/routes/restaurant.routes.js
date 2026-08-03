@@ -57,7 +57,9 @@ import {
 } from '../controllers/outletTimings.controller.js';
 import {
     createRestaurantFoodController,
-    updateRestaurantFoodController
+    updateRestaurantFoodController,
+    updateRestaurantFoodStockController,
+    listLowStockFoodsController
 } from '../controllers/restaurantFood.controller.js';
 import {
     listAddonsController,
@@ -246,8 +248,17 @@ router.post('/foods', authMiddleware, requireRestaurant, async (req, res, next) 
     await invalidateCache('restaurant_menu:*');
     next();
 }, createRestaurantFoodController);
+// Declared before /foods/:id so "stock" and "low-stock" are not swallowed as ids.
+router.patch('/foods/stock', authMiddleware, requireRestaurant, async (req, res, next) => {
+    await invalidateCache('restaurant_menu:*');
+    await invalidateCache('search_products:*');
+    next();
+}, updateRestaurantFoodStockController);
+router.get('/foods/low-stock', authMiddleware, requireRestaurant, listLowStockFoodsController);
+
 router.patch('/foods/:id', authMiddleware, requireRestaurant, async (req, res, next) => {
     await invalidateCache('restaurant_menu:*');
+    await invalidateCache('search_products:*');
     next();
 }, updateRestaurantFoodController);
 

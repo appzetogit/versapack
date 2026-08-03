@@ -324,6 +324,98 @@ const resolveCategoryForRestaurant = async (context, body = {}) => {
     };
 };
 
+/**
+ * Sets stock on many products at once.
+ *
+ * A seller taking a delivery counts thirty things in one go. Making them open
+ * thirty screens is how inventory stops being maintained, and stock nobody
+ * maintains is worse than no stock tracking at all -- it is wrong with
+ * confidence.
+ *
+ * Per-item results rather than all-or-nothing: one unknown id in a long list
+ * should not throw away thirty correct counts.
+ *
+ * ponytail: a loop of updates, not bulkWrite. Fine for a seller's catalogue;
+ * revisit if someone starts pushing thousands of rows at once.
+ */
+export async function updateRestaurantFoodStock(restaurantId, entries = []) {
+    const context = await getRestaurantContext(restaurantId);
+
+    if (!Array.isArray(entries) || entries.length === 0) {
+        throw new ValidationError('No stock updates provided');
+    }
+    if (entries.length > 500) {
+        throw new ValidationError('Please send at most 500 stock updates at a time');
+    }
+
+    const updated = [];
+    const failed = [];
+
+    for (const entry of entries) {
+        const foodId = toStr(entry?.itemId ?? entry?.id ?? entry?._id);
+        if (!foodId || !mongoose.Types.ObjectId.isValid(foodId)) {
+            failed.push({ itemId: foodId, reason: 'Invalid item id' });
+            continue;
+        }
+
+        try {
+            const { update, unset } = buildAvailabilityUpdate({
+                stockQty: entry?.stockQty,
+                lowStockThreshold: entry?.lowStockThreshold,
+                maxQtyPerOrder: entry?.maxQtyPerOrder,
+                ...(entry?.isAvailable !== undefined ? { isAvailable: entry.isAvailable } : {})
+            });
+
+            if (Object.keys(update).length === 0 && Object.keys(unset).length === 0) {
+                failed.push({ itemId: foodId, reason: 'Nothing to update' });
+                continue;
+            }
+
+            const doc = await FoodItem.findOneAndUpdate(
+                { _id: new mongoose.Types.ObjectId(foodId), restaurantId: context.restaurantId },
+                {
+                    ...(Object.keys(update).length ? { $set: update } : {}),
+                    ...(Object.keys(unset).length ? { $unset: unset } : {})
+                },
+                { new: true }
+            )
+                .select('_id name stockQty lowStockThreshold maxQtyPerOrder isAvailable')
+                .lean();
+
+            if (!doc) {
+                failed.push({ itemId: foodId, reason: 'Item not found for this seller' });
+                continue;
+            }
+            updated.push(doc);
+        } catch (err) {
+            failed.push({ itemId: foodId, reason: err?.message || 'Update failed' });
+        }
+    }
+
+    return { updated, failed, updatedCount: updated.length, failedCount: failed.length };
+}
+
+/** Products at or below their own low-stock mark, so the seller knows what to reorder. */
+export async function listLowStockFoods(restaurantId) {
+    const context = await getRestaurantContext(restaurantId);
+
+    const items = await FoodItem.find({
+        restaurantId: context.restaurantId,
+        stockQty: { $ne: null },
+        lowStockThreshold: { $ne: null }
+    })
+        .select('_id name brand packSize image stockQty lowStockThreshold isAvailable')
+        .lean();
+
+    // Compared in code rather than in the query: Mongo cannot compare two fields
+    // of the same document in a plain find, and a seller's catalogue is small
+    // enough that filtering here is cheaper than an aggregation pipeline.
+    const low = items.filter((item) => Number(item.stockQty) <= Number(item.lowStockThreshold));
+    low.sort((a, b) => Number(a.stockQty) - Number(b.stockQty));
+
+    return { items: low, total: low.length };
+}
+
 export async function createRestaurantFood(restaurantId, body = {}) {
     const context = await getRestaurantContext(restaurantId);
 
