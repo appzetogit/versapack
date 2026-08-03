@@ -100,8 +100,13 @@ async function main() {
         const order = await FoodOrder.create({
             userId: new mongoose.Types.ObjectId(), restaurantId: seller._id,
             items: [{ itemId: String(d._id), name: `${TAG} restock`, price: 100, quantity: 4 }],
-            // Required by the schema; the values are irrelevant to stock.
-            deliveryAddress: { street: 'test', city: 'test', state: 'test' },
+            // Required by the schema, and coordinates are required by the 2dsphere
+            // index on the address. Irrelevant to stock, but the row will not insert
+            // without them.
+            deliveryAddress: {
+                street: 'test', city: 'test', state: 'test',
+                location: { type: 'Point', coordinates: [77.59, 12.97] },
+            },
             pricing: { subtotal: 400, total: 400 },
             orderStatus: 'created', stockReservedAt: new Date(), note: TAG,
         });
