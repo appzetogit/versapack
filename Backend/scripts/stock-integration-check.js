@@ -100,6 +100,9 @@ async function main() {
         const order = await FoodOrder.create({
             userId: new mongoose.Types.ObjectId(), restaurantId: seller._id,
             items: [{ itemId: String(d._id), name: `${TAG} restock`, price: 100, quantity: 4 }],
+            // Required by the schema; the values are irrelevant to stock.
+            deliveryAddress: { street: 'test', city: 'test', state: 'test' },
+            pricing: { subtotal: 400, total: 400 },
             orderStatus: 'created', stockReservedAt: new Date(), note: TAG,
         });
         const first = await restoreOrderStock(order.toObject());
