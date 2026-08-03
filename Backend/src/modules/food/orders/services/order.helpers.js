@@ -227,7 +227,18 @@ export function normalizeOrderForClient(orderDoc) {
 /** Straight-line km inflated to approximate road distance for city driving. */
 const ROAD_FACTOR = 1.3;
 /** Average city delivery speed (km/h) — bikes in traffic. */
-const AVG_SPEED_KMPH = 22;
+export const AVG_SPEED_KMPH = 22;
+/**
+ * Minutes the seller spends picking and packing before a rider can leave.
+ *
+ * The customer-facing countdown was pure rider travel time, which is only the
+ * truth once the order is already in a bag. Quoting travel alone means every
+ * order reads late from the moment it is placed.
+ *
+ * ponytail: one flat number for every seller. Derive it per seller from their
+ * own accept-to-ready times once there is enough history to be worth trusting.
+ */
+export const PACKING_MINUTES = Number(process.env.PACKING_MINUTES) || 3;
 
 /**
  * Live ETA derived from the rider's last known position, recomputed on every read.
@@ -256,7 +267,13 @@ export function buildLiveEta(order) {
     if (Number.isFinite(straight)) {
       const km = Number((straight * ROAD_FACTOR).toFixed(2));
       const minutes = Math.max(1, Math.ceil((km / AVG_SPEED_KMPH) * 60));
-      return { minutes, distanceKm: km, source: 'live', target };
+      return {
+        minutes,
+        distanceKm: km,
+        source: 'live',
+        target,
+        promiseMinutes: buildDeliveryPromise(order, { minutes, pickedUp, status })
+      };
     }
   }
 
@@ -267,11 +284,43 @@ export function buildLiveEta(order) {
       minutes: Math.ceil(fallback),
       distanceKm: Number(order?.tripDistanceKm ?? order?.pricing?.roadDistanceKm) || null,
       source: 'estimate',
-      target
+      target,
+      promiseMinutes: buildDeliveryPromise(order, { minutes: null, pickedUp, status })
     };
   }
 
-  return { minutes: null, distanceKm: null, source: 'unavailable', target };
+  return {
+    minutes: null,
+    distanceKm: null,
+    source: 'unavailable',
+    target,
+    promiseMinutes: buildDeliveryPromise(order, { minutes: null, pickedUp, status })
+  };
+}
+
+/**
+ * Minutes until the customer has the order, as opposed to minutes until the
+ * rider reaches wherever they are currently heading.
+ *
+ * `minutes` above answers the rider's question and is what the map needs. It is
+ * the wrong number to show a customer before pickup, because it counts a leg
+ * that ends at the seller's counter. The promise is what is still to happen:
+ * packing, the ride to the seller, then the ride to the door -- with the first
+ * two overlapping, since a rider travelling while the order is packed costs
+ * whichever of the two is longer, not both.
+ */
+function buildDeliveryPromise(order, { minutes, pickedUp, status }) {
+  // Once the rider has the bag, the remaining wait is just their journey.
+  if (pickedUp) return Number.isFinite(minutes) ? minutes : null;
+
+  const legToCustomer = Number(order?.pricing?.roadDurationMins ?? order?.tripDurationMins);
+  if (!Number.isFinite(legToCustomer) || legToCustomer <= 0) return null;
+
+  const alreadyPacked = ['ready_for_pickup', 'reached_pickup'].includes(String(status));
+  const packing = alreadyPacked ? 0 : PACKING_MINUTES;
+  const legToSeller = Number.isFinite(minutes) ? minutes : 0;
+
+  return Math.ceil(Math.max(packing, legToSeller) + legToCustomer);
 }
 
 export async function applyAggregateRating(model, entityId, newRating) {

@@ -16,6 +16,7 @@ import { fetchDrivingRoute } from '../utils/googleMaps.js';
 import { attachOutletTimingsToRestaurants } from '../../restaurant/services/outletTimings.service.js';
 import { getRestaurantAvailabilityStatus } from '../../restaurant/helpers/restaurantAvailability.helper.js';
 import { resolveOrderCartItems } from '../helpers/order-cart-items.helper.js';
+import { AVG_SPEED_KMPH, PACKING_MINUTES } from './order.helpers.js';
 
 const round2 = (value) => Math.round((Number(value) || 0) * 100) / 100;
 
@@ -172,6 +173,21 @@ export async function loadActiveFeeSettings() {
       gstRate: 0,
     }
   );
+}
+
+/**
+ * The delivery promise quoted at checkout: packing, then the ride.
+ *
+ * Same speed and packing constants the live countdown uses, so a customer is
+ * not quoted one number before ordering and shown a different one after.
+ */
+export function estimateDeliveryPromiseMinutes(distanceKm) {
+  // Number(null) is 0, so an unknown distance would otherwise quote the packing
+  // time alone -- a confident promise built on a distance nobody measured.
+  if (distanceKm === null || distanceKm === undefined || distanceKm === '') return null;
+  const km = Number(distanceKm);
+  if (!Number.isFinite(km) || km < 0) return null;
+  return Math.ceil(PACKING_MINUTES + (km / AVG_SPEED_KMPH) * 60);
 }
 
 /**
@@ -459,6 +475,11 @@ export async function calculateOrderPricing(userId, dto, options = {}) {
       ? Number(straightLineKm.toFixed(2))
       : null,
     deliveryFeeBreakdown: deliveryFeeResult.breakdown || null,
+    // Shown before the customer commits, which is the whole point of a
+    // quick-commerce promise: it is a reason to order, not a status to check
+    // afterwards. Packing plus the ride, from the same numbers the live
+    // countdown uses, so the quote and the tracking screen agree.
+    deliveryPromiseMinutes: estimateDeliveryPromiseMinutes(distanceKm),
   };
 
   const pricing = applyDeliveryModePricing(

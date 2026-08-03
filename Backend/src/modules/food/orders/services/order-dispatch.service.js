@@ -362,11 +362,22 @@ export async function tryAutoAssign(orderId, options = {}) {
     );
     
     // RADIUS EXPANSION LOGIC
-    // Attempt 1: 15km, Attempt 2: 25km, Attempt 3: 40km, Attempt 4+: 60km
-    let maxKm = 15;
-    if (attempt === 2) maxKm = 25;
-    if (attempt === 3) maxKm = 40;
-    if (attempt >= 4) maxKm = 60;
+    //
+    // Bands are much tighter than the food-delivery ones they replace (15 → 25
+    // → 40 → 60 km). A rider 40 km from the seller cannot serve a promise
+    // measured in minutes: by the time they arrive the order is late whatever
+    // happens next, and offering it to them mostly delays the escalation that
+    // would have got it delivered. Expanding to a few km buys a real second
+    // chance; expanding past that buys a worse outcome than admitting failure.
+    //
+    // Overridable without a deploy, because the honest radius depends on rider
+    // density in a way only live data shows.
+    const bands = String(process.env.DISPATCH_RADIUS_BANDS_KM || '3,5,8,12')
+      .split(',')
+      .map((value) => Number(value.trim()))
+      .filter((value) => Number.isFinite(value) && value > 0);
+    const radiusBands = bands.length > 0 ? bands : [3, 5, 8, 12];
+    const maxKm = radiusBands[Math.min(Math.max(attempt, 1), radiusBands.length) - 1];
 
     const searchOptions = { maxKm, limit: 15 };
     const { partners } = await listNearbyOnlineDeliveryPartners(order.restaurantId, searchOptions);
