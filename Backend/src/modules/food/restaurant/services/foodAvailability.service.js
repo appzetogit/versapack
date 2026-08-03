@@ -10,7 +10,13 @@ export async function restoreExpiredFoodAvailability(filter = {}) {
         {
             ...filter,
             isAvailable: false,
-            stockResumeAt: { $ne: null, $lte: now }
+            stockResumeAt: { $ne: null, $lte: now },
+            // A timer must not undo a count. An item that ran out while its
+            // resume window was ticking would otherwise come back listed as
+            // available with nothing on the shelf, and every customer who added
+            // it would be refused at checkout by the stock reservation.
+            // Untracked items (null) resume exactly as they did before.
+            $or: [{ stockQty: null }, { stockQty: { $gt: 0 } }]
         },
         {
             $set: { isAvailable: true },

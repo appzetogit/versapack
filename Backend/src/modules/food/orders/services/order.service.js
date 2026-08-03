@@ -2411,7 +2411,12 @@ export async function deleteOrderAdmin(orderId, adminId) {
   const order = await FoodOrder.findOne(identity).lean();
   if (!order) throw new NotFoundError("Order not found");
 
-  await restoreOrderStock(order);
+  // Only an order that never reached the customer has stock to give back. A
+  // delivered order's units left on a bike; restocking them because an admin
+  // tidied up the record would invent inventory that was genuinely sold.
+  if (String(order.orderStatus) !== 'delivered') {
+    await restoreOrderStock(order);
+  }
 
   // Keep support tickets but detach deleted order reference.
   await Promise.all([

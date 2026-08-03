@@ -3988,10 +3988,40 @@ export async function createFood(body) {
         foodType,
         isAvailable: body.isAvailable !== false,
         preparationTime: typeof body.preparationTime === 'string' ? body.preparationTime.trim() : '',
+        // Same grocery fields the seller-side create accepts. Without these the
+        // admin panel silently dropped them, so anything catalogued centrally
+        // came out untracked and taxed at the order-wide rate.
+        ...buildAdminCatalogFields(body),
         approvalStatus: 'approved'
     });
     await doc.save();
     return doc.toObject();
+}
+
+/** Grocery fields shared by the admin create and update paths. Undefined leaves the schema default. */
+function buildAdminCatalogFields(body = {}) {
+    const num = (value, { min = 0, max = Infinity } = {}) => {
+        if (value === undefined || value === null || value === '') return undefined;
+        const parsed = Number(value);
+        if (!Number.isFinite(parsed) || parsed < min || parsed > max) return undefined;
+        return parsed;
+    };
+
+    const mrp = num(body.mrp);
+    const price = num(body.price);
+    if (mrp !== undefined && price !== undefined && price > mrp) {
+        throw new ValidationError(`Price cannot be above the MRP of ${mrp}`);
+    }
+
+    return {
+        brand: typeof body.brand === 'string' ? body.brand.trim() : undefined,
+        packSize: typeof body.packSize === 'string' ? body.packSize.trim() : undefined,
+        mrp,
+        gstRate: num(body.gstRate, { max: 100 }),
+        stockQty: num(body.stockQty),
+        lowStockThreshold: num(body.lowStockThreshold),
+        maxQtyPerOrder: num(body.maxQtyPerOrder, { min: 1 })
+    };
 }
 
 export async function updateFood(id, body) {
@@ -4022,6 +4052,12 @@ export async function updateFood(id, body) {
     if (body.foodType !== undefined) doc.foodType = targetFoodType;
     if (body.isAvailable !== undefined) doc.isAvailable = body.isAvailable !== false;
     if (body.preparationTime !== undefined) doc.preparationTime = String(body.preparationTime || '').trim();
+    // MRP is validated against whichever price ends up on the document, so
+    // editing either one alone cannot leave the item priced above its MRP.
+    const adminCatalog = buildAdminCatalogFields({ ...body, price: body.price ?? doc.price, mrp: body.mrp ?? doc.mrp });
+    for (const [field, value] of Object.entries(adminCatalog)) {
+        if (body[field] !== undefined) doc[field] = value ?? null;
+    }
     if (body.categoryId !== undefined || body.categoryName !== undefined || body.category !== undefined || body.foodType !== undefined) {
         const nextCategoryName = body.categoryName !== undefined
             ? String(body.categoryName || '').trim()
