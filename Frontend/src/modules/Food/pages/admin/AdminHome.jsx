@@ -239,7 +239,7 @@ export default function AdminHome() {
             <MetricCard
               title="Orders processed"
               value={activeOrdersTotal.toLocaleString("en-IN")}
-              helper="Restaurant accepted — awaiting delivery partner"
+              helper="Seller accepted — awaiting rider"
               icon={<Activity className="h-5 w-5 text-amber-600" />}
               accent="bg-amber-200/40"
               path="/admin/food/orders/processing"
@@ -277,15 +277,15 @@ export default function AdminHome() {
               path="/admin/food/transaction-report"
             />
             <MetricCard
-              title="Total restaurants"
+              title="Total sellers"
               value={totalRestaurants.toLocaleString("en-IN")}
-              helper="Approved restaurants"
+              helper="Approved sellers"
               icon={<Store className="h-5 w-5 text-blue-600" />}
               accent="bg-blue-200/40"
               path="/admin/food/restaurants"
             />
             <MetricCard
-              title="Restaurant request pending"
+              title="Seller requests pending"
               value={pendingRestaurantRequests.toLocaleString("en-IN")}
               helper="Awaiting approval"
               icon={<UserCheck className="h-5 w-5 text-orange-600" />}
@@ -309,17 +309,17 @@ export default function AdminHome() {
               path="/admin/food/delivery-partners/join-request"
             />
             <MetricCard
-              title="Total foods"
+              title="Total products"
               value={totalFoods.toLocaleString("en-IN")}
-              helper="Approved menu items"
+              helper="Approved products"
               icon={<Package className="h-5 w-5 text-purple-600" />}
               accent="bg-purple-200/40"
               path="/admin/food/foods"
             />
             <MetricCard
-              title="Total addons"
+              title="Total add-ons"
               value={totalAddons.toLocaleString("en-IN")}
-              helper="Approved addon items"
+              helper="Approved add-ons"
               icon={<Plus className="h-5 w-5 text-pink-600" />}
               accent="bg-pink-200/40"
               path="/admin/food/addons"

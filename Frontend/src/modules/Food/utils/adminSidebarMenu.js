@@ -13,21 +13,21 @@ export const adminSidebarMenu = [
   },
   {
     type: "section",
-    label: "FOOD MANAGEMENT",
+    label: "CATALOG MANAGEMENT",
     items: [
       {
         type: "link",
-        label: "Food Approval",
+        label: "Product Approval",
         path: "/admin/food/food-approval",
         icon: "CheckCircle2",
       },
       {
         type: "expandable",
-        label: "Foods",
+        label: "Products",
         icon: "Utensils",
         subItems: [
-          { label: "Restaurant Foods List", path: "/admin/food/foods" },
-          { label: "Restaurant Addons List", path: "/admin/food/addons" },
+          { label: "Seller Products List", path: "/admin/food/foods" },
+          { label: "Seller Add-ons List", path: "/admin/food/addons" },
         ],
       },
       {
@@ -40,7 +40,7 @@ export const adminSidebarMenu = [
   },
   {
     type: "section",
-    label: "RESTAURANT MANAGEMENT",
+    label: "SELLER MANAGEMENT",
     items: [
       {
         type: "link",
@@ -50,15 +50,15 @@ export const adminSidebarMenu = [
       },
       {
         type: "expandable",
-        label: "Restaurants",
+        label: "Sellers",
         icon: "UtensilsCrossed",
         subItems: [
-          { label: "Restaurants List", path: "/admin/food/restaurants" },
-          { label: "New Joining Request", path: "/admin/food/restaurants/joining-request" },
-          { label: "Unregistered Restaurants", path: "/admin/food/restaurants/unregistered" },
-          { label: "Restaurant Reviews", path: "/admin/food/restaurants/reviews" },
-          { label: "Restaurant Complaints", path: "/admin/food/restaurants/complaints" },
-          { label: "Restaurant Settings", path: "/admin/food/restaurants/settings" },
+          { label: "Sellers List", path: "/admin/food/restaurants" },
+          { label: "New Seller Requests", path: "/admin/food/restaurants/joining-request" },
+          { label: "Unregistered Sellers", path: "/admin/food/restaurants/unregistered" },
+          { label: "Seller Reviews", path: "/admin/food/restaurants/reviews" },
+          { label: "Seller Complaints", path: "/admin/food/restaurants/complaints" },
+          { label: "Seller Settings", path: "/admin/food/restaurants/settings" },
           { label: "Subscription Settings", path: "/admin/food/restaurants/subscription-settings" },
           { label: "Subscription Billing", path: "/admin/food/restaurants/subscription-history" },
         ],
@@ -77,10 +77,10 @@ export const adminSidebarMenu = [
           { label: "All", path: "/admin/food/orders/all" },
           { label: "Pending", path: "/admin/food/orders/pending" },
           { label: "Processing", path: "/admin/food/orders/processing" },
-          { label: "Food On The Way", path: "/admin/food/orders/food-on-the-way" },
+          { label: "Out For Delivery", path: "/admin/food/orders/food-on-the-way" },
           { label: "Delivered", path: "/admin/food/orders/delivered" },
           { label: "Cancelled", path: "/admin/food/orders/canceled" },
-          { label: "Restaurant cancelled", path: "/admin/food/orders/restaurant-cancelled" },
+          { label: "Seller cancelled", path: "/admin/food/orders/restaurant-cancelled" },
           { label: "Payment Failed", path: "/admin/food/orders/payment-failed" },
           { label: "Refunded", path: "/admin/food/orders/refunded" },
           { label: "Offline Payments", path: "/admin/food/orders/offline-payments" },
@@ -101,7 +101,7 @@ export const adminSidebarMenu = [
     items: [
       {
         type: "link",
-        label: "Restaurant Coupons & Offers",
+        label: "Seller Coupons & Offers",
         path: "/admin/food/coupons",
         icon: "Gift",
       },
@@ -126,7 +126,7 @@ export const adminSidebarMenu = [
       },
       {
         type: "link",
-        label: "Support Tickets (User & Restaurant)",
+        label: "Support Tickets (User & Seller)",
         path: "/admin/food/support-tickets",
         icon: "MessageSquare",
       },
@@ -134,7 +134,7 @@ export const adminSidebarMenu = [
   },
   {
     type: "section",
-    label: "DELIVERYMAN MANAGEMENT",
+    label: "DELIVERY MANAGEMENT",
     items: [
       { type: "link", label: "Delivery & Platform Fee", path: "/admin/food/fee-settings", icon: "DollarSign" },
       { type: "link", label: "Delivery Withdrawal", path: "/admin/food/delivery-withdrawal", icon: "Wallet" },
