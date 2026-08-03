@@ -210,8 +210,24 @@ export async function resolveOrderCartItems(restaurantId, rawItems = []) {
       continue;
     }
 
+    // An id that exists but belongs to somebody else is a mixed-seller cart,
+    // not a missing product. Both used to say "no longer available", which sent
+    // the customer looking for a stock problem that was never there.
+    //
+    // An order carries one restaurantId, one delivery fee and one rider, so a
+    // basket spanning two sellers cannot be placed as it stands.
+    // ponytail: reject and say so. Splitting into an order per seller is the
+    // real answer, and it is a much bigger change -- separate fees, separate
+    // dispatch, separate cancellation and refund per part.
+    const foreign = await FoodItem.findById(itemId).select('name restaurantId').lean();
+    if (foreign?._id && String(foreign.restaurantId) !== String(rId)) {
+      throw new ValidationError(
+        `${foreign.name} is sold by a different seller. Please order from one seller at a time.`,
+      );
+    }
+
     throw new ValidationError(
-      `${String(rawItem?.name || 'An item')} is no longer available from this restaurant`,
+      `${String(rawItem?.name || 'An item')} is no longer available from this seller`,
     );
   }
 
