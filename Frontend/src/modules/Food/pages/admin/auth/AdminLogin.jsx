@@ -20,8 +20,11 @@ const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
 
-const THEME = "#FA0272"
-const THEME_RGB = "250,2,114"
+// Fresh-green rather than the food-delivery pink: this is a grocery
+// marketplace, and the accent carries that everywhere it is used. Still only a
+// default — business settings override it per tenant.
+const THEME = "#16A34A"
+const THEME_RGB = "22,163,74"
 
 export default function AdminLogin() {
   const navigate = useNavigate()
@@ -167,7 +170,9 @@ export default function AdminLogin() {
             </div>
             <div>
               <p className="text-[10px] font-medium text-white/50">Admin Portal</p>
-              <p className="text-sm font-semibold text-white">{companyName}</p>
+              <p className="text-sm font-semibold text-white">
+                Suvio <span style={{ color: themeColor }}>Quick Commerce</span>
+              </p>
             </div>
           </div>
         </div>
@@ -191,9 +196,11 @@ export default function AdminLogin() {
                   />
                 </div>
               </div>
-              <h2 className="text-2xl font-bold tracking-tight text-gray-900">Sign in</h2>
+              <h2 className="text-2xl font-bold tracking-tight text-gray-900">
+                Welcome back
+              </h2>
               <p className="mt-1 text-sm text-gray-500">
-                Enter your credentials to access the dashboard
+                Sign in to manage sellers, stock and deliveries.
               </p>
             </div>
 
@@ -303,7 +310,7 @@ export default function AdminLogin() {
             </div>
 
             <p className="mt-5 text-center text-xs text-gray-400">
-              Protected admin access &middot; {companyName}
+              Protected admin access &middot; Suvio Quick Commerce
             </p>
           </motion.div>
         </div>
