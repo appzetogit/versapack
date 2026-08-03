@@ -1,4 +1,4 @@
-import { searchUnified, getAdminCategories } from '../services/search.service.js';
+import { searchUnified, searchProducts, getAdminCategories } from '../services/search.service.js';
 import { sendResponse, sendError } from '../../../../utils/response.js';
 
 /**
@@ -24,6 +24,29 @@ export const searchController = async (req, res, next) => {
         });
 
         return sendResponse(res, 200, 'Search results fetched successfully', results.data);
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * Product search — returns items, not the sellers that stock them.
+ */
+export const searchProductsController = async (req, res, next) => {
+    try {
+        const { q, categoryId, zoneId, isVeg, inStockOnly, page, limit } = req.query;
+
+        const results = await searchProducts({
+            q,
+            categoryId,
+            zoneId,
+            isVeg,
+            inStockOnly,
+            page: parseInt(page, 10) || 1,
+            limit: parseInt(limit, 10) || 20
+        });
+
+        return sendResponse(res, 200, 'Products fetched successfully', results);
     } catch (error) {
         next(error);
     }

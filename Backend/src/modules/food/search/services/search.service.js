@@ -238,6 +238,128 @@ export const searchUnified = async (query = {}, options = {}) => {
     return finalResult;
 };
 
+const PRODUCT_SEARCH_SELECT =
+    '_id restaurantId name brand packSize image images price otherPrice mrp categoryId categoryName foodType rating totalRatings isAvailable stockQty maxQtyPerOrder variants';
+
+/**
+ * Product search: a grid of things you can buy.
+ *
+ * searchUnified answers a different question and still exists for the food
+ * apps: it rolls dish matches up into the restaurant that sells them and always
+ * returns a restaurant list. Someone shopping for groceries searches "milk" and
+ * means the product, not a list of shops that stock it, so this returns items
+ * and names the seller on each one.
+ *
+ * ponytail: regex, not a text index. It matches prefixes and mid-word, which is
+ * what a shopper typing "mil" expects and what $text does not do, and the scan
+ * is bounded to the sellers serving one zone. Revisit if a zone's catalog grows
+ * past the point where that scan is cheap.
+ */
+export const searchProducts = async (query = {}) => {
+    const { q, categoryId, zoneId, isVeg, inStockOnly, page = 1, limit = 20 } = query;
+
+    const pageNumber = Math.max(parseInt(page, 10) || 1, 1);
+    const limitNumber = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 50);
+    const skip = (pageNumber - 1) * limitNumber;
+
+    const term = String(q || '').trim();
+    const regex = term ? new RegExp(escapeRegex(term), 'i') : null;
+
+    // Only sellers that are live and serving this zone. Resolved first so the
+    // product query can never surface something nobody can actually deliver --
+    // the old search filtered the two queries independently, so a dish could
+    // come back from a seller the zone filter had already excluded.
+    const sellerFilter = { status: 'approved' };
+    if (zoneId && mongoose.Types.ObjectId.isValid(zoneId)) {
+        sellerFilter.zoneId = new mongoose.Types.ObjectId(zoneId);
+    }
+
+    const sellers = await FoodRestaurant.find(sellerFilter)
+        .select('restaurantName profileImage rating isAcceptingOrders estimatedDeliveryTime estimatedDeliveryTimeMinutes zoneId')
+        .lean();
+
+    if (sellers.length === 0) {
+        return { products: [], total: 0, page: pageNumber, limit: limitNumber };
+    }
+
+    const sellerById = new Map(sellers.map((seller) => [String(seller._id), seller]));
+
+    const productFilter = {
+        restaurantId: { $in: sellers.map((seller) => seller._id) },
+        approvalStatus: 'approved'
+    };
+
+    if (regex) {
+        // Brand is searched too: "amul" is how people look for a product they
+        // cannot spell the rest of.
+        productFilter.$or = [{ name: { $regex: regex } }, { brand: { $regex: regex } }];
+    }
+    if (categoryId && mongoose.Types.ObjectId.isValid(categoryId)) {
+        productFilter.categoryId = new mongoose.Types.ObjectId(categoryId);
+    }
+    if (isVeg === 'true' || isVeg === true) {
+        productFilter.foodType = 'Veg';
+    }
+    if (inStockOnly === 'true' || inStockOnly === true) {
+        productFilter.isAvailable = { $ne: false };
+    }
+
+    const products = await FoodItem.find(productFilter)
+        .select(PRODUCT_SEARCH_SELECT)
+        .limit(500)
+        .lean();
+
+    // Out of stock sinks rather than disappearing: a shopper searching for
+    // something we carry but cannot sell today is better told that than shown
+    // an empty grid.
+    const lowerTerm = term.toLowerCase();
+    const ranked = products
+        .map((product) => {
+            const name = String(product.name || '').toLowerCase();
+            const inStock = product.isAvailable !== false;
+            let score = 0;
+            if (lowerTerm) {
+                if (name === lowerTerm) score += 100;
+                else if (name.startsWith(lowerTerm)) score += 50;
+                else if (name.includes(lowerTerm)) score += 20;
+            }
+            if (inStock) score += 10;
+            score += Math.min(Number(product.rating) || 0, 5);
+            return { product, score, inStock };
+        })
+        .sort((a, b) => b.score - a.score);
+
+    const pageItems = ranked.slice(skip, skip + limitNumber).map(({ product, inStock }) => {
+        const seller = sellerById.get(String(product.restaurantId));
+        return {
+            ...product,
+            inStock,
+            seller: seller
+                ? {
+                    _id: seller._id,
+                    name: seller.restaurantName || '',
+                    image: seller.profileImage || '',
+                    rating: seller.rating || 0,
+                    isAcceptingOrders: seller.isAcceptingOrders !== false,
+                    estimatedDeliveryTime: seller.estimatedDeliveryTime || '',
+                    estimatedDeliveryTimeMinutes: seller.estimatedDeliveryTimeMinutes ?? null
+                }
+                : null
+        };
+    });
+
+    return {
+        products: pageItems,
+        total: ranked.length,
+        page: pageNumber,
+        limit: limitNumber,
+        // No silent zone fallback here, unlike searchUnified. Widening the
+        // search to sellers who cannot reach this address just builds a cart
+        // that checkout will refuse.
+        zoneFiltered: !!(zoneId && mongoose.Types.ObjectId.isValid(zoneId))
+    };
+};
+
 /**
  * Fetch Admin-only categories
  */
