@@ -9,6 +9,7 @@ import { FoodDeliveryPartner } from '../../delivery/models/deliveryPartner.model
 import { FoodZone } from '../../admin/models/zone.model.js';
 import { ValidationError, ForbiddenError, NotFoundError } from '../../../../core/auth/errors.js';
 import { reserveStockForItems, releaseReservations, restoreOrderStock } from './inventory.service.js';
+import { findZoneForPoint, readAddressPoint } from '../../shared/zoneServiceability.js';
 import { buildPaginationOptions, buildPaginatedResult } from '../../../../utils/helpers.js';
 import { FoodOffer } from '../../admin/models/offer.model.js';
 import { FoodOfferUsage } from '../../admin/models/offerUsage.model.js';
@@ -170,6 +171,38 @@ async function deletePendingPaymentOrder(orderLike) {
 
 let lastExpiredCleanupAt = 0;
 const EXPIRE_CLEANUP_INTERVAL_MS = 60_000;
+
+/**
+ * Confirms the address being delivered to is somewhere the seller serves.
+ *
+ * Nothing checked this before: the client detected a zone once, at whatever
+ * location the customer happened to be standing in, and passed the id down with
+ * the order. Picking a different saved address at checkout never re-ran the
+ * detection, so an order could be placed to an address outside the zone
+ * entirely -- and outside a delivery radius is exactly where a quick-commerce
+ * promise stops being deliverable.
+ *
+ * Returns the verified zone so the order stores what the server resolved rather
+ * than what the client claimed.
+ */
+async function resolveServiceableZone(restaurant, deliveryAddress) {
+  const point = readAddressPoint(deliveryAddress);
+  // Addresses saved before coordinates were captured cannot be tested. Refusing
+  // them would block real customers over missing data they never entered.
+  if (!point) return null;
+
+  const zone = await findZoneForPoint(point.lat, point.lng);
+  if (!zone) {
+    throw new ValidationError("We don't deliver to this address yet");
+  }
+
+  const sellerZoneId = restaurant?.zoneId ? String(restaurant.zoneId) : '';
+  if (sellerZoneId && sellerZoneId !== String(zone._id)) {
+    throw new ValidationError('This seller does not deliver to the selected address');
+  }
+
+  return zone;
+}
 
 async function expireStalePendingPaymentOrders() {
   const now = Date.now();
@@ -454,6 +487,8 @@ export async function createOrder(userId, dto) {
       ...(dto.address || {}),
     });
 
+    const serviceableZone = await resolveServiceableZone(restaurant, deliveryAddress);
+
     const paymentMethod =
       dto.paymentMethod === "card" ? "razorpay" : dto.paymentMethod;
     // COD was hard-disabled here. It is back on by default and kept behind a switch
@@ -573,7 +608,13 @@ export async function createOrder(userId, dto) {
     const order = new FoodOrder({
       userId: toObjectId(userId, 'User ID'),
       restaurantId: restaurantId,
-      zoneId: dto.zoneId ? toObjectId(dto.zoneId, 'Zone ID') : toObjectId(restaurant.zoneId, 'Restaurant Zone ID'),
+      // Server-resolved zone wins over the client's: it is the one that was
+      // actually tested against the delivery address.
+      zoneId: serviceableZone?._id
+        ? toObjectId(serviceableZone._id, 'Zone ID')
+        : dto.zoneId
+          ? toObjectId(dto.zoneId, 'Zone ID')
+          : toObjectId(restaurant.zoneId, 'Restaurant Zone ID'),
       items: resolvedItems.map(item => ({
         ...item,
         itemId: toObjectId(item.itemId, 'Item ID')

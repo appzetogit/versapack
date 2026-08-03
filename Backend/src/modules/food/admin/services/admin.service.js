@@ -12,7 +12,7 @@ import { FoodNotification } from '../../../../core/notifications/models/notifica
 import { sendNotificationToOwner } from '../../../../core/notifications/firebase.service.js';
 import { FoodRestaurantSubscriptionSettings } from '../models/restaurantSubscriptionSettings.model.js';
 import { FoodZone } from '../models/zone.model.js';
-import { invalidateActiveZonesCache } from '../../landing/controllers/zonePublic.controller.js';
+import { invalidateActiveZonesCache } from '../../shared/zoneServiceability.js';
 import { FoodCategory } from '../models/category.model.js';
 import { FoodItem } from '../models/food.model.js';
 import { FoodOffer } from '../models/offer.model.js';
