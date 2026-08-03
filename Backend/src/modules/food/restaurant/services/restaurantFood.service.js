@@ -128,6 +128,55 @@ const parseStockNumber = (value, { min = 0 } = {}) => {
     return Math.floor(num);
 };
 
+/**
+ * Grocery catalog fields, which a restaurant menu never needed.
+ *
+ * Same undefined/null split as the stock fields: not sent means leave alone,
+ * sent empty means clear.
+ */
+const buildCatalogUpdate = (body = {}) => {
+    const update = {};
+
+    if (body.brand !== undefined) update.brand = toStr(body.brand);
+    if (body.packSize !== undefined) update.packSize = toStr(body.packSize);
+
+    if (body.mrp !== undefined) {
+        if (body.mrp === null || body.mrp === '') {
+            update.mrp = null;
+        } else {
+            const mrp = Number(body.mrp);
+            if (!Number.isFinite(mrp) || mrp < 0) throw new ValidationError('MRP is invalid');
+            update.mrp = mrp;
+        }
+    }
+
+    if (body.gstRate !== undefined) {
+        if (body.gstRate === null || body.gstRate === '') {
+            update.gstRate = null;
+        } else {
+            const rate = Number(body.gstRate);
+            if (!Number.isFinite(rate) || rate < 0 || rate > 100) {
+                throw new ValidationError('GST rate must be between 0 and 100');
+            }
+            update.gstRate = rate;
+        }
+    }
+
+    return update;
+};
+
+/** Selling above the printed maximum retail price is illegal, so it is refused outright. */
+const assertPriceWithinMrp = (price, mrp, variants = []) => {
+    if (!Number.isFinite(Number(mrp)) || Number(mrp) <= 0) return;
+    const highest = Math.max(
+        Number(price) || 0,
+        ...(Array.isArray(variants) ? variants.map((v) => Number(v?.price) || 0) : []),
+    );
+    if (highest > Number(mrp)) {
+        throw new ValidationError(`Price cannot be above the MRP of ${mrp}`);
+    }
+};
+
 const buildAvailabilityUpdate = (body = {}) => {
     const update = {};
     const unset = {};
@@ -283,6 +332,8 @@ export async function createRestaurantFood(restaurantId, body = {}) {
     if (name.length > 200) throw new ValidationError('Item name is too long');
 
     const { price, otherPrice, variants } = getCreateFoodPricing(body);
+    const catalogFields = buildCatalogUpdate(body);
+    assertPriceWithinMrp(price, catalogFields.mrp, variants);
 
     const description = toStr(body.description);
     const isAvailable = body.isAvailable !== false;
@@ -309,6 +360,7 @@ export async function createRestaurantFood(restaurantId, body = {}) {
         stockQty: parseStockNumber(body.stockQty) ?? undefined,
         lowStockThreshold: parseStockNumber(body.lowStockThreshold) ?? undefined,
         maxQtyPerOrder: parseStockNumber(body.maxQtyPerOrder, { min: 1 }) ?? undefined,
+        ...catalogFields,
         isRecommended: body.isRecommended === true,
         preparationTime,
         approvalStatus: 'pending',
@@ -358,6 +410,15 @@ export async function updateRestaurantFood(restaurantId, foodId, body = {}) {
         update.image = nextImages.image;
     }
     Object.assign(update, getUpdatedFoodPricing(existing, body));
+    const catalogUpdate = buildCatalogUpdate(body);
+    Object.assign(update, catalogUpdate);
+    // Checked against whichever MRP and price end up on the document, so an edit
+    // to either one alone cannot leave the item priced above its MRP.
+    assertPriceWithinMrp(
+        update.price ?? existing.price,
+        'mrp' in catalogUpdate ? catalogUpdate.mrp : existing.mrp,
+        update.variants ?? existing.variants,
+    );
     const availabilityUpdate = buildAvailabilityUpdate(body);
     Object.assign(update, availabilityUpdate.update);
     if (body.preparationTime !== undefined) update.preparationTime = toStr(body.preparationTime);

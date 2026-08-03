@@ -12,6 +12,14 @@ const orderItemSchema = new mongoose.Schema(
         otherPrice: { type: Number, min: 0, default: 0 },
         quantity: { type: Number, required: true, min: 1 },
         isVeg: { type: Boolean, default: true },
+        /**
+         * Rate this line was taxed at, snapshotted like the price is: a
+         * product's GST slab can be reclassified, and the invoice has to keep
+         * saying what was actually charged. null means the order-wide rate.
+         */
+        gstRate: { type: Number, min: 0, max: 100, default: null },
+        brand: { type: String, trim: true, default: '' },
+        packSize: { type: String, trim: true, default: '' },
         image: { type: String, default: '' },
         notes: { type: String, default: '' },
         /**

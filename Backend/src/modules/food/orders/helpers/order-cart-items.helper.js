@@ -175,6 +175,14 @@ export async function resolveOrderCartItems(restaurantId, rawItems = []) {
         price: pricing.price + addonsTotal,
         addons,
         quantity,
+        // Carried onto the line so tax is computed per product rather than at
+        // one rate for the whole basket. null defers to the order-wide rate.
+        gstRate:
+          foodDoc.gstRate === null || foodDoc.gstRate === undefined
+            ? null
+            : Number(foodDoc.gstRate),
+        brand: String(foodDoc.brand || ''),
+        packSize: String(foodDoc.packSize || ''),
         isVeg: String(foodDoc.foodType || '').toLowerCase() === 'veg',
         image: String(foodDoc.image || rawItem?.image || ''),
         notes: String(rawItem?.notes || ''),

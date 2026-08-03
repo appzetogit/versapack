@@ -69,6 +69,9 @@ const buildMenuFromFoods = async (foods = []) => {
             // everything that predates inventory.
             stockQty: food.stockQty ?? null,
             maxQtyPerOrder: food.maxQtyPerOrder ?? null,
+            brand: food.brand || '',
+            packSize: food.packSize || '',
+            mrp: food.mrp ?? null,
             approvalStatus: food.approvalStatus || 'approved',
             rejectionReason: food.rejectionReason || '',
             requestedAt: food.requestedAt,

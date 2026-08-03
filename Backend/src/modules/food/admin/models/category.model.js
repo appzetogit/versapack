@@ -31,6 +31,18 @@ const foodCategorySchema = new mongoose.Schema(
          * - When null/undefined: category is global (visible for all zones).
          */
         zoneId: { type: mongoose.Schema.Types.ObjectId, ref: 'FoodZone', index: true, default: undefined },
+        /**
+         * Parent category, giving groceries the second level a menu never
+         * needed: "Dairy" holds "Milk", "Curd", "Paneer".
+         *
+         * One optional pointer rather than a separate subcategory collection —
+         * a subcategory is a category in every other respect, and splitting
+         * them would fork the approval, zone and scope rules that already work.
+         * Unset means top level, which is every existing category.
+         * ponytail: two levels is all this supports; deeper nesting needs a
+         * real tree, and grocery apps do not use one.
+         */
+        parentId: { type: mongoose.Schema.Types.ObjectId, ref: 'FoodCategory', index: true, default: undefined },
         isActive: { type: Boolean, default: true, index: true },
         sortOrder: { type: Number, default: 0, index: true }
     },

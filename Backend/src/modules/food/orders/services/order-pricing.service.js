@@ -174,6 +174,40 @@ export async function loadActiveFeeSettings() {
   );
 }
 
+/**
+ * GST across a basket whose lines can sit in different slabs.
+ *
+ * Groceries are taxed per product — flour at 0, biscuits at 18 — so charging
+ * one rate on the whole basket is wrong in both directions depending on what
+ * the customer bought. A line with no rate of its own falls back to the
+ * order-wide rate, which makes this identical to the old single-rate maths for
+ * any basket of items that predate per-product slabs.
+ *
+ * The discount reduces every line in proportion to its share of the basket,
+ * because a basket-level coupon is not attributable to any one product.
+ */
+export function computeItemsTax(items = [], { subtotal = 0, discount = 0, fallbackRate = 0 } = {}) {
+  if (!(subtotal > 0)) return 0;
+
+  const taxableShare = Math.max(0, subtotal - discount) / subtotal;
+  let tax = 0;
+
+  for (const item of items) {
+    // null and undefined mean "no slab of its own" and must reach the fallback.
+    // Number(null) is 0, so testing the coerced value would silently make every
+    // untagged item tax-free.
+    const own = item?.gstRate;
+    const hasOwnRate = own !== null && own !== undefined && Number.isFinite(Number(own));
+    const rate = hasOwnRate ? Number(own) : Number(fallbackRate) || 0;
+    if (!(rate > 0)) continue;
+
+    const lineValue = (Number(item?.price) || 0) * (Number(item?.quantity) || 1);
+    tax += lineValue * taxableShare * (rate / 100);
+  }
+
+  return Math.round(tax);
+}
+
 export function resolveUserDeliveryFee(feeSettings = {}, { subtotal = 0, distanceKm = null } = {}) {
   const ranges = Array.isArray(feeSettings.deliveryFeeRanges)
     ? feeSettings.deliveryFeeRanges
@@ -392,11 +426,11 @@ export async function calculateOrderPricing(userId, dto, options = {}) {
   }
 
   // GST is charged on the post-discount item value (discount is already clamped to <= subtotal).
-  const gstRate = Number(feeSettings.gstRate || 0);
-  const tax =
-    Number.isFinite(gstRate) && gstRate > 0
-      ? Math.round(Math.max(0, subtotal - discount) * (gstRate / 100))
-      : 0;
+  const tax = computeItemsTax(items, {
+    subtotal,
+    discount,
+    fallbackRate: Number(feeSettings.gstRate || 0),
+  });
 
   const deliveryFeeGst = computeDeliveryFeeGst(deliveryFee);
 

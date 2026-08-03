@@ -28,7 +28,9 @@ const upsertSchema = z.object({
     zoneId: z.string().max(100).optional(),
     status: z.boolean().optional(),
     isActive: z.boolean().optional(),
-    sortOrder: z.coerce.number().int().optional()
+    sortOrder: z.coerce.number().int().optional(),
+    /** Empty string clears the parent, promoting a subcategory back to top level. */
+    parentId: z.string().max(100).optional()
 });
 
 const rejectSchema = z.object({

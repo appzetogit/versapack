@@ -209,6 +209,8 @@ export const serializeCategoryForResponse = (category = {}, options = {}) => {
             }
             : null,
         zoneId: category.zoneId || null,
+        /** null means top level; the app groups subcategories under their parent. */
+        parentId: category.parentId || null,
         sortOrder: category.sortOrder || 0,
         itemCount: options.includeCounts ? Number(stats?.totalFoods || 0) : undefined,
         approvedFoodCount: options.includeCounts ? Number(stats?.approvedFoods || 0) : undefined,

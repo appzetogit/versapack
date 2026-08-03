@@ -3350,6 +3350,38 @@ export async function getCategories(query) {
     return { categories, total, page, limit };
 }
 
+/**
+ * Validates a category's parent: it must exist, and it must be top level.
+ *
+ * Refusing a parent that already has one keeps the tree two deep, which is
+ * what a grocery app renders. It also makes a cycle impossible without walking
+ * the chain -- a category cannot be its own grandparent if there are no
+ * grandparents. Empty promotes back to top level.
+ */
+async function resolveCategoryParentId(value, selfId = null) {
+    const raw = String(value ?? '').trim();
+    if (!raw || raw === 'none') return undefined;
+    if (!mongoose.Types.ObjectId.isValid(raw)) throw new ValidationError('Invalid parentId');
+
+    if (selfId && String(selfId) === raw) {
+        throw new ValidationError('A category cannot be its own parent');
+    }
+
+    // The other way a third level appears: demoting a category that is already
+    // somebody's parent.
+    if (selfId && (await FoodCategory.exists({ parentId: selfId }))) {
+        throw new ValidationError('This category has subcategories, so it cannot become one');
+    }
+
+    const parent = await FoodCategory.findById(raw).select('parentId').lean();
+    if (!parent?._id) throw new ValidationError('Parent category not found');
+    if (parent.parentId) {
+        throw new ValidationError('A subcategory cannot be nested under another subcategory');
+    }
+
+    return parent._id;
+}
+
 export async function createCategory(body) {
     const name = typeof body.name === 'string' ? body.name.trim() : '';
     if (!name) throw new ValidationError('Category name is required');
@@ -3369,6 +3401,7 @@ export async function createCategory(body) {
                 : undefined,
         isActive: body.isActive !== false,
         sortOrder: Number.isFinite(Number(body.sortOrder)) ? Number(body.sortOrder) : 0,
+        parentId: await resolveCategoryParentId(body.parentId),
         // Admin-created categories are globally available immediately.
         approvalStatus: 'approved',
         isApproved: true,
@@ -3478,6 +3511,7 @@ export async function updateCategory(id, body) {
     }
     if (body.isActive !== undefined) doc.isActive = body.isActive !== false;
     if (body.sortOrder !== undefined) doc.sortOrder = Number(body.sortOrder) || 0;
+    if (body.parentId !== undefined) doc.parentId = await resolveCategoryParentId(body.parentId, doc._id);
     if (!doc.createdByRestaurantId && doc.restaurantId) {
         doc.createdByRestaurantId = doc.restaurantId;
     }

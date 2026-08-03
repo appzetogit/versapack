@@ -38,6 +38,27 @@ const foodSchema = new mongoose.Schema(
          */
         images: { type: [String], default: [] },
         foodType: { type: String, enum: ['Veg', 'Non-Veg'], default: 'Non-Veg' },
+        /** Manufacturer, for the grocery listing where two sellers stock the same product. */
+        brand: { type: String, trim: true, default: '' },
+        /** What one unit is: "500 g", "1 L", "pack of 6". Free text, since packs are not standard. */
+        packSize: { type: String, trim: true, default: '' },
+        /**
+         * Printed maximum retail price, shown struck through next to `price`.
+         *
+         * Kept separate from `otherPrice`, which is a compare-at price against
+         * other platforms. Selling above MRP is illegal, so this one is a
+         * constraint, not a marketing number, and conflating them would make
+         * that check impossible to write.
+         */
+        mrp: { type: Number, min: 0, default: null },
+        /**
+         * GST percentage for this product. Groceries span 0/5/12/18, so the
+         * single order-wide rate the food flow used is wrong here.
+         *
+         * `null` falls back to the order-wide rate in fee settings, which is
+         * what every item created before this field existed does.
+         */
+        gstRate: { type: Number, min: 0, max: 100, default: null },
         isAvailable: { type: Boolean, default: true, index: true },
         /**
          * Units on hand. `null` means untracked — the item behaves exactly as it
