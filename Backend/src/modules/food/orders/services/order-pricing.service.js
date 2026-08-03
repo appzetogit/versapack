@@ -4,6 +4,7 @@ import { FoodRestaurant } from '../../restaurant/models/restaurant.model.js';
 import { FoodFeeSettings } from '../../admin/models/feeSettings.model.js';
 import { FoodOffer } from '../../admin/models/offer.model.js';
 import { FoodOfferUsage } from '../../admin/models/offerUsage.model.js';
+import { FoodUser } from '../../../../core/users/user.model.js';
 import { ValidationError } from '../../../../core/auth/errors.js';
 import {
   calculateDistanceKm,
@@ -232,6 +233,39 @@ export function calculateRiderEarning(feeSettings = {}, distanceKm) {
   return Number.isFinite(fallback) ? Math.round(fallback) : 0;
 }
 
+/**
+ * The address the trip should be priced against.
+ *
+ * Order creation passes a full `deliveryAddress`, but the checkout preview only
+ * ever sends `deliveryAddressId`, and the cart summary sends neither — nothing
+ * resolved either, so `distanceKm` came out null on every preview and the
+ * distance bands were skipped entirely in favour of the flat fallback fee. The
+ * customer saw one delivery charge at checkout and was billed another on
+ * placing the order.
+ *
+ * An explicitly chosen address wins even when it has no coordinates: pricing a
+ * different address than the one the customer picked would be worse than
+ * falling back to the flat fee.
+ */
+async function resolveDeliveryAddress(userId, dto) {
+  if (parseGeoPoint(dto.deliveryAddress)) return dto.deliveryAddress;
+  if (!userId || !mongoose.Types.ObjectId.isValid(String(userId))) {
+    return dto.deliveryAddress;
+  }
+
+  const user = await FoodUser.findById(userId).select('addresses').lean();
+  const addresses = Array.isArray(user?.addresses) ? user.addresses : [];
+  if (addresses.length === 0) return dto.deliveryAddress;
+
+  const wantedId = String(dto.deliveryAddressId || '').trim();
+  const chosen =
+    (wantedId && addresses.find((entry) => String(entry?._id) === wantedId)) ||
+    addresses.find((entry) => entry?.isDefault) ||
+    addresses[0];
+
+  return chosen || dto.deliveryAddress;
+}
+
 export async function calculateOrderPricing(userId, dto, options = {}) {
   const at = options.at instanceof Date ? options.at : new Date();
   const restaurant =
@@ -241,7 +275,9 @@ export async function calculateOrderPricing(userId, dto, options = {}) {
     assertRestaurantOpenForOrdering(restaurant, at);
   }
 
-  const deliveryAddress = normalizeDeliveryAddress(dto.deliveryAddress);
+  const deliveryAddress = normalizeDeliveryAddress(
+    await resolveDeliveryAddress(userId, dto),
+  );
 
   const resolvedItems = await resolveOrderCartItems(dto.restaurantId, dto.items);
   const items = resolvedItems.map((item) => ({
