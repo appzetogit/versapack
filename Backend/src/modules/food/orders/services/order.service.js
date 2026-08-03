@@ -8,6 +8,7 @@ import { FoodRestaurant } from '../../restaurant/models/restaurant.model.js';
 import { FoodDeliveryPartner } from '../../delivery/models/deliveryPartner.model.js';
 import { FoodZone } from '../../admin/models/zone.model.js';
 import { ValidationError, ForbiddenError, NotFoundError } from '../../../../core/auth/errors.js';
+import { reserveStockForItems, releaseReservations, restoreOrderStock } from './inventory.service.js';
 import { buildPaginationOptions, buildPaginatedResult } from '../../../../utils/helpers.js';
 import { FoodOffer } from '../../admin/models/offer.model.js';
 import { FoodOfferUsage } from '../../admin/models/offerUsage.model.js';
@@ -147,6 +148,10 @@ async function deletePendingPaymentOrder(orderLike) {
   const payStatus = String(orderLike.payment?.status || "").toLowerCase();
   if (payStatus === "paid" || payStatus === "refunded") return false;
 
+  // An abandoned payment must not hold units forever. Restocked before the
+  // delete, since the order rows are what say how much to give back.
+  await restoreOrderStock(orderLike);
+
   await Promise.all([
     FoodSupportTicket.updateMany(
       { orderId: orderLike._id },
@@ -178,7 +183,7 @@ async function expireStalePendingPaymentOrders() {
     "payment.status": { $in: ["created", "pending", "failed"] },
     createdAt: { $lte: cutoff },
   })
-    .select("_id orderStatus payment")
+    .select("_id orderStatus payment stockReservedAt stockRestoredAt")
     .lean();
 
   for (const doc of stale) {
@@ -332,6 +337,8 @@ async function expireUnacceptedOrders(filter = {}) {
     );
 
     if (!updated) continue;
+
+    await restoreOrderStock(updated);
 
     try {
       await applyCancellationRefund(updated, { cancelledBy: 'auto_cancel' });
@@ -623,7 +630,19 @@ export async function createOrder(userId, dto) {
       }
     }
 
-    await order.save();
+    // Stock is claimed before the order exists, including for orders still
+    // awaiting online payment: the units have to be held while the customer is
+    // on the payment sheet, or two people pay for the same last unit. The
+    // pending-payment cleanup gives them back.
+    const reservation = await reserveStockForItems(resolvedItems);
+    if (reservation.length > 0) order.stockReservedAt = new Date();
+
+    try {
+      await order.save();
+    } catch (err) {
+      await releaseReservations(reservation);
+      throw err;
+    }
 
     if (!isAwaitingOnlinePayment) {
       void addOrderJob(
@@ -647,6 +666,7 @@ export async function createOrder(userId, dto) {
       try {
         await userWalletService.deductWalletBalance(userId, order.pricing.total, `Payment for order #${order.order_id || order._id}`, { orderId: order._id });
       } catch (err) {
+        await restoreOrderStock(order);
         await FoodOrder.deleteOne({ _id: order._id });
         throw err;
       }
@@ -1303,6 +1323,8 @@ export async function cancelOrder(orderId, userId, reason) {
     note: reason || "",
   });
 
+  await restoreOrderStock(order);
+
   const paymentMethod = String(order.payment?.method || "cash").toLowerCase();
   const paymentStatus = String(order.payment?.status || "cod_pending").toLowerCase();
   try {
@@ -1709,6 +1731,11 @@ export async function updateOrderStatusRestaurant(
     to: orderStatus,
     note: note || "",
   });
+
+  if (String(orderStatus).includes("cancel")) {
+    await restoreOrderStock(order);
+  }
+
   await order.save();
 
   if (String(orderStatus) === "delivered") {
@@ -2343,6 +2370,8 @@ export async function deleteOrderAdmin(orderId, adminId) {
   const order = await FoodOrder.findOne(identity).lean();
   if (!order) throw new NotFoundError("Order not found");
 
+  await restoreOrderStock(order);
+
   // Keep support tickets but detach deleted order reference.
   await Promise.all([
     FoodSupportTicket.updateMany(
@@ -2432,6 +2461,7 @@ export async function updateOrderStatusAdmin(orderId, orderStatus, note = "", ad
     });
 
     if (String(orderStatus).includes("cancel")) {
+        await restoreOrderStock(order);
         try {
             await applyCancellationRefund(order, { cancelledBy: 'admin' });
         } catch (err) {

@@ -145,6 +145,23 @@ export async function resolveOrderCartItems(restaurantId, rawItems = []) {
         throw new ValidationError(`${foodDoc.name} is currently unavailable`);
       }
 
+      // Cheap pre-checks so the customer is told at checkout rather than after
+      // the reservation fails. Stock is still claimed atomically at order
+      // creation -- this read is a courtesy, not the guard.
+      const cap = Number(foodDoc.maxQtyPerOrder);
+      if (Number.isFinite(cap) && cap > 0 && quantity > cap) {
+        throw new ValidationError(`You can order at most ${cap} of ${foodDoc.name}`);
+      }
+
+      const onHand = foodDoc.stockQty;
+      if (onHand !== null && onHand !== undefined && Number(onHand) < quantity) {
+        throw new ValidationError(
+          Number(onHand) > 0
+            ? `Only ${Number(onHand)} left of ${foodDoc.name}. Please reduce the quantity.`
+            : `${foodDoc.name} just went out of stock`,
+        );
+      }
+
       const pricing = resolveFoodItemPrice(foodDoc, rawItem);
       const addons = resolveAttachedAddons(rawItem?.addons);
       const addonsTotal = addons.reduce((sum, a) => sum + a.price, 0);

@@ -332,6 +332,15 @@ const orderSchema = new mongoose.Schema(
         acceptanceDeadlineAt: { type: Date, default: null },
         /** Idempotency guard so retries/duplicate calls never double-push the "new order" alert. */
         restaurantNotifiedAt: { type: Date, default: null },
+        /** Set once stock was decremented for this order; absent on pre-inventory orders. */
+        stockReservedAt: { type: Date, default: null },
+        /**
+         * Set once stock was given back. Guards the restock, which is reachable
+         * from user cancel, seller cancel, admin cancel, the acceptance-timeout
+         * sweep and two delete paths — several of which can race. Restocking
+         * twice silently inflates inventory, and nothing downstream would notice.
+         */
+        stockRestoredAt: { type: Date, default: null },
         sendCutlery: { type: Boolean, default: true },
         deliveryFleet: { type: String, default: 'standard', trim: true },
         scheduledAt: { type: Date, default: null },

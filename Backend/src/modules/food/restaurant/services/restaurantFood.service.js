@@ -110,9 +110,46 @@ const parseStockResumeAt = (value) => {
     return date;
 };
 
+/**
+ * Reads a stock-style number off the request.
+ *
+ * Returns undefined when the field was not sent (leave it alone) and null when
+ * it was sent empty (stop tracking). Those are different intents and collapsing
+ * them would either wipe a seller's count on an unrelated edit, or make an
+ * unlimited item impossible to go back to.
+ */
+const parseStockNumber = (value, { min = 0 } = {}) => {
+    if (value === undefined) return undefined;
+    if (value === null || value === '') return null;
+    const num = Number(value);
+    if (!Number.isFinite(num) || num < min) {
+        throw new ValidationError('Stock values must be whole numbers of zero or more');
+    }
+    return Math.floor(num);
+};
+
 const buildAvailabilityUpdate = (body = {}) => {
     const update = {};
     const unset = {};
+
+    const stockQty = parseStockNumber(body.stockQty);
+    if (stockQty !== undefined) {
+        update.stockQty = stockQty;
+        // A restock has to bring the item back: it went dark automatically when
+        // it hit zero, so leaving it hidden would make the count meaningless.
+        if (stockQty !== null && stockQty > 0 && body.isAvailable === undefined) {
+            update.isAvailable = true;
+            unset.stockOffMode = 1;
+            unset.stockResumeAt = 1;
+        }
+        if (stockQty === 0) update.isAvailable = false;
+    }
+
+    const lowStockThreshold = parseStockNumber(body.lowStockThreshold);
+    if (lowStockThreshold !== undefined) update.lowStockThreshold = lowStockThreshold;
+
+    const maxQtyPerOrder = parseStockNumber(body.maxQtyPerOrder, { min: 1 });
+    if (maxQtyPerOrder !== undefined) update.maxQtyPerOrder = maxQtyPerOrder;
 
     if (body.isAvailable !== undefined) {
         update.isAvailable = body.isAvailable !== false;
@@ -267,6 +304,11 @@ export async function createRestaurantFood(restaurantId, body = {}) {
         ...(normalizeFoodImages(body) ?? { image: '', images: [] }),
         foodType,
         isAvailable,
+        // Undefined leaves the schema default (null = untracked), so a seller
+        // who never enters a count keeps the old always-in-stock behaviour.
+        stockQty: parseStockNumber(body.stockQty) ?? undefined,
+        lowStockThreshold: parseStockNumber(body.lowStockThreshold) ?? undefined,
+        maxQtyPerOrder: parseStockNumber(body.maxQtyPerOrder, { min: 1 }) ?? undefined,
         isRecommended: body.isRecommended === true,
         preparationTime,
         approvalStatus: 'pending',

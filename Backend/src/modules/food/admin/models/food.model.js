@@ -39,6 +39,21 @@ const foodSchema = new mongoose.Schema(
         images: { type: [String], default: [] },
         foodType: { type: String, enum: ['Veg', 'Non-Veg'], default: 'Non-Veg' },
         isAvailable: { type: Boolean, default: true, index: true },
+        /**
+         * Units on hand. `null` means untracked — the item behaves exactly as it
+         * did before inventory existed, which is what every already-created
+         * document gets, so nothing needs a migration to keep selling.
+         *
+         * Tracked at item level, not per variant: a variant is a pack size, and
+         * a seller counting "12 left" is counting the item.
+         * ponytail: per-variant stock if sellers start listing sizes that
+         * genuinely deplete independently.
+         */
+        stockQty: { type: Number, default: null, min: 0 },
+        /** Below this, the item is flagged to the seller. `null` disables the flag. */
+        lowStockThreshold: { type: Number, default: null, min: 0 },
+        /** Cap per single order, so one buyer cannot clear the shelf. `null` = uncapped. */
+        maxQtyPerOrder: { type: Number, default: null, min: 1 },
         /** Running average of per-dish ratings left by customers. */
         rating: { type: Number, default: 0, min: 0, max: 5 },
         totalRatings: { type: Number, default: 0, min: 0 },
