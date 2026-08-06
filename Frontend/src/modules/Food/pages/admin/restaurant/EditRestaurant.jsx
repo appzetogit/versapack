@@ -498,7 +498,7 @@ export default function EditRestaurant() {
         <div className="flex items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => navigate("/admin/food/restaurants")}
+              onClick={() => navigate("/admin/food/sellers")}
               className="p-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-50"
               title="Back"
             >

@@ -278,8 +278,8 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
 
   const menuData = useMemo(() => {
     const featureSettingsPath = "/admin/food/feature-settings"
-    const subscriptionSettingsPath = "/admin/food/restaurants/subscription-settings"
-    const subscriptionHistoryPath = "/admin/food/restaurants/subscription-history"
+    const subscriptionSettingsPath = "/admin/food/sellers/subscription-settings"
+    const subscriptionHistoryPath = "/admin/food/sellers/subscription-history"
     const deliveryCashLimitPath = "/admin/food/delivery-cash-limit"
     const cashLimitSettlementPath = "/admin/food/cash-limit-settlement"
     const offlinePaymentsPath = "/admin/food/orders/offline-payments"
@@ -324,7 +324,7 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
                   if (!sub?.path) return false
                   if ((sub.path === subscriptionSettingsPath || sub.path === subscriptionHistoryPath) && !restaurantSubscriptionEnabled) return false
                   if (sub.path === offlinePaymentsPath && !codControlEnabled) return false
-                  if (sub.path === "/admin/food/restaurants/unregistered" && !rootLandingAndUnregisteredControlEnabled) return false
+                  if (sub.path === "/admin/food/sellers/unregistered" && !rootLandingAndUnregisteredControlEnabled) return false
                   const permissionSection = resolvePermissionSectionByPath(sub.path)
                   if (!permissionSection && !isSuperAdmin(adminUser)) return false
                   if (permissionSection && !canAdminAccess(adminUser, permissionSection, "view")) return false

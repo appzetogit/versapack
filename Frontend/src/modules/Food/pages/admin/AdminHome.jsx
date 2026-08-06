@@ -234,7 +234,7 @@ export default function AdminHome() {
               helper={`${periodLabel} restaurant cut`}
               icon={<ArrowUpRight className="h-5 w-5 text-indigo-600" />}
               accent="bg-indigo-200/40"
-              path="/admin/food/restaurants/commission"
+              path="/admin/food/sellers/commission"
             />
             <MetricCard
               title="Orders processed"
@@ -282,7 +282,7 @@ export default function AdminHome() {
               helper="Approved sellers"
               icon={<Store className="h-5 w-5 text-blue-600" />}
               accent="bg-blue-200/40"
-              path="/admin/food/restaurants"
+              path="/admin/food/sellers"
             />
             <MetricCard
               title="Seller requests pending"
@@ -290,7 +290,7 @@ export default function AdminHome() {
               helper="Awaiting approval"
               icon={<UserCheck className="h-5 w-5 text-orange-600" />}
               accent="bg-orange-200/40"
-              path="/admin/food/restaurants/joining-request"
+              path="/admin/food/sellers/joining-request"
             />
             <MetricCard
               title="Total delivery boy"
@@ -314,7 +314,7 @@ export default function AdminHome() {
               helper="Approved products"
               icon={<Package className="h-5 w-5 text-purple-600" />}
               accent="bg-purple-200/40"
-              path="/admin/food/foods"
+              path="/admin/food/products"
             />
             <MetricCard
               title="Total add-ons"

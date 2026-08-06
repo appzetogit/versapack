@@ -326,7 +326,7 @@ export default function RestaurantsList() {
           try {
             clearModuleAuth("admin")
           } catch (_) {}
-          navigate("/admin/login", { replace: true, state: { from: "/admin/food/restaurants" } })
+          navigate("/admin/login", { replace: true, state: { from: "/admin/food/sellers" } })
           return
         }
         setError(serverMessage || err.message || "Failed to fetch restaurants")
@@ -1285,7 +1285,7 @@ export default function RestaurantsList() {
 
             <div className="flex items-center gap-3">
               <button
-                onClick={() => navigate("/admin/food/restaurants/add")}
+                onClick={() => navigate("/admin/food/sellers/add")}
                 className="px-4 py-2.5 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2 transition-all"
               >
                 <Plus className="w-4 h-4" />
@@ -1353,7 +1353,7 @@ export default function RestaurantsList() {
                 <p className="text-sm text-slate-500 mb-4">{error}</p>
                 <button
                   type="button"
-                  onClick={() => navigate("/admin/login", { replace: true, state: { from: "/admin/food/restaurants" } })}
+                  onClick={() => navigate("/admin/login", { replace: true, state: { from: "/admin/food/sellers" } })}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   Log in as admin

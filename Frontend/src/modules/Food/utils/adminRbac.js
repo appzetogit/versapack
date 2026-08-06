@@ -30,10 +30,15 @@ const PATH_PREFIX_TO_SECTION = [
   { prefix: "/admin/food/delivery-support-tickets", section: "delivery_management" },
   { prefix: "/admin/food/delivery-order-reassignment-requests", section: "delivery_management" },
   { prefix: "/admin/food/food-approval", section: "food_management" },
+  { prefix: "/admin/food/products", section: "food_management" },
+  // Legacy twins of the routes above. The router still serves them so old
+  // bookmarks resolve, and without a prefix here those visits would match no
+  // section and be refused for someone who is allowed in.
   { prefix: "/admin/food/foods", section: "food_management" },
   { prefix: "/admin/food/addons", section: "food_management" },
   { prefix: "/admin/food/categories", section: "food_management" },
   { prefix: "/admin/food/zone-setup", section: "restaurant_management" },
+  { prefix: "/admin/food/sellers", section: "restaurant_management" },
   { prefix: "/admin/food/restaurants", section: "restaurant_management" },
   { prefix: "/admin/food/orders", section: "order_management" },
   { prefix: "/admin/food/order-detect-delivery", section: "order_management" },
@@ -117,7 +122,7 @@ export function findFirstAllowedAdminPath(adminUser) {
     dashboard: "/admin/food",
     point_of_sale: "/admin/food/point-of-sale",
     food_management: "/admin/food/food-approval",
-    restaurant_management: "/admin/food/restaurants",
+    restaurant_management: "/admin/food/sellers",
     order_management: "/admin/food/orders/all",
     promotions_management: "/admin/food/coupons",
     referral_rewards: "/admin/food/referral-settings",

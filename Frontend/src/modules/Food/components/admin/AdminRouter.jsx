@@ -261,25 +261,45 @@ export default function AdminRouter() {
             <Route path="zone-setup/edit/:id" element={<AddZone />} />
             <Route path="zone-setup/view/:id" element={<ViewZone />} />
             <Route path="food-approval" element={<FoodApproval />} />
+            {/* Canonical paths are products/ and sellers/. The foods/ and
+                restaurants/ twins below them are kept so existing bookmarks and
+                links in already-sent email keep resolving. */}
+            {/* products/ and sellers/ are the canonical paths. The foods/ and
+                restaurants/ twins beside them render the same screens and are kept
+                so existing bookmarks and already-sent links keep resolving. */}
             <Route path="restaurants" element={<RestaurantsList />} />
+            <Route path="sellers" element={<RestaurantsList />} />
             <Route path="restaurants/add" element={<AddRestaurant />} />
+            <Route path="sellers/add" element={<AddRestaurant />} />
             <Route path="restaurants/edit/:id" element={<EditRestaurant />} />
+            <Route path="sellers/edit/:id" element={<EditRestaurant />} />
             <Route path="restaurants/joining-request" element={<JoiningRequest />} />
+            <Route path="sellers/joining-request" element={<JoiningRequest />} />
             <Route path="restaurants/unregistered" element={<UnregisteredRestaurantsRouteGuard />} />
+            <Route path="sellers/unregistered" element={<UnregisteredRestaurantsRouteGuard />} />
             <Route path="restaurants/commission" element={<RestaurantCommission />} />
+            <Route path="sellers/commission" element={<RestaurantCommission />} />
             <Route path="restaurants/complaints" element={<RestaurantComplaints />} />
+            <Route path="sellers/complaints" element={<RestaurantComplaints />} />
             <Route path="restaurants/reviews" element={<RestaurantReviews />} />
+            <Route path="sellers/reviews" element={<RestaurantReviews />} />
             <Route path="restaurants/bulk-import" element={<RestaurantsBulkImport />} />
+            <Route path="sellers/bulk-import" element={<RestaurantsBulkImport />} />
             <Route path="restaurants/bulk-export" element={<RestaurantsBulkExport />} />
+            <Route path="sellers/bulk-export" element={<RestaurantsBulkExport />} />
             <Route path="restaurants/settings" element={<RestaurantSettings />} />
+            <Route path="sellers/settings" element={<RestaurantSettings />} />
             <Route path="restaurants/subscription-settings" element={<SubscriptionSettings />} />
+            <Route path="sellers/subscription-settings" element={<SubscriptionSettings />} />
             <Route path="restaurants/subscription-history" element={<SubscriptionHistory />} />
+            <Route path="sellers/subscription-history" element={<SubscriptionHistory />} />
 
             {/* FOOD & CATEGORY MANAGEMENT */}
             <Route path="categories" element={<Category />} />
             <Route path="fee-settings" element={<FeeSettings />} />
             <Route path="referral-settings" element={<ReferralSettings />} />
             <Route path="foods" element={<FoodsList />} />
+            <Route path="products" element={<FoodsList />} />
             <Route path="food/list" element={<FoodsList />} />
             <Route path="addons" element={<AddonsList />} />
 
