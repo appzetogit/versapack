@@ -126,6 +126,16 @@ router.get('/categories/public', cacheResponse(600, 'categories'), listCategorie
 
 // Restaurant dashboard/profile (Bearer token + RESTAURANT role)
 router.get('/current', authMiddleware, requireRestaurant, getCurrentRestaurantController);
+/**
+ * Account deletion, initiated by the seller themselves.
+ *
+ * The controller has existed all along and was imported here, but never given
+ * a route -- so the only way to close an account was to ask someone with
+ * database access. Google Play and the App Store both require deletion to be
+ * reachable from inside the app, which made this a submission blocker rather
+ * than a missing convenience.
+ */
+router.delete('/current', authMiddleware, requireRestaurant, deleteCurrentRestaurantAccountController);
 router.patch('/profile', authMiddleware, requireRestaurant, async (req, res, next) => {
     // Invalidate caches when profile is updated
     await invalidateCache('restaurants:*');
