@@ -3053,6 +3053,10 @@ export async function updateRestaurantById(id, body = {}) {
         doc.pureVegRestaurant = parseBooleanLike(body.pureVegRestaurant, 'pureVegRestaurant');
     }
 
+    // Admin-only on purpose: a seller cannot grant themselves auto-accept.
+    if (body.autoAcceptOrders !== undefined) {
+        doc.autoAcceptOrders = parseBooleanLike(body.autoAcceptOrders, 'autoAcceptOrders');
+    }
     if (body.isAcceptingOrders !== undefined) {
         doc.isAcceptingOrders = parseBooleanLike(body.isAcceptingOrders, 'isAcceptingOrders');
         doc.outsideHoursOverride = false;

@@ -602,7 +602,16 @@ export async function createOrder(userId, dto) {
       riderEarning;
 
     const isAwaitingOnlinePayment = isAwaitingOnlinePaymentMethod(paymentMethod);
-    const initialStatus = isAwaitingOnlinePayment ? "pending_payment" : "created";
+    // A trusted seller's order is confirmed on arrival: no window, no timeout
+    // job, and the rider hunt starts now rather than after somebody taps a
+    // tablet. Orders still awaiting payment are never auto-confirmed -- money
+    // first, always.
+    const autoAccept = restaurant?.autoAcceptOrders === true && !isAwaitingOnlinePayment;
+    const initialStatus = isAwaitingOnlinePayment
+      ? "pending_payment"
+      : autoAccept
+        ? "confirmed"
+        : "created";
     const acceptanceWindowSeconds = await getOrderAcceptanceWindowSeconds();
 
     const order = new FoodOrder({
@@ -626,6 +635,9 @@ export async function createOrder(userId, dto) {
       payment,
       orderStatus: initialStatus,
       acceptanceWindowSeconds,
+      // Only an order actually waiting on a seller carries a deadline. Leaving
+      // one on an auto-confirmed order would let the timeout sweep cancel an
+      // order nobody was waiting for.
       acceptanceDeadlineAt:
         initialStatus === "created" ? buildAcceptanceDeadline(new Date(), acceptanceWindowSeconds) : null,
       dispatch: { modeAtCreation: dispatchMode, status: "unassigned" },
@@ -685,7 +697,8 @@ export async function createOrder(userId, dto) {
       throw err;
     }
 
-    if (!isAwaitingOnlinePayment) {
+    // An auto-confirmed order has nobody to wait for, so no timeout is armed.
+    if (!isAwaitingOnlinePayment && !autoAccept) {
       void addOrderJob(
         {
           action: "ORDER_ACCEPTANCE_TIMEOUT_CHECK",
@@ -766,6 +779,20 @@ export async function createOrder(userId, dto) {
 
     if (!isAwaitingOnlinePayment) {
       await incrementCouponUsageForOrder(order, userId);
+    }
+
+    // Normally the rider hunt starts when the seller taps Accept. Auto-accepted
+    // orders have no such moment, so it starts here -- and it starts now rather
+    // than after picking, because the ride to the seller and the picking happen
+    // at the same time. Waiting for one to finish before starting the other is
+    // the difference between a promise in minutes and one in half-hours.
+    //
+    // Fire-and-forget, exactly as the accept path does it: a dispatch failure
+    // must not fail an order the customer has already paid for.
+    if (autoAccept) {
+      void tryAutoAssign(order._id).catch((err) => {
+        logger.warn(`Auto-dispatch failed for ${order._id}: ${err?.message || err}`);
+      });
     }
 
     const saved = normalizeOrderForClient(order);

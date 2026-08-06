@@ -128,6 +128,26 @@ const restaurantSchema = new mongoose.Schema(
       index: true,
     },
     /**
+     * Confirm this seller's orders the moment they are placed, and start
+     * hunting a rider immediately, instead of waiting for someone to tap
+     * Accept.
+     *
+     * The acceptance window exists because a third-party kitchen might be
+     * slammed and need to refuse. A seller running to a delivery promise
+     * measured in minutes cannot afford it: four minutes of someone not
+     * looking at a tablet is most of the budget gone before anybody picks a
+     * single item.
+     *
+     * Off by default, so nothing changes for a seller until an admin decides
+     * they are reliable enough. Turning it on does not remove the ability to
+     * cancel -- it removes the wait.
+     */
+    autoAcceptOrders: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    /**
      * Legacy field. No longer used to keep a restaurant online outside outlet hours.
      * Cleared whenever the Online/Offline toggle is updated.
      */
