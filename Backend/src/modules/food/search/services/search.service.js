@@ -241,6 +241,10 @@ export const searchUnified = async (query = {}, options = {}) => {
 const PRODUCT_SEARCH_SELECT =
     '_id restaurantId name brand packSize image images price otherPrice mrp categoryId categoryName foodType rating totalRatings isAvailable stockQty maxQtyPerOrder variants';
 
+const PRODUCT_SEARCH_PROJECTION = Object.fromEntries(
+    PRODUCT_SEARCH_SELECT.split(' ').filter(Boolean).map((field) => [field, 1]),
+);
+
 /**
  * Product search: a grid of things you can buy.
  *
@@ -304,36 +308,71 @@ export const searchProducts = async (query = {}) => {
         productFilter.isAvailable = { $ne: false };
     }
 
-    const products = await FoodItem.find(productFilter)
-        .select(PRODUCT_SEARCH_SELECT)
-        .limit(500)
-        .lean();
-
-    // Out of stock sinks rather than disappearing: a shopper searching for
+    // Ranked, paged and counted by the database in one pass.
+    //
+    // This used to read 500 documents and rank them in Node, which quietly
+    // capped the catalogue: past 500 matches the rest were unreachable and
+    // `total` lied about how many existed. It also shipped 500 rows to return
+    // 20. A shopper on a phone pays for both.
+    //
+    // Out of stock sinks rather than disappearing: someone searching for
     // something we carry but cannot sell today is better told that than shown
     // an empty grid.
     const lowerTerm = term.toLowerCase();
-    const ranked = products
-        .map((product) => {
-            const name = String(product.name || '').toLowerCase();
-            const inStock = product.isAvailable !== false;
-            let score = 0;
-            if (lowerTerm) {
-                if (name === lowerTerm) score += 100;
-                else if (name.startsWith(lowerTerm)) score += 50;
-                else if (name.includes(lowerTerm)) score += 20;
-            }
-            if (inStock) score += 10;
-            score += Math.min(Number(product.rating) || 0, 5);
-            return { product, score, inStock };
-        })
-        .sort((a, b) => b.score - a.score);
+    const scoreFor = (field) => {
+        if (!lowerTerm) return 0;
+        const at = { $indexOfCP: [{ $toLower: { $ifNull: [`$${field}`, ''] } }, lowerTerm] };
+        return {
+            $switch: {
+                branches: [
+                    { case: { $eq: [{ $toLower: { $ifNull: [`$${field}`, ''] } }, lowerTerm] }, then: 100 },
+                    { case: { $eq: [at, 0] }, then: 50 },
+                    { case: { $gt: [at, -1] }, then: 20 },
+                ],
+                default: 0,
+            },
+        };
+    };
 
-    const pageItems = ranked.slice(skip, skip + limitNumber).map(({ product, inStock }) => {
+    const [agg] = await FoodItem.aggregate([
+        { $match: productFilter },
+        {
+            $addFields: {
+                _score: {
+                    $add: [
+                        scoreFor('name'),
+                        // Brand matches rank below name matches for the same word.
+                        { $multiply: [scoreFor('brand'), 0.5] },
+                        { $cond: [{ $ne: ['$isAvailable', false] }, 10, 0] },
+                        { $min: [{ $ifNull: ['$rating', 0] }, 5] },
+                    ],
+                },
+            },
+        },
+        // _id breaks ties so paging cannot repeat or skip a row between requests.
+        { $sort: { _score: -1, _id: 1 } },
+        {
+            $facet: {
+                items: [
+                    { $skip: skip },
+                    { $limit: limitNumber },
+                    // Derived from the same field list the find() used, so the
+                    // two cannot drift and the page stays small on mobile data.
+                    { $project: PRODUCT_SEARCH_PROJECTION },
+                ],
+                total: [{ $count: 'value' }],
+            },
+        },
+    ]);
+
+    const products = agg?.items || [];
+    const total = agg?.total?.[0]?.value || 0;
+
+    const pageItems = products.map((product) => {
         const seller = sellerById.get(String(product.restaurantId));
         return {
             ...product,
-            inStock,
+            inStock: product.isAvailable !== false,
             seller: seller
                 ? {
                     _id: seller._id,
@@ -350,7 +389,7 @@ export const searchProducts = async (query = {}) => {
 
     return {
         products: pageItems,
-        total: ranked.length,
+        total,
         page: pageNumber,
         limit: limitNumber,
         // No silent zone fallback here, unlike searchUnified. Widening the
