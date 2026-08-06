@@ -193,6 +193,34 @@ export const dismissNotification = async ({ notificationId, ownerType, ownerId }
     return notification;
 };
 
+/**
+ * Marks every unread notification read, leaving them in the inbox.
+ *
+ * Distinct from dismissing all, which also stamps `dismissedAt` and takes them
+ * out of the list entirely. Clearing an unread badge and clearing the inbox are
+ * two different intentions, and only the second one had an implementation.
+ */
+export const markAllNotificationsAsRead = async ({ ownerType, ownerId } = {}) => {
+    const result = await FoodNotification.updateMany(
+        {
+            ownerType: normalizeOwnerType(ownerType),
+            ownerId: ensureObjectId(ownerId, 'ownerId'),
+            isRead: false,
+            dismissedAt: null
+        },
+        {
+            $set: {
+                isRead: true,
+                readAt: new Date()
+            }
+        }
+    );
+
+    return {
+        modifiedCount: Number(result?.modifiedCount || 0)
+    };
+};
+
 export const dismissAllNotifications = async ({ ownerType, ownerId } = {}) => {
     const result = await FoodNotification.updateMany(
         {

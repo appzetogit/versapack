@@ -3,6 +3,7 @@ import {
     resolveNotificationOwnerFromRequest,
     getInboxNotifications,
     markNotificationAsRead,
+    markAllNotificationsAsRead,
     dismissNotification,
     dismissAllNotifications
 } from './notification.service.js';
@@ -44,6 +45,16 @@ export const dismissNotificationController = async (req, res) => {
         return sendResponse(res, 200, 'Notification removed successfully', data);
     } catch (error) {
         return sendError(res, error.statusCode || 500, error.message || 'Failed to remove notification');
+    }
+};
+
+export const markAllNotificationsReadController = async (req, res) => {
+    try {
+        const owner = resolveNotificationOwnerFromRequest(req.user);
+        const data = await markAllNotificationsAsRead(owner);
+        return sendResponse(res, 200, 'All notifications marked as read', data);
+    } catch (error) {
+        return sendError(res, error.statusCode || 500, error.message || 'Failed to update notifications');
     }
 };
 
