@@ -49,6 +49,15 @@ const addressSchema = z.object({
     state: z.string().min(1, 'State required'),
     zipCode: z.string().optional(),
     phone: z.string().optional(),
+    // Flat coordinates are accepted alongside the nested GeoJSON pair. The
+    // saved-address API returns them flat and /orders/calculate reads them that
+    // way, so a client handing an address from one endpoint to the other had
+    // them silently stripped here by Zod and placed an order with no location
+    // at all -- which the 2dsphere index then rejected with a raw driver error.
+    latitude: z.coerce.number().min(-90).max(90).optional(),
+    longitude: z.coerce.number().min(-180).max(180).optional(),
+    lat: z.coerce.number().min(-90).max(90).optional(),
+    lng: z.coerce.number().min(-180).max(180).optional(),
     location: z
         .object({
             type: z.literal('Point').optional(),

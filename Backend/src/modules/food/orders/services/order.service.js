@@ -487,6 +487,18 @@ export async function createOrder(userId, dto) {
       ...(dto.address || {}),
     });
 
+    // Without coordinates the row cannot be written at all: the 2dsphere index
+    // on the address rejects a Point with no position, and the driver's error
+    // ("Can't extract geo keys") reaches the customer as a failed checkout with
+    // no idea what to fix. Catching it here also stops an unlocatable address
+    // slipping past the serviceability test, which cannot judge what it cannot
+    // place.
+    if (!readAddressPoint(deliveryAddress)) {
+      throw new ValidationError(
+        'This address has no location saved. Please re-select it on the map.',
+      );
+    }
+
     const serviceableZone = await resolveServiceableZone(restaurant, deliveryAddress);
 
     const paymentMethod =
