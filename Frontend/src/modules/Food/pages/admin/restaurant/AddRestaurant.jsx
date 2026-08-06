@@ -645,7 +645,7 @@ export default function AddRestaurant() {
         toast.success("Restaurant created successfully!")
         setShowSuccessDialog(true)
         setTimeout(() => {
-          navigate("/admin/food/sellers")
+          navigate("/admin/store/sellers")
         }, 2000)
       } else {
         throw new Error(response?.data?.message || "Failed to create restaurant")

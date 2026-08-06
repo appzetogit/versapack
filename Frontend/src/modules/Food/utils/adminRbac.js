@@ -20,56 +20,56 @@ export const ADMIN_PERMISSION_SECTIONS = [
 ];
 
 const PATH_PREFIX_TO_SECTION = [
-  { prefix: "/admin/food/point-of-sale", section: "point_of_sale" },
-  { prefix: "/admin/food/fee-settings", section: "delivery_management" },
-  { prefix: "/admin/food/delivery-cash-limit", section: "delivery_management" },
-  { prefix: "/admin/food/cash-limit-settlement", section: "delivery_management" },
-  { prefix: "/admin/food/delivery-withdrawal", section: "delivery_management" },
-  { prefix: "/admin/food/delivery-boy-wallet", section: "delivery_management" },
-  { prefix: "/admin/food/delivery-emergency-help", section: "delivery_management" },
-  { prefix: "/admin/food/delivery-support-tickets", section: "delivery_management" },
-  { prefix: "/admin/food/delivery-order-reassignment-requests", section: "delivery_management" },
-  { prefix: "/admin/food/food-approval", section: "food_management" },
-  { prefix: "/admin/food/products", section: "food_management" },
+  { prefix: "/admin/store/point-of-sale", section: "point_of_sale" },
+  { prefix: "/admin/store/fee-settings", section: "delivery_management" },
+  { prefix: "/admin/store/delivery-cash-limit", section: "delivery_management" },
+  { prefix: "/admin/store/cash-limit-settlement", section: "delivery_management" },
+  { prefix: "/admin/store/delivery-withdrawal", section: "delivery_management" },
+  { prefix: "/admin/store/delivery-boy-wallet", section: "delivery_management" },
+  { prefix: "/admin/store/delivery-emergency-help", section: "delivery_management" },
+  { prefix: "/admin/store/delivery-support-tickets", section: "delivery_management" },
+  { prefix: "/admin/store/delivery-order-reassignment-requests", section: "delivery_management" },
+  { prefix: "/admin/store/food-approval", section: "food_management" },
+  { prefix: "/admin/store/products", section: "food_management" },
   // Legacy twins of the routes above. The router still serves them so old
   // bookmarks resolve, and without a prefix here those visits would match no
   // section and be refused for someone who is allowed in.
-  { prefix: "/admin/food/foods", section: "food_management" },
-  { prefix: "/admin/food/addons", section: "food_management" },
-  { prefix: "/admin/food/categories", section: "food_management" },
-  { prefix: "/admin/food/zone-setup", section: "restaurant_management" },
-  { prefix: "/admin/food/sellers", section: "restaurant_management" },
-  { prefix: "/admin/food/restaurants", section: "restaurant_management" },
-  { prefix: "/admin/food/orders", section: "order_management" },
-  { prefix: "/admin/food/order-detect-delivery", section: "order_management" },
-  { prefix: "/admin/food/coupons", section: "promotions_management" },
-  { prefix: "/admin/food/referral-settings", section: "referral_rewards" },
-  { prefix: "/admin/food/customers", section: "customer_management" },
-  { prefix: "/admin/food/support-tickets", section: "customer_management" },
-  { prefix: "/admin/food/delivery", section: "delivery_management" },
-  { prefix: "/admin/food/delivery-partners", section: "delivery_management" },
-  { prefix: "/admin/food/contact-messages", section: "support_management" },
-  { prefix: "/admin/food/safety-emergency-reports", section: "support_management" },
-  { prefix: "/admin/food/transaction-report", section: "report_management" },
-  { prefix: "/admin/food/order-report", section: "report_management" },
-  { prefix: "/admin/food/tax-report", section: "report_management" },
-  { prefix: "/admin/food/restaurant-report", section: "report_management" },
-  { prefix: "/admin/food/customer-report", section: "report_management" },
-  { prefix: "/admin/food/restaurant-withdraws", section: "transaction_management" },
-  { prefix: "/admin/food/hero-banner-management", section: "banner_management" },
-  { prefix: "/admin/food/promotional-banner", section: "banner_management" },
-  { prefix: "/admin/food/feature-settings", section: "system_settings" },
-  { prefix: "/admin/food/power-scanning", section: "system_settings" },
-  { prefix: "/admin/food/business-setup", section: "system_settings" },
-  { prefix: "/admin/food/broadcast-notification", section: "system_settings" },
-  { prefix: "/admin/food/pages-social-media", section: "pages_social_media" },
-  { prefix: "/admin/food/employees", section: "sub_admin_management" },
-  { prefix: "/admin/food/employee-role", section: "sub_admin_management" },
+  { prefix: "/admin/store/foods", section: "food_management" },
+  { prefix: "/admin/store/addons", section: "food_management" },
+  { prefix: "/admin/store/categories", section: "food_management" },
+  { prefix: "/admin/store/zone-setup", section: "restaurant_management" },
+  { prefix: "/admin/store/sellers", section: "restaurant_management" },
+  { prefix: "/admin/store/restaurants", section: "restaurant_management" },
+  { prefix: "/admin/store/orders", section: "order_management" },
+  { prefix: "/admin/store/order-detect-delivery", section: "order_management" },
+  { prefix: "/admin/store/coupons", section: "promotions_management" },
+  { prefix: "/admin/store/referral-settings", section: "referral_rewards" },
+  { prefix: "/admin/store/customers", section: "customer_management" },
+  { prefix: "/admin/store/support-tickets", section: "customer_management" },
+  { prefix: "/admin/store/delivery", section: "delivery_management" },
+  { prefix: "/admin/store/delivery-partners", section: "delivery_management" },
+  { prefix: "/admin/store/contact-messages", section: "support_management" },
+  { prefix: "/admin/store/safety-emergency-reports", section: "support_management" },
+  { prefix: "/admin/store/transaction-report", section: "report_management" },
+  { prefix: "/admin/store/order-report", section: "report_management" },
+  { prefix: "/admin/store/tax-report", section: "report_management" },
+  { prefix: "/admin/store/restaurant-report", section: "report_management" },
+  { prefix: "/admin/store/customer-report", section: "report_management" },
+  { prefix: "/admin/store/restaurant-withdraws", section: "transaction_management" },
+  { prefix: "/admin/store/hero-banner-management", section: "banner_management" },
+  { prefix: "/admin/store/promotional-banner", section: "banner_management" },
+  { prefix: "/admin/store/feature-settings", section: "system_settings" },
+  { prefix: "/admin/store/power-scanning", section: "system_settings" },
+  { prefix: "/admin/store/business-setup", section: "system_settings" },
+  { prefix: "/admin/store/broadcast-notification", section: "system_settings" },
+  { prefix: "/admin/store/pages-social-media", section: "pages_social_media" },
+  { prefix: "/admin/store/employees", section: "sub_admin_management" },
+  { prefix: "/admin/store/employee-role", section: "sub_admin_management" },
 ];
 
 const ALWAYS_ALLOWED_FOR_SUB_ADMIN = new Set([
-  "/admin/food/profile",
-  "/admin/food/settings",
+  "/admin/store/profile",
+  "/admin/store/settings",
 ]);
 
 export function isSuperAdmin(adminUser) {
@@ -90,7 +90,7 @@ export function canAdminAccess(adminUser, section, action = "view") {
 }
 
 export function resolvePermissionSectionByPath(pathname = "") {
-  if (pathname === "/admin/food" || pathname === "/admin/food/") return "dashboard";
+  if (pathname === "/admin/store" || pathname === "/admin/store/") return "dashboard";
   const match = PATH_PREFIX_TO_SECTION.find((item) => pathname.startsWith(item.prefix));
   return match?.section || null;
 }
@@ -119,31 +119,31 @@ export function canCurrentAdminAction(action = "view", pathname = "") {
 
 export function findFirstAllowedAdminPath(adminUser) {
   const sectionHomePath = {
-    dashboard: "/admin/food",
-    point_of_sale: "/admin/food/point-of-sale",
-    food_management: "/admin/food/food-approval",
-    restaurant_management: "/admin/food/sellers",
-    order_management: "/admin/food/orders/all",
-    promotions_management: "/admin/food/coupons",
-    referral_rewards: "/admin/food/referral-settings",
-    customer_management: "/admin/food/customers",
-    delivery_management: "/admin/food/delivery-partners",
-    support_management: "/admin/food/contact-messages",
-    report_management: "/admin/food/transaction-report",
-    transaction_management: "/admin/food/restaurant-withdraws",
-    banner_management: "/admin/food/hero-banner-management",
-    pages_social_media: "/admin/food/pages-social-media/about",
+    dashboard: "/admin/store",
+    point_of_sale: "/admin/store/point-of-sale",
+    food_management: "/admin/store/food-approval",
+    restaurant_management: "/admin/store/sellers",
+    order_management: "/admin/store/orders/all",
+    promotions_management: "/admin/store/coupons",
+    referral_rewards: "/admin/store/referral-settings",
+    customer_management: "/admin/store/customers",
+    delivery_management: "/admin/store/delivery-partners",
+    support_management: "/admin/store/contact-messages",
+    report_management: "/admin/store/transaction-report",
+    transaction_management: "/admin/store/restaurant-withdraws",
+    banner_management: "/admin/store/hero-banner-management",
+    pages_social_media: "/admin/store/pages-social-media/about",
   };
 
   if (isSuperAdmin(adminUser)) {
-    return "/admin/food";
+    return "/admin/store";
   }
 
   for (const section of ADMIN_PERMISSION_SECTIONS) {
     if (canAdminAccess(adminUser, section, "view")) {
-      return sectionHomePath[section] || "/admin/food/profile";
+      return sectionHomePath[section] || "/admin/store/profile";
     }
   }
 
-  return "/admin/food/profile";
+  return "/admin/store/profile";
 }

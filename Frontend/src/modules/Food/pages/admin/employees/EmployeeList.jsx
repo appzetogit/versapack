@@ -203,7 +203,7 @@ export default function EmployeeList() {
                   <p className="text-sm text-slate-600">{item.email} {item.phone ? `• ${item.phone}` : ""}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Link to={`/admin/food/employee-role?id=${item._id}`} className="inline-flex items-center gap-1 px-3 py-2 border rounded-lg text-sm">
+                  <Link to={`/admin/store/employee-role?id=${item._id}`} className="inline-flex items-center gap-1 px-3 py-2 border rounded-lg text-sm">
                     <Shield className="w-4 h-4" /> Permissions
                   </Link>
                   <button onClick={() => toggleStatus(item)} className="px-3 py-2 border rounded-lg text-sm inline-flex items-center gap-1">

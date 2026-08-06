@@ -121,7 +121,7 @@ export default function AdminLogin() {
         throw new Error("Invalid response from server: missing refresh token")
       }
       setAuthData("admin", accessToken, adminUser, refreshToken)
-      navigate("/admin/food", { replace: true })
+      navigate("/admin/store", { replace: true })
     } catch (err) {
       const message =
         err?.response?.data?.message ||

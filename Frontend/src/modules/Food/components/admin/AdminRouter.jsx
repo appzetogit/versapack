@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect, useState } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import ProtectedRoute from "./ProtectedRoute";
 import AuthRedirect from "@food/components/AuthRedirect";
 import AdminLayout from "./AdminLayout";
@@ -144,7 +144,7 @@ const AdminForgotPassword = lazy(() => import("@food/pages/admin/auth/AdminForgo
 function FeatureSettingsRouteGuard() {
   const adminUser = getCurrentUser("admin");
   if (!canAccessFeatureSettings(adminUser)) {
-    return <Navigate to="/admin/food" replace />;
+    return <Navigate to="/admin/store" replace />;
   }
   return <FeatureSettings />;
 }
@@ -152,7 +152,7 @@ function FeatureSettingsRouteGuard() {
 function SuperPowersRouteGuard({ children }) {
   const adminUser = getCurrentUser("admin");
   if (!canAccessSuperPowers(adminUser)) {
-    return <Navigate to="/admin/food" replace />;
+    return <Navigate to="/admin/store" replace />;
   }
   return children;
 }
@@ -198,6 +198,24 @@ function UnregisteredRestaurantsRouteGuard() {
   return <UnregisteredRestaurants />;
 }
 
+/**
+ * Sends the old /admin/food/* addresses to their /admin/store/* equivalents.
+ *
+ * A redirect rather than a second copy of the route table: duplicating ~170
+ * routes to keep two spellings alive would mean every future change had to be
+ * made twice, and one of them would eventually be forgotten. The rest of the
+ * path, the query string and the hash all survive, so a deep link into a
+ * filtered list still lands where it was pointing.
+ */
+function LegacyFoodPathRedirect() {
+  const location = useLocation();
+  const target =
+    location.pathname.replace(/^\/admin\/food/, "/admin/store") +
+    location.search +
+    location.hash;
+  return <Navigate to={target} replace />;
+}
+
 export default function AdminRouter() {
   // Safely enforce light mode for the Admin app to prevent User dark mode bleeding
   useEffect(() => {
@@ -227,10 +245,11 @@ export default function AdminRouter() {
           }
         >
           {/* Default Admin Redirect */}
-          <Route path="/" element={<Navigate to="food" replace />} />
+          <Route path="/" element={<Navigate to="store" replace />} />
 
-          {/* FOOD ADMIN - All food related routes nested here */}
-          <Route path="food/*">
+          {/* Quick-commerce administration. Everything below hangs off /admin/store. */}
+          <Route path="food/*" element={<LegacyFoodPathRedirect />} />
+          <Route path="store/*">
             <Route index element={<AdminHome />} />
             <Route path="point-of-sale" element={<PointOfSale />} />
             <Route path="profile" element={<AdminProfile />} />
@@ -409,7 +428,7 @@ export default function AdminRouter() {
         </Route>
 
         {/* Redirect unknown admin routes to food admin */}
-        <Route path="*" element={<Navigate to="/admin/food" replace />} />
+        <Route path="*" element={<Navigate to="/admin/store" replace />} />
       </Routes>
     </Suspense>
   );

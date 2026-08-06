@@ -277,12 +277,12 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
   }, [adminUser])
 
   const menuData = useMemo(() => {
-    const featureSettingsPath = "/admin/food/feature-settings"
-    const subscriptionSettingsPath = "/admin/food/sellers/subscription-settings"
-    const subscriptionHistoryPath = "/admin/food/sellers/subscription-history"
-    const deliveryCashLimitPath = "/admin/food/delivery-cash-limit"
-    const cashLimitSettlementPath = "/admin/food/cash-limit-settlement"
-    const offlinePaymentsPath = "/admin/food/orders/offline-payments"
+    const featureSettingsPath = "/admin/store/feature-settings"
+    const subscriptionSettingsPath = "/admin/store/sellers/subscription-settings"
+    const subscriptionHistoryPath = "/admin/store/sellers/subscription-history"
+    const deliveryCashLimitPath = "/admin/store/delivery-cash-limit"
+    const cashLimitSettlementPath = "/admin/store/cash-limit-settlement"
+    const offlinePaymentsPath = "/admin/store/orders/offline-payments"
 
     const mapped = adminSidebarMenu.map((section) => {
       if (section.type === "link") {
@@ -324,7 +324,7 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
                   if (!sub?.path) return false
                   if ((sub.path === subscriptionSettingsPath || sub.path === subscriptionHistoryPath) && !restaurantSubscriptionEnabled) return false
                   if (sub.path === offlinePaymentsPath && !codControlEnabled) return false
-                  if (sub.path === "/admin/food/sellers/unregistered" && !rootLandingAndUnregisteredControlEnabled) return false
+                  if (sub.path === "/admin/store/sellers/unregistered" && !rootLandingAndUnregisteredControlEnabled) return false
                   const permissionSection = resolvePermissionSectionByPath(sub.path)
                   if (!permissionSection && !isSuperAdmin(adminUser)) return false
                   if (permissionSection && !canAdminAccess(adminUser, permissionSection, "view")) return false
@@ -584,7 +584,7 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
     const matchesPath = (candidatePath) =>
       currentPath === candidatePath || currentPath.startsWith(`${candidatePath}/`)
 
-    if (targetPath === "/admin" || targetPath === "/admin/food") {
+    if (targetPath === "/admin" || targetPath === "/admin/store") {
       return currentPath === targetPath
     }
 
