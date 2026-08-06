@@ -1,0 +1,90 @@
+diff --git a/android/app/build.gradle.kts b/android/app/build.gradle.kts
+index 4be51d1..fc53bee 100644
+--- a/android/app/build.gradle.kts
++++ b/android/app/build.gradle.kts
+@@ -52,11 +52,47 @@ android {
+             appKeys.getProperty("MAPS_API_KEY") ?: ""
+     }
+ 
++    // Release signing, read from android/key.properties, which is gitignored and
++    // never committed. Absent, the release build falls back to the debug key so
++    // `flutter run --release` still works on a fresh clone -- but a debug-signed
++    // APK cannot be uploaded to Play, and cannot be upgraded over an existing
++    // install signed with the real key.
++    val keystoreProperties = Properties().apply {
++        val f = rootProject.file("key.properties")
++        if (f.exists()) f.inputStream().use { load(it) }
++    }
++    val hasReleaseKeystore = keystoreProperties.getProperty("storeFile") != null
++
++    signingConfigs {
++        if (hasReleaseKeystore) {
++            create("release") {
++                storeFile = file(keystoreProperties.getProperty("storeFile"))
++                storePassword = keystoreProperties.getProperty("storePassword")
++                keyAlias = keystoreProperties.getProperty("keyAlias")
++                keyPassword = keystoreProperties.getProperty("keyPassword")
++            }
++        }
++    }
++
+     buildTypes {
+         release {
+-            // TODO: Add your own signing config for the release build.
+-            // Signing with the debug keys for now, so `flutter run --release` works.
+-            signingConfig = signingConfigs.getByName("debug")
++            signingConfig = if (hasReleaseKeystore) {
++                signingConfigs.getByName("release")
++            } else {
++                logger.warn(
++                    "android/key.properties not found — signing the release build with the " +
++                        "DEBUG key. Fine for testing; Play Store uploads will be rejected."
++                )
++                signingConfigs.getByName("debug")
++            }
++            // Shrink only when a real signing setup exists, so debug-key test
++            // builds stay quick to produce.
++            isMinifyEnabled = hasReleaseKeystore
++            isShrinkResources = hasReleaseKeystore
++            proguardFiles(
++                getDefaultProguardFile("proguard-android-optimize.txt"),
++                "proguard-rules.pro",
++            )
+         }
+     }
+ }
+diff --git a/android/app/proguard-rules.pro b/android/app/proguard-rules.pro
+new file mode 100644
+index 0000000..eaccb08
+--- /dev/null
++++ b/android/app/proguard-rules.pro
+@@ -0,0 +1,12 @@
++# Flutter's engine is reached reflectively from native code; R8 cannot see those
++# references and would strip them.
++-keep class io.flutter.** { *; }
++-keep class io.flutter.plugins.** { *; }
++
++# Razorpay's checkout is invoked reflectively and ships its own annotations.
++-keep class com.razorpay.** { *; }
++-keepclassmembers class * { @com.razorpay.* <methods>; }
++-dontwarn com.razorpay.**
++
++# Model classes are deserialized from JSON by name.
++-keepattributes Signature, *Annotation*, EnclosingMethod, InnerClasses
+diff --git a/android/key.properties.example b/android/key.properties.example
+new file mode 100644
+index 0000000..52e9424
+--- /dev/null
++++ b/android/key.properties.example
+@@ -0,0 +1,11 @@
++# Copy to android/key.properties (gitignored) and fill in.
++# Generate the keystore once, keep it safe -- losing it means you can never
++# publish an update to the same Play listing again.
++#
++#   keytool -genkey -v -keystore ~/suvio-release.jks \
++#     -keyalg RSA -keysize 2048 -validity 10000 -alias suvio
++#
++storeFile=/absolute/path/to/suvio-release.jks
++storePassword=
++keyAlias=suvio
++keyPassword=
