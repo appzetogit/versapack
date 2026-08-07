@@ -36,15 +36,15 @@ const CATALOGUE = [
   ['Paneer Block', 'Mother Dairy', '200 g', 95, 100, 5, 30, 'Butter & Cheese', 'mother dairy paneer'],
 
   // Fruits & vegetables
-  ['Banana Robusta', '', '1 kg', 54, 60, 0, 45, 'Fresh Fruits', 'banana'],
-  ['Royal Gala Apple', '', '4 pcs', 189, 210, 0, 30, 'Fresh Fruits', 'apple gala'],
-  ['Alphonso Mango', '', '1 kg', 320, 360, 0, 25, 'Fresh Fruits', 'mango alphonso'],
-  ['Pomegranate', '', '500 g', 128, 140, 0, 28, 'Fresh Fruits', 'pomegranate'],
-  ['Tomato Local', '', '1 kg', 32, 40, 0, 70, 'Fresh Vegetables', 'tomato'],
-  ['Onion', '', '1 kg', 38, 45, 0, 65, 'Fresh Vegetables', 'onion'],
-  ['Potato', '', '1 kg', 30, 36, 0, 90, 'Fresh Vegetables', 'potato'],
-  ['Baby Spinach', '', '250 g', 29, 35, 0, 20, 'Fresh Vegetables', 'spinach'],
-  ['Carrot', '', '500 g', 34, 40, 0, 40, 'Fresh Vegetables', 'carrot'],
+  ['Banana Robusta', '', '1 kg', 54, 60, 0, 45, 'Fresh Fruits', 'banana bunch fruit'],
+  ['Royal Gala Apple', '', '4 pcs', 189, 210, 0, 30, 'Fresh Fruits', 'gala apple fruit'],
+  ['Alphonso Mango', '', '1 kg', 320, 360, 0, 25, 'Fresh Fruits', 'alphonso mango fruit'],
+  ['Pomegranate', '', '500 g', 128, 140, 0, 28, 'Fresh Fruits', 'pomegranate fruit whole'],
+  ['Tomato Local', '', '1 kg', 32, 40, 0, 70, 'Fresh Vegetables', 'tomato fruit red'],
+  ['Onion', '', '1 kg', 38, 45, 0, 65, 'Fresh Vegetables', 'onion bulb'],
+  ['Potato', '', '1 kg', 30, 36, 0, 90, 'Fresh Vegetables', 'potato tuber'],
+  ['Baby Spinach', '', '250 g', 29, 35, 0, 20, 'Fresh Vegetables', 'spinach leaves'],
+  ['Carrot', '', '500 g', 34, 40, 0, 40, 'Fresh Vegetables', 'carrot root vegetable'],
 
   // Staples
   ['Whole Wheat Atta', 'Aashirvaad', '5 kg', 285, 310, 5, 40, 'Atta & Flour', 'aashirvaad atta whole wheat'],
@@ -140,7 +140,11 @@ async function fetchPackshot(term) {
     '&fields=product_name,brands,image_front_url&search_terms=' +
     encodeURIComponent(term);
 
-  const res = await politeFetch(api);
+  let res = await politeFetch(api);
+  for (let attempt = 1; attempt <= 3 && (res.status === 503 || res.status === 429); attempt++) {
+    await sleep(2000 * attempt);
+    res = await politeFetch(api);
+  }
   if (!res.ok) {
     console.warn(`  openfoodfacts ${res.status} for "${term}"`);
     return null;
@@ -240,7 +244,9 @@ async function main() {
         if (shared?.image && !FORCE) {
           image = shared.image;
         } else {
-          const photo = (await fetchPackshot(term)) ?? (await fetchPhoto(term));
+          const photo = brand
+            ? ((await fetchPackshot(term)) ?? (await fetchPhoto(term)))
+            : await fetchPhoto(term);
           if (photo) {
             const stored = await uploadRestaurantAttachment(
               { buffer: photo.buffer, originalname: `${name}.jpg`, mimetype: 'image/jpeg' },
