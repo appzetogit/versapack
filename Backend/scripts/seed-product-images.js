@@ -70,29 +70,45 @@ const CATALOGUE = [
 
 const FORCE = process.argv.includes('--force');
 
-/** Finds a usable photo on Commons and returns its bytes. */
-async function fetchPhoto(term) {
+const UA = { 'User-Agent': 'quick-commerce-seed/1.0 (catalogue seeding)' };
+
+/** One Commons search, returning candidate thumbnails. */
+async function searchCommons(query) {
+  // No `filetype:` filter. It looks like a sensible narrowing and is in fact
+  // fatal: combined with several words it matches nothing at all, which is why
+  // an earlier run created thirty-one products and not one photo. Non-bitmap
+  // results are filtered by extension below instead.
   const api =
     'https://commons.wikimedia.org/w/api.php?action=query&format=json' +
-    '&generator=search&gsrnamespace=6&gsrlimit=3&prop=imageinfo' +
+    '&generator=search&gsrnamespace=6&gsrlimit=6&prop=imageinfo' +
     '&iiprop=url|mime&iiurlwidth=800&gsrsearch=' +
-    encodeURIComponent(`filetype:bitmap ${term}`);
+    encodeURIComponent(query);
 
-  const res = await fetch(api, { headers: { 'User-Agent': 'quick-commerce-seed/1.0' } });
-  if (!res.ok) return null;
+  const res = await fetch(api, { headers: UA });
+  if (!res.ok) return [];
+  return Object.values((await res.json())?.query?.pages || {});
+}
 
-  const pages = Object.values((await res.json())?.query?.pages || {});
-  for (const page of pages) {
-    const info = page?.imageinfo?.[0];
-    const url = info?.thumburl;
-    // SVG and TIFF come back from Commons too and are not what a product tile
-    // wants; the image pipeline also rejects them.
-    if (!url || !/\.(jpe?g|png|webp)$/i.test(url)) continue;
+/** Finds a usable photo and returns its bytes, widening the search if needed. */
+async function fetchPhoto(term) {
+  // Most specific first. A three-word term gives the most recognisable photo
+  // when it hits; the shorter forms are there so a product is never left blank
+  // just because the phrasing was unlucky.
+  const attempts = [term, term.split(' ').slice(0, 2).join(' '), term.split(' ')[0]];
 
-    const img = await fetch(url, { headers: { 'User-Agent': 'quick-commerce-seed/1.0' } });
-    if (!img.ok) continue;
-    const buf = Buffer.from(await img.arrayBuffer());
-    if (buf.length > 1000) return { buffer: buf, source: page.title };
+  for (const query of [...new Set(attempts)]) {
+    for (const page of await searchCommons(query)) {
+      const url = page?.imageinfo?.[0]?.thumburl;
+      // SVG and TIFF come back from Commons too; the image pipeline rejects
+      // them and they are not what a product tile wants anyway.
+      if (!url || !/\.(jpe?g|png|webp)$/i.test(url)) continue;
+
+      const img = await fetch(url, { headers: UA });
+      if (!img.ok) continue;
+      const buffer = Buffer.from(await img.arrayBuffer());
+      // Anything tiny is an icon or a placeholder, not a photograph.
+      if (buffer.length > 5000) return { buffer, source: page.title, query };
+    }
   }
   return null;
 }
