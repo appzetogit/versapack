@@ -233,7 +233,7 @@ export default function DesktopSidebar() {
           </div>
           <div className="flex flex-col min-w-0">
             <span className="font-bold text-gray-900 text-sm truncate">{restaurantName}</span>
-            <span className="text-xs text-gray-500 truncate">Restaurant panel</span>
+            <span className="text-xs text-gray-500 truncate">Seller panel</span>
           </div>
         </div>
       </div>

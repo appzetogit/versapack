@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { STORE_COVER_PLACEHOLDER } from '@food/utils/placeholders'
 import { useNavigate } from "react-router-dom"
 import useRestaurantBackNavigation from "@food/hooks/useRestaurantBackNavigation"
 import { motion, AnimatePresence } from "framer-motion"
@@ -17,7 +18,7 @@ const debugWarn = (...args) => {}
 const debugError = (...args) => {}
 
 // Using placeholder for restaurant review banner
-const restaurantReviewBanner = "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1200&h=400&fit=crop"
+const restaurantReviewBanner = STORE_COVER_PLACEHOLDER
 
 const accordionItems = [
   {

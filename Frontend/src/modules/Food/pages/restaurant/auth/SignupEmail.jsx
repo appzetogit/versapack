@@ -33,7 +33,7 @@ export default function RestaurantSignupEmail() {
     setError("")
 
     if (!formData.name.trim()) {
-      setError("Restaurant name is required")
+      setError("Store name is required")
       return
     }
 
@@ -274,7 +274,7 @@ export default function RestaurantSignupEmail() {
                 <form onSubmit={handleFormSubmit} className="space-y-5">
                   <div className="space-y-1.5">
                     <Label htmlFor="name" className="text-sm font-medium text-gray-700">
-                      Restaurant Name
+                      Store Name
                     </Label>
                     <div className="relative">
                       <span className="absolute inset-y-0 left-3 flex items-center text-gray-400 pointer-events-none">
@@ -283,7 +283,7 @@ export default function RestaurantSignupEmail() {
                       <Input
                         id="name"
                         type="text"
-                        placeholder="Your Restaurant Name"
+                        placeholder="Your Store Name"
                         value={formData.name}
                         onChange={(e) =>
                           setFormData({ ...formData, name: e.target.value })

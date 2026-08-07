@@ -48,13 +48,13 @@ export default function RestaurantSignup() {
 
   const validateName = (name) => {
     if (!name.trim()) {
-      return "Restaurant name is required"
+      return "Store name is required"
     }
     if (name.trim().length < 2) {
-      return "Restaurant name must be at least 2 characters"
+      return "Store name must be at least 2 characters"
     }
     if (name.trim().length > 50) {
-      return "Restaurant name must be less than 50 characters"
+      return "Store name must be less than 50 characters"
     }
     return ""
   }
@@ -194,7 +194,7 @@ export default function RestaurantSignup() {
           {/* Title */}
           <div className="mb-8 text-center">
             <h2 className="text-2xl sm:text-3xl font-semibold text-gray-900 mb-2">
-              Register Your Restaurant
+              Register Your Store
             </h2>
             <p className="text-sm text-gray-500">
               Enter your details to get started.
@@ -206,10 +206,10 @@ export default function RestaurantSignup() {
             onSubmit={handleSubmit}
             className="space-y-5 w-full max-w-lg rounded-xl bg-white/80 backdrop-blur-sm p-1 sm:p-2"
           >
-            {/* Restaurant name input */}
+            {/* Store name input */}
             <div className="space-y-1.5">
               <Label htmlFor="name" className="text-sm font-medium text-gray-700">
-                Restaurant Name
+                Store Name
               </Label>
               <div className="relative">
                 <span className="absolute inset-y-0 left-3 flex items-center text-gray-400 pointer-events-none">

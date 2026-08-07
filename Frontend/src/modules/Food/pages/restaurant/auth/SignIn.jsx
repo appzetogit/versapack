@@ -121,7 +121,7 @@ export default function RestaurantSignIn() {
           {/* Title */}
           <div className="mb-8 text-center">
             <h2 className="text-2xl sm:text-3xl font-semibold text-gray-900 mb-2">
-              Signin To Your Restaurant Panel
+              Signin To Your Store Panel
             </h2>
             <p className="text-sm text-gray-500">
               Enter your credentials to access the restaurant dashboard.

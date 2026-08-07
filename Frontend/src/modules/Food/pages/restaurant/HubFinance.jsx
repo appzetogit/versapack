@@ -898,7 +898,7 @@ export default function HubFinance() {
       {/* Desktop ink-ledger header */}
       <div className="hidden md:flex shrink-0 items-end justify-between gap-6 px-8 pt-7 pb-5 border-b border-[#d5dbe3] bg-[#f2f4f7]/90 backdrop-blur">
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#5c6775]">Restaurant finance</p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#5c6775]">Store finance</p>
           <h1 className="mt-1 text-3xl font-black tracking-tight text-[#141820]">Payouts</h1>
           <p className="mt-1 text-sm text-[#5c6775]">
             {restaurantData?.name || financeData?.restaurant?.name || "Restaurant"} · settle earnings and track every rupee

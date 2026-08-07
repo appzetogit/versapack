@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react"
+import { STORE_AVATAR_PLACEHOLDER, STORE_COVER_PLACEHOLDER } from '@food/utils/placeholders'
 import { useNavigate } from "react-router-dom"
 import useRestaurantBackNavigation from "@food/hooks/useRestaurantBackNavigation"
 import {
@@ -58,8 +59,8 @@ export default function OutletInfo() {
   const [restaurantName, setRestaurantName] = useState("")
   const [cuisineTags, setCuisineTags] = useState("")
   const [address, setAddress] = useState("")
-  const [mainImage, setMainImage] = useState("https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&h=400&fit=crop")
-  const [thumbnailImage, setThumbnailImage] = useState("https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=200&h=200&fit=crop")
+  const [mainImage, setMainImage] = useState(STORE_COVER_PLACEHOLDER)
+  const [thumbnailImage, setThumbnailImage] = useState(STORE_AVATAR_PLACEHOLDER)
   const [coverImages, setCoverImages] = useState([]) // Array of cover images (separate from menu images)
   const [showEditNameDialog, setShowEditNameDialog] = useState(false)
   const [editNameValue, setEditNameValue] = useState("")
@@ -654,7 +655,7 @@ export default function OutletInfo() {
       if (indexToDelete === 0 && updatedImages.length > 0) {
         setMainImage(updatedImages[0].url)
       } else if (updatedImages.length === 0) {
-        setMainImage("https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&h=400&fit=crop")
+        setMainImage(STORE_COVER_PLACEHOLDER)
       }
       toast.success("Image deleted successfully")
     } catch (error) {
@@ -671,7 +672,7 @@ export default function OutletInfo() {
       setUploadingImage(true)
       setImageType('profile')
       await restaurantAPI.updateProfile({ profileImage: "" })
-      setThumbnailImage("https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=200&h=200&fit=crop")
+      setThumbnailImage(STORE_AVATAR_PLACEHOLDER)
       const data = await getCurrentRestaurantCached({ force: true })
       if (data) {
         setRestaurantData(data)
@@ -1084,7 +1085,7 @@ export default function OutletInfo() {
           </div>
           <div className="pb-2 min-w-0 flex-1">
             <h2 className="text-2xl font-black text-gray-900 tracking-tight truncate">
-              {loading ? "Loading..." : (restaurantName || "Restaurant Name")}
+              {loading ? "Loading..." : (restaurantName || "Store Name")}
             </h2>
             <p className="text-sm text-slate-500 mt-1 truncate">
               {cuisineTags || "Update cuisines and outlet details below"}
@@ -1159,7 +1160,7 @@ export default function OutletInfo() {
         </div>
 
         <div className="px-4 py-4 md:px-0 md:pt-6 md:pb-4">
-          <h2 className="text-base font-bold text-gray-900 md:text-lg">Restaurant Information</h2>
+          <h2 className="text-base font-bold text-gray-900 md:text-lg">Store Information</h2>
           <p className="text-sm text-gray-500 mt-1">All onboarding and profile details at one place.</p>
         </div>
 
@@ -1167,7 +1168,7 @@ export default function OutletInfo() {
           <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm md:shadow-md">
             <div className="flex items-start justify-between">
               <div className="flex-1 min-w-0">
-                <p className="text-xs text-slate-500 font-medium mb-1">Restaurant name</p>
+                <p className="text-xs text-slate-500 font-medium mb-1">Store name</p>
                 <p className="text-base font-semibold text-slate-900">{loading ? "Loading..." : direct(restaurantName)}</p>
               </div>
               <span className={`inline-flex items-center rounded-full px-2 py-1 text-[10px] font-semibold mr-2 ${getApprovalBadgeClass(getSectionStatus("name"))}`}>
@@ -1192,7 +1193,7 @@ export default function OutletInfo() {
               <div><p className="text-xs text-slate-500">Primary contact</p><p className="text-sm font-medium text-slate-900">{direct(restaurantData?.primaryContactNumber)}</p></div>
               <div><p className="text-xs text-slate-500">Email</p><p className="text-sm font-medium text-slate-900">{direct(restaurantData?.ownerEmail)}</p></div>
               <div>
-                <p className="text-xs text-slate-500">Restaurant type</p>
+                <p className="text-xs text-slate-500">Store type</p>
                 <div className="mt-0.5 flex items-center gap-2">
                   <div
                     className={`h-4 w-4 rounded-sm border-2 flex items-center justify-center ${restaurantData?.pureVegRestaurant === true ? "" : "border-red-500"}`}
@@ -1457,7 +1458,7 @@ export default function OutletInfo() {
               />
             </div>
             <div>
-              <p className="text-xs text-slate-500 mb-2">Restaurant type</p>
+              <p className="text-xs text-slate-500 mb-2">Store type</p>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"

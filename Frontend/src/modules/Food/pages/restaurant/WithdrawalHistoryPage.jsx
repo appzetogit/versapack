@@ -225,7 +225,7 @@ export default function WithdrawalHistoryPage() {
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#5c6775]">Restaurant finance</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#5c6775]">Store finance</p>
             <h1 className="mt-1 text-3xl font-black tracking-tight text-[#141820]">Withdrawal ledger</h1>
             <p className="mt-1 text-sm text-[#5c6775]">
               Track every rupee requested, paid out, or sent back

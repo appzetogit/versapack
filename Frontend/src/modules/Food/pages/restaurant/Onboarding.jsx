@@ -1408,7 +1408,7 @@ export default function RestaurantOnboarding() {
     const errors = []
 
     if (!step1.restaurantName?.trim()) {
-      errors.push("Restaurant name is required")
+      errors.push("Store name is required")
     }
     if (typeof step1.pureVegRestaurant !== "boolean") {
       errors.push("Please select whether your restaurant is pure veg")
@@ -1476,7 +1476,7 @@ export default function RestaurantOnboarding() {
 
     // Check profile image - must be a File or existing URL
     if (!step2.profileImage) {
-      errors.push("Restaurant profile image is required")
+      errors.push("Store profile image is required")
     } else {
       // Verify profile image is either a File or has a valid URL
       const isValidProfileImage =
@@ -1666,7 +1666,7 @@ export default function RestaurantOnboarding() {
       formData.append('menuImages', JSON.stringify(menuUrls))
     }
 
-    if (!step2.profileImage) throw new Error('Restaurant profile image is required')
+    if (!step2.profileImage) throw new Error('Store profile image is required')
     if (isUploadableFile(step2.profileImage)) formData.append('profileImage', step2.profileImage)
     else formData.append('profileImage', typeof step2.profileImage === 'string' ? step2.profileImage : step2.profileImage.url)
 
@@ -1758,7 +1758,7 @@ export default function RestaurantOnboarding() {
         currency: razorpay.currency || "INR",
         order_id: razorpay.orderId,
         name: company || companyName,
-        description: "Restaurant onboarding fee",
+        description: "Store onboarding fee",
         prefill: {
           name: step1.ownerName || "",
           email: (step1.ownerEmail || "").trim(),
@@ -1859,10 +1859,10 @@ export default function RestaurantOnboarding() {
   const renderStep1 = () => (
     <div className="space-y-6">
       <section className={ONBOARDING_SECTION_FULL}>
-        <h2 className={`${ONBOARDING_SECTION_TITLE} mb-4`}>Restaurant information</h2>
+        <h2 className={`${ONBOARDING_SECTION_TITLE} mb-4`}>Store information</h2>
         <div className="space-y-3">
           <div>
-            <Label className={ONBOARDING_LABEL}>Restaurant name*</Label>
+            <Label className={ONBOARDING_LABEL}>Store name*</Label>
             <Input
               value={step1.restaurantName || ""}
               onChange={(e) => setStep1({ ...step1, restaurantName: e.target.value })}
@@ -1959,7 +1959,7 @@ export default function RestaurantOnboarding() {
       </section>
 
       <section className={ONBOARDING_SECTION_FULL}>
-        <h2 className={ONBOARDING_SECTION_TITLE}>Restaurant contact & location</h2>
+        <h2 className={ONBOARDING_SECTION_TITLE}>Store contact & location</h2>
         <div>
           <Label className={ONBOARDING_LABEL}>Primary contact number*</Label>
           <Input
@@ -2653,7 +2653,7 @@ export default function RestaurantOnboarding() {
 
         {/* Profile image */}
         <div className="space-y-2">
-          <Label className={ONBOARDING_LABEL}>Restaurant profile image</Label>
+          <Label className={ONBOARDING_LABEL}>Store profile image</Label>
           <div className="flex items-center gap-4">
             <div className="relative">
               <div className="h-16 w-16 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden border border-gray-200">

@@ -314,7 +314,7 @@ export default function RestaurantStatus() {
             <ArrowLeft className="w-6 h-6 text-gray-900" />
           </button>
           <div className="flex-1">
-            <h1 className="text-lg font-bold text-gray-900">Restaurant status</h1>
+            <h1 className="text-lg font-bold text-gray-900">Store status</h1>
             <p className="text-sm text-gray-500 mt-0.5">You are mapped to 1 restaurant</p>
           </div>
         </div>
@@ -322,7 +322,7 @@ export default function RestaurantStatus() {
 
       {/* Main Content */}
       <div className="px-4 py-6">
-        {/* Restaurant Information Card */}
+        {/* Store Information Card */}
         <Card className="bg-gray-50 border-none py-0 shadow-sm rounded-b-none rounded-t-lg">
           <CardContent className="p-4 gap-6 flex flex-col">
             <div className="flex items-start justify-between">

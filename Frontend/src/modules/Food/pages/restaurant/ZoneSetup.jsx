@@ -694,14 +694,14 @@ export default function ZoneSetup() {
       map: mapInstanceRef.current,
       draggable: true,
       animation: window.google.maps.Animation.DROP,
-      title: address || "Restaurant Location"
+      title: address || "Store Location"
     })
 
     // Add info window
     const infoWindow = new window.google.maps.InfoWindow({
       content: `
         <div style="padding: 8px; max-width: 250px;">
-          <strong>Restaurant Location</strong><br/>
+          <strong>Store Location</strong><br/>
           <small>${address || `${lat.toFixed(6)}, ${lng.toFixed(6)}`}</small>
         </div>
       `

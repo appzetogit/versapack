@@ -850,7 +850,7 @@ export default function ExploreMore() {
 
       {/* Main Content */}
       <div className="px-4 py-6 max-w-lg mx-auto md:max-w-6xl md:px-8 md:py-8 md:w-full">
-        {/* Restaurant Information Card */}
+        {/* Store Information Card */}
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}

@@ -82,7 +82,7 @@ export default function CouponListPage() {
           </button>
           <div className="flex-1">
             <h1 className="text-base font-bold text-gray-900">Offers & Coupons</h1>
-            <p className="text-xs text-gray-500">Restaurant-sponsored discounts</p>
+            <p className="text-xs text-gray-500">Seller-sponsored discounts</p>
           </div>
           <button
             onClick={() => navigate("/restaurant/coupon/new")}

@@ -1249,7 +1249,7 @@ export default function HubMenu() {
             </div>
           </div>
 
-          {/* Restaurant name and expertise */}
+          {/* Store name and expertise */}
           <AnimatePresence>
             {!isScrolled && (
               <motion.div

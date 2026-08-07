@@ -520,7 +520,7 @@ export default function DiningReservations() {
                         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
                             <div className="flex items-start justify-between gap-4">
                                 <div>
-                                    <h2 className="text-lg font-bold text-slate-900">Restaurant Photos</h2>
+                                    <h2 className="text-lg font-bold text-slate-900">Store Photos</h2>
                                     <p className="text-sm text-slate-500 mt-1">Add multiple restaurant photos. The first one will be used as the main preview.</p>
                                 </div>
                                 <label className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-900 text-white text-sm font-semibold cursor-pointer hover:bg-slate-800 transition-colors">

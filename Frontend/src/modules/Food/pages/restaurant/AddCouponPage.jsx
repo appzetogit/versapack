@@ -132,7 +132,7 @@ export default function AddCouponPage(props) {
             <h1 className="text-base font-bold text-gray-900">
               {isEditMode ? "Edit Coupon" : "Create Coupon"}
             </h1>
-            <p className="text-xs text-gray-500">Restaurant-sponsored offer</p>
+            <p className="text-xs text-gray-500">Seller-sponsored offer</p>
           </div>
                   </div>
       </div>

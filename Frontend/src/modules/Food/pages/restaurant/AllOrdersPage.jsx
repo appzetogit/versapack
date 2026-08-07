@@ -230,11 +230,11 @@ export default function AllOrdersPage() {
     // Get rejection/cancellation reason
     let reason = null
     if (status === 'REJECTED' && order.rejectionReason) {
-      reason = `Rejected by Restaurant: ${order.rejectionReason}`
+      reason = `Rejected by Seller: ${order.rejectionReason}`
     } else if (status === 'CANCELLED' && order.cancellationReason) {
       reason = `Cancelled by ${order.cancelledBy === 'customer' ? 'customer' : 'restaurant'}: ${order.cancellationReason}`
     } else if (status === 'REJECTED') {
-      reason = 'Rejected by Restaurant'
+      reason = 'Rejected by Seller'
     } else if (status === 'CANCELLED') {
       reason = 'Cancelled by customer'
     }

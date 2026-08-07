@@ -137,7 +137,7 @@ export default function FinanceDetailsPage() {
           </button>
           <div className="flex-1 min-w-0">
             <h1 className="text-lg font-bold text-gray-900 truncate">
-              {restaurantData?.name || "Your Restaurant"}
+              {restaurantData?.name || "Your Store"}
             </h1>
             <p className="text-xs text-gray-600 mt-0.5">
               ID: {restaurantData?.restaurantId || "N/A"} • {restaurantData?.address || "Location"}
@@ -321,7 +321,7 @@ export default function FinanceDetailsPage() {
                               </div>
                               <div className="flex items-center justify-between py-2 border-t border-dashed border-gray-200">
                                 <div className="flex items-center gap-1.5">
-                                  <span className="text-sm text-gray-700">Restaurant discount (Promos)</span>
+                                  <span className="text-sm text-gray-700">Seller discount (Promos)</span>
                                   <Info className="w-3.5 h-3.5 text-gray-400" />
                                 </div>
                                 <span className="text-sm font-medium text-gray-900">
@@ -330,7 +330,7 @@ export default function FinanceDetailsPage() {
                               </div>
                               <div className="flex items-center justify-between py-2 border-t border-dashed border-gray-200">
                                 <div className="flex items-center gap-1.5">
-                                  <span className="text-sm text-gray-700">Restaurant discount (Flat offs, Freebies, Gold, relisted orders and others)</span>
+                                  <span className="text-sm text-gray-700">Seller discount (Flat offs, Freebies, Gold, relisted orders and others)</span>
                                   <Info className="w-3.5 h-3.5 text-gray-400" />
                                 </div>
                                 <span className="text-sm font-medium text-gray-900">

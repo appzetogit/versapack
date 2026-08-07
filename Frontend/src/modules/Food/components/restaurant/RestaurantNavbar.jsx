@@ -162,7 +162,7 @@ export default function RestaurantNavbar({
     return parts.length > 0 ? parts.join(", ") : ""
   }
 
-  // Get restaurant name (use prop if provided, otherwise use fetched data)
+  // Get store name (use prop if provided, otherwise use fetched data)
   const restaurantName = propRestaurantName || restaurantData?.name || "Restaurant"
 
   const [location, setLocation] = useState("")

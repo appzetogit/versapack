@@ -73,7 +73,7 @@ export default function RestaurantOnboardingShell({
                 {step > 1 ? <ChevronLeft className="h-5 w-5" /> : <X className="h-5 w-5" />}
               </button>
               <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-gray-900">Restaurant onboarding</p>
+                <p className="truncate text-sm font-semibold text-gray-900">Store onboarding</p>
                 <p className="truncate text-xs text-gray-500">{activeStep?.title}</p>
               </div>
             </div>

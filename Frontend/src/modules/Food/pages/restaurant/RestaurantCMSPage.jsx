@@ -87,7 +87,7 @@ export default function RestaurantCMSPage({ endpoint, title: defaultTitle, modul
              <h1 className="text-xl font-bold text-gray-900 tracking-tight">
                {pageData.title || defaultTitle}
              </h1>
-             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Restaurant Partner Information</p>
+             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Seller Information</p>
           </div>
         </div>
       </div>
