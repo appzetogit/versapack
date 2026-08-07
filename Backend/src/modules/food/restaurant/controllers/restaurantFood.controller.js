@@ -1,6 +1,7 @@
 import { sendResponse, sendError } from '../../../../utils/response.js';
 import {
     createRestaurantFood,
+    deleteRestaurantFood,
     updateRestaurantFood,
     updateRestaurantFoodStock,
     listLowStockFoods
@@ -34,6 +35,18 @@ export const listLowStockFoodsController = async (req, res, next) => {
         const restaurantId = req.user?.userId;
         const result = await listLowStockFoods(restaurantId);
         return sendResponse(res, 200, 'Low stock items fetched successfully', result);
+    } catch (error) {
+        next(error);
+    }
+};
+
+/** DELETE /foods/:id — removes one of the seller's own products. */
+export const deleteRestaurantFoodController = async (req, res, next) => {
+    try {
+        const restaurantId = req.user?.userId;
+        const deleted = await deleteRestaurantFood(restaurantId, req.params.id);
+        if (!deleted) return sendError(res, 404, 'Product not found');
+        return sendResponse(res, 200, 'Product deleted successfully', deleted);
     } catch (error) {
         next(error);
     }

@@ -578,3 +578,42 @@ export async function updateRestaurantFood(restaurantId, foodId, body = {}) {
 
     return updated;
 }
+
+/**
+ * Removes one of the seller's own products.
+ *
+ * Deleting was admin-only, so the delete button in the seller panel had no
+ * route behind it and failed silently.
+ *
+ * The restaurantId is part of the query rather than checked afterwards: a
+ * seller must not be able to delete another store's product by guessing an id,
+ * and a filter the database enforces cannot be forgotten by a later edit.
+ */
+export async function deleteRestaurantFood(restaurantId, foodId) {
+    const context = await getRestaurantContext(restaurantId);
+
+    if (!foodId || !mongoose.Types.ObjectId.isValid(foodId)) {
+        throw new ValidationError('Invalid product id');
+    }
+
+    const deleted = await FoodItem.findOneAndDelete({
+        _id: new mongoose.Types.ObjectId(foodId),
+        restaurantId: context.restaurantId,
+    })
+        .select('_id name image')
+        .lean();
+
+    if (!deleted) return null;
+
+    // The menu is cached per store; without this the product keeps appearing to
+    // shoppers until the cache expires.
+    try {
+        const { invalidateCache } = await import('../../../../middleware/cache.js');
+        await invalidateCache(`restaurant_menu:${context.restaurantId}`);
+        await invalidateCache('search_products:*');
+    } catch (err) {
+        console.error('Failed to invalidate cache after product delete:', err);
+    }
+
+    return { id: String(deleted._id), name: deleted.name };
+}

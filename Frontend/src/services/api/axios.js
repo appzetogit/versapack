@@ -148,12 +148,12 @@ function getModuleFromUrl(url = "") {
   
   // Restaurant detection - Catch all restaurant-specific functional and auth routes
   if (
-    normalized.includes("/seller/") || 
+    normalized.includes("/food/restaurant/") || 
     normalized.includes("/auth/restaurant") || 
     normalized.includes("/restaurant/")
   ) {
     // Exception: /sellers (plural) is usually a public user app route
-    if (normalized.includes("/sellers") && !normalized.includes("/seller/")) {
+    if (normalized.includes("/sellers") && !normalized.includes("/food/restaurant/")) {
        return "user";
     }
     return "restaurant";

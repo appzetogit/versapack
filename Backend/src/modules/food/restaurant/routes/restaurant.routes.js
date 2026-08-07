@@ -57,6 +57,7 @@ import {
 } from '../controllers/outletTimings.controller.js';
 import {
     createRestaurantFoodController,
+    deleteRestaurantFoodController,
     updateRestaurantFoodController,
     updateRestaurantFoodStockController,
     listLowStockFoodsController
@@ -265,6 +266,12 @@ router.patch('/foods/stock', authMiddleware, requireRestaurant, async (req, res,
     next();
 }, updateRestaurantFoodStockController);
 router.get('/foods/low-stock', authMiddleware, requireRestaurant, listLowStockFoodsController);
+
+router.delete('/foods/:id', authMiddleware, requireRestaurant, async (req, res, next) => {
+    await invalidateCache('restaurant_menu:*');
+    await invalidateCache('search_products:*');
+    next();
+}, deleteRestaurantFoodController);
 
 router.patch('/foods/:id', authMiddleware, requireRestaurant, async (req, res, next) => {
     await invalidateCache('restaurant_menu:*');
