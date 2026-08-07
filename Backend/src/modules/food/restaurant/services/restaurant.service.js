@@ -735,6 +735,42 @@ export const registerRestaurant = async (payload, files) => {
         throw new ValidationError('Restaurant name is required to register a restaurant');
     }
 
+    /**
+     * One store per phone number.
+     *
+     * The unique index covers name *and* phone, so the same number could
+     * register any number of stores as long as each had a different name. Sign
+     * in then looks the seller up by phone alone and takes the first match --
+     * the oldest record -- so a seller who registered twice was permanently
+     * bound to their first attempt. Approving the second one in the admin panel
+     * changed nothing they could see, and the app kept reporting whatever the
+     * first record said.
+     *
+     * The message names the store that already holds the number, so an admin
+     * looking at a list of similar test entries can tell which row is which.
+     */
+    const existing = await FoodRestaurant.findOne({
+        $or: [
+            { ownerPhoneLast10 },
+            { ownerPhone },
+            { primaryContactNumber: ownerPhone }
+        ]
+    })
+        .select('restaurantName status')
+        .lean();
+
+    if (existing) {
+        if (existing.status === 'rejected') {
+            throw new ValidationError(
+                `This number is already registered to "${existing.restaurantName}", which was not approved. ` +
+                'Please contact support to re-apply rather than creating a second store.'
+            );
+        }
+        throw new ValidationError(
+            `This number is already registered to "${existing.restaurantName}". Please sign in instead.`
+        );
+    }
+
     const images = {
         profileImage: preUploadedProfileImage || '',
         panImage: preUploadedPanImage || '',
