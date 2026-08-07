@@ -27,50 +27,74 @@ import { uploadRestaurantAttachment } from '../src/modules/food/restaurant/servi
  */
 const CATALOGUE = [
   // Dairy
-  ['Toned Milk Pouch', 'Amul', '500 ml', 27, 28, 0, 120, 'Milk', 'milk packet pouch'],
-  ['Full Cream Milk', 'Nandini', '1 L', 66, 70, 0, 80, 'Milk', 'milk bottle glass'],
-  ['Fresh Curd Cup', 'Amul', '400 g', 40, 45, 0, 60, 'Curd & Yogurt', 'yogurt cup dairy'],
-  ['Greek Yogurt Blueberry', 'Epigamia', '90 g', 55, 60, 12, 35, 'Curd & Yogurt', 'greek yogurt blueberry'],
-  ['Salted Butter', 'Amul', '500 g', 285, 295, 12, 24, 'Butter & Cheese', 'butter block dairy'],
-  ['Cheese Slices', 'Go', '200 g', 145, 155, 12, 18, 'Butter & Cheese', 'cheese slices'],
-  ['Paneer Block', 'Mother Dairy', '200 g', 95, 100, 5, 30, 'Butter & Cheese', 'paneer cottage cheese'],
+  ['Toned Milk Pouch', 'Amul', '500 ml', 27, 28, 0, 120, 'Milk', 'amul toned milk'],
+  ['Full Cream Milk', 'Nandini', '1 L', 66, 70, 0, 80, 'Milk', 'nandini full cream milk'],
+  ['Fresh Curd Cup', 'Amul', '400 g', 40, 45, 0, 60, 'Curd & Yogurt', 'amul curd dahi'],
+  ['Greek Yogurt Blueberry', 'Epigamia', '90 g', 55, 60, 12, 35, 'Curd & Yogurt', 'epigamia greek yogurt blueberry'],
+  ['Salted Butter', 'Amul', '500 g', 285, 295, 12, 24, 'Butter & Cheese', 'amul butter'],
+  ['Cheese Slices', 'Go', '200 g', 145, 155, 12, 18, 'Butter & Cheese', 'go cheese slices'],
+  ['Paneer Block', 'Mother Dairy', '200 g', 95, 100, 5, 30, 'Butter & Cheese', 'mother dairy paneer'],
 
   // Fruits & vegetables
-  ['Banana Robusta', '', '1 kg', 54, 60, 0, 45, 'Fresh Fruits', 'banana fruit bunch'],
-  ['Royal Gala Apple', '', '4 pcs', 189, 210, 0, 30, 'Fresh Fruits', 'red apple fruit'],
-  ['Alphonso Mango', '', '1 kg', 320, 360, 0, 25, 'Fresh Fruits', 'mango fruit alphonso'],
-  ['Pomegranate', '', '500 g', 128, 140, 0, 28, 'Fresh Fruits', 'pomegranate fruit'],
-  ['Tomato Local', '', '1 kg', 32, 40, 0, 70, 'Fresh Vegetables', 'tomato vegetable'],
-  ['Onion', '', '1 kg', 38, 45, 0, 65, 'Fresh Vegetables', 'onion bulb vegetable'],
-  ['Potato', '', '1 kg', 30, 36, 0, 90, 'Fresh Vegetables', 'potato vegetable'],
-  ['Baby Spinach', '', '250 g', 29, 35, 0, 20, 'Fresh Vegetables', 'spinach leaves green'],
-  ['Carrot', '', '500 g', 34, 40, 0, 40, 'Fresh Vegetables', 'carrot vegetable'],
+  ['Banana Robusta', '', '1 kg', 54, 60, 0, 45, 'Fresh Fruits', 'banana'],
+  ['Royal Gala Apple', '', '4 pcs', 189, 210, 0, 30, 'Fresh Fruits', 'apple gala'],
+  ['Alphonso Mango', '', '1 kg', 320, 360, 0, 25, 'Fresh Fruits', 'mango alphonso'],
+  ['Pomegranate', '', '500 g', 128, 140, 0, 28, 'Fresh Fruits', 'pomegranate'],
+  ['Tomato Local', '', '1 kg', 32, 40, 0, 70, 'Fresh Vegetables', 'tomato'],
+  ['Onion', '', '1 kg', 38, 45, 0, 65, 'Fresh Vegetables', 'onion'],
+  ['Potato', '', '1 kg', 30, 36, 0, 90, 'Fresh Vegetables', 'potato'],
+  ['Baby Spinach', '', '250 g', 29, 35, 0, 20, 'Fresh Vegetables', 'spinach'],
+  ['Carrot', '', '500 g', 34, 40, 0, 40, 'Fresh Vegetables', 'carrot'],
 
   // Staples
-  ['Whole Wheat Atta', 'Aashirvaad', '5 kg', 285, 310, 5, 40, 'Atta & Flour', 'wheat flour atta'],
-  ['Basmati Rice', 'India Gate', '1 kg', 132, 145, 5, 50, 'Rice & Pulses', 'basmati rice grain'],
-  ['Toor Dal', 'Tata Sampann', '1 kg', 178, 195, 5, 38, 'Rice & Pulses', 'toor dal lentils'],
-  ['Chana Dal', 'Tata Sampann', '500 g', 88, 95, 5, 42, 'Rice & Pulses', 'chana dal lentils'],
-  ['Sunflower Oil', 'Fortune', '1 L', 148, 165, 5, 42, 'Oils', 'sunflower cooking oil bottle'],
-  ['Mustard Oil', 'Dhara', '1 L', 168, 180, 5, 30, 'Oils', 'mustard oil bottle'],
+  ['Whole Wheat Atta', 'Aashirvaad', '5 kg', 285, 310, 5, 40, 'Atta & Flour', 'aashirvaad atta whole wheat'],
+  ['Basmati Rice', 'India Gate', '1 kg', 132, 145, 5, 50, 'Rice & Pulses', 'india gate basmati rice'],
+  ['Toor Dal', 'Tata Sampann', '1 kg', 178, 195, 5, 38, 'Rice & Pulses', 'tata sampann toor dal'],
+  ['Chana Dal', 'Tata Sampann', '500 g', 88, 95, 5, 42, 'Rice & Pulses', 'tata sampann chana dal'],
+  ['Sunflower Oil', 'Fortune', '1 L', 148, 165, 5, 42, 'Oils', 'fortune sunflower oil'],
+  ['Mustard Oil', 'Dhara', '1 L', 168, 180, 5, 30, 'Oils', 'dhara mustard oil'],
 
   // Snacks
-  ['Marie Gold', 'Britannia', '250 g', 35, 40, 18, 90, 'Biscuits', 'marie biscuits'],
-  ['Dark Fantasy Choco Fills', 'Sunfeast', '300 g', 145, 160, 18, 25, 'Biscuits', 'chocolate cookies'],
-  ['Classic Salted Chips', 'Lays', '52 g', 20, 20, 18, 110, 'Chips & Namkeen', 'potato chips crisps'],
-  ['Aloo Bhujia', 'Haldiram', '400 g', 105, 115, 12, 33, 'Chips & Namkeen', 'bhujia namkeen snack'],
-  ['Salted Peanuts', '', '200 g', 60, 70, 12, 48, 'Chips & Namkeen', 'roasted peanuts'],
+  ['Marie Gold', 'Britannia', '250 g', 35, 40, 18, 90, 'Biscuits', 'britannia marie gold'],
+  ['Dark Fantasy Choco Fills', 'Sunfeast', '300 g', 145, 160, 18, 25, 'Biscuits', 'sunfeast dark fantasy choco fills'],
+  ['Classic Salted Chips', 'Lays', '52 g', 20, 20, 18, 110, 'Chips & Namkeen', 'lays classic salted'],
+  ['Aloo Bhujia', 'Haldiram', '400 g', 105, 115, 12, 33, 'Chips & Namkeen', 'haldiram aloo bhujia'],
+  ['Salted Peanuts', '', '200 g', 60, 70, 12, 48, 'Chips & Namkeen', 'roasted salted peanuts'],
 
   // Beverages
-  ['Red Label Tea', 'Brooke Bond', '500 g', 265, 285, 5, 28, 'Tea & Coffee', 'tea leaves black'],
-  ['Instant Coffee', 'Nescafe', '50 g', 190, 205, 18, 22, 'Tea & Coffee', 'instant coffee jar'],
-  ['Cola Bottle', 'Coca-Cola', '750 ml', 40, 45, 28, 75, 'Soft Drinks', 'cola soft drink bottle'],
-  ['Orange Drink', 'Mirinda', '600 ml', 40, 40, 28, 0, 'Soft Drinks', 'orange soda bottle'],
+  ['Red Label Tea', 'Brooke Bond', '500 g', 265, 285, 5, 28, 'Tea & Coffee', 'brooke bond red label tea'],
+  ['Instant Coffee', 'Nescafe', '50 g', 190, 205, 18, 22, 'Tea & Coffee', 'nescafe classic coffee'],
+  ['Cola Bottle', 'Coca-Cola', '750 ml', 40, 45, 28, 75, 'Soft Drinks', 'coca cola'],
+  ['Orange Drink', 'Mirinda', '600 ml', 40, 40, 28, 0, 'Soft Drinks', 'mirinda orange'],
 ];
 
 const FORCE = process.argv.includes('--force');
 
-const UA = { 'User-Agent': 'quick-commerce-seed/1.0 (catalogue seeding)' };
+// Wikimedia asks for a User-Agent that identifies the caller and how to reach
+// them. It is also what keeps a scripted burst on the polite side of their
+// rate limiter.
+const UA = {
+  'User-Agent':
+    'SuvioQuickCommerce/1.0 (https://quick.appzeto.com; catalogue seeding)',
+};
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Paces requests to Commons.
+ *
+ * Without this the seeder fired a few hundred searches back to back, got
+ * throttled part way through, and -- because a non-OK response was read as "no
+ * results" -- silently produced thirty-one products with no photograph and no
+ * error. Slower and honest beats fast and empty.
+ */
+let lastCall = 0;
+async function politeFetch(url) {
+  const wait = 400 - (Date.now() - lastCall);
+  if (wait > 0) await sleep(wait);
+  lastCall = Date.now();
+  return fetch(url, { headers: UA });
+}
 
 /** One Commons search, returning candidate thumbnails. */
 async function searchCommons(query) {
@@ -84,12 +108,68 @@ async function searchCommons(query) {
     '&iiprop=url|mime&iiurlwidth=800&gsrsearch=' +
     encodeURIComponent(query);
 
-  const res = await fetch(api, { headers: UA });
-  if (!res.ok) return [];
-  return Object.values((await res.json())?.query?.pages || {});
+  const res = await politeFetch(api);
+  if (!res.ok) {
+    // Surfaced rather than swallowed: a throttled run that reports nothing is
+    // indistinguishable from a catalogue with no photographs available.
+    console.warn(`  commons ${res.status} for "${query}"`);
+    if (res.status === 429) await sleep(5000);
+    return [];
+  }
+  try {
+    return Object.values((await res.json())?.query?.pages || {});
+  } catch {
+    console.warn(`  commons returned non-JSON for "${query}"`);
+    return [];
+  }
 }
 
-/** Finds a usable photo and returns its bytes, widening the search if needed. */
+/**
+ * A packshot from Open Food Facts: a free grocery database whose images are
+ * photographs of the product on its packaging.
+ *
+ * This is the right source and Commons was the wrong one. Commons is an
+ * encyclopedia: searching it for "Amul butter" returns a photograph of a dairy,
+ * a map of Gujarat, or a butter sculpture -- all correctly matching the words
+ * and none of them a thing on a shelf.
+ */
+async function fetchPackshot(term) {
+  const api =
+    'https://world.openfoodfacts.org/cgi/search.pl?search_simple=1' +
+    '&action=process&json=1&page_size=8' +
+    '&fields=product_name,brands,image_front_url&search_terms=' +
+    encodeURIComponent(term);
+
+  const res = await politeFetch(api);
+  if (!res.ok) {
+    console.warn(`  openfoodfacts ${res.status} for "${term}"`);
+    return null;
+  }
+
+  let products;
+  try {
+    products = (await res.json())?.products || [];
+  } catch {
+    console.warn(`  openfoodfacts returned non-JSON for "${term}"`);
+    return null;
+  }
+
+  for (const product of products) {
+    const url = product?.image_front_url;
+    if (!url) continue;
+
+    const img = await politeFetch(url);
+    if (!img.ok) continue;
+    const buffer = Buffer.from(await img.arrayBuffer());
+    // Under 5KB is a placeholder rather than a photograph.
+    if (buffer.length > 5000) {
+      return { buffer, source: product.product_name || term };
+    }
+  }
+  return null;
+}
+
+/** Commons fallback, for loose produce that no packaged-food database carries. */
 async function fetchPhoto(term) {
   // Most specific first. A three-word term gives the most recognisable photo
   // when it hits; the shorter forms are there so a product is never left blank
@@ -103,7 +183,7 @@ async function fetchPhoto(term) {
       // them and they are not what a product tile wants anyway.
       if (!url || !/\.(jpe?g|png|webp)$/i.test(url)) continue;
 
-      const img = await fetch(url, { headers: UA });
+      const img = await politeFetch(url);
       if (!img.ok) continue;
       const buffer = Buffer.from(await img.arrayBuffer());
       // Anything tiny is an icon or a placeholder, not a photograph.
@@ -160,7 +240,7 @@ async function main() {
         if (shared?.image && !FORCE) {
           image = shared.image;
         } else {
-          const photo = await fetchPhoto(term);
+          const photo = (await fetchPackshot(term)) ?? (await fetchPhoto(term));
           if (photo) {
             const stored = await uploadRestaurantAttachment(
               { buffer: photo.buffer, originalname: `${name}.jpg`, mimetype: 'image/jpeg' },
