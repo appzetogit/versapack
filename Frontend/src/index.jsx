@@ -59,7 +59,7 @@ function resolveNativeInitialRoute() {
     return storedRoute
   }
 
-  if (isModuleAuthenticated('restaurant')) return '/food/restaurant'
+  if (isModuleAuthenticated('restaurant')) return '/seller'
   if (isModuleAuthenticated('delivery')) return '/food/delivery'
   if (isModuleAuthenticated('admin')) return '/admin'
   if (isModuleAuthenticated('user')) return '/food/user'

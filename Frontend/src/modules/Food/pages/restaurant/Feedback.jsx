@@ -472,7 +472,7 @@ export default function Feedback() {
             <div className="flex items-center gap-2 md:hidden">
               <button
                 type="button"
-                onClick={() => navigate("/food/restaurant/help-centre/support")}
+                onClick={() => navigate("/seller/help-centre/support")}
                 className="p-1 rounded-full hover:bg-gray-100 active:scale-95 transition-all"
                 aria-label="Open support"
               >

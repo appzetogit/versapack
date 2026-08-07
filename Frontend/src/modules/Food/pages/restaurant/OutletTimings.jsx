@@ -200,7 +200,7 @@ export default function OutletTimings() {
           <div className="flex items-center justify-between md:max-w-4xl md:mx-auto md:px-8 md:py-2">
             <div className="flex items-center gap-3 min-w-0">
               <button
-                onClick={() => navigate("/food/restaurant/explore")}
+                onClick={() => navigate("/seller/explore")}
                 className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors md:hidden"
                 aria-label="Go back"
               >

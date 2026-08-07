@@ -767,7 +767,7 @@ export default function ItemDetailsPage() {
           : `Item updated and sent for approval again with ${imageCount} image(s)`
       )
       await new Promise((resolve) => setTimeout(resolve, 200))
-      navigate("/food/restaurant/inventory", { replace: true })
+      navigate("/seller/inventory", { replace: true })
       window.dispatchEvent(new CustomEvent('foodsChanged'))
     } catch (error) {
       debugError('Error saving menu:', error)
@@ -1329,7 +1329,7 @@ export default function ItemDetailsPage() {
                   <button
                     onClick={() => {
                       setIsCategoryPopupOpen(false)
-                      navigate('/food/restaurant/menu-categories')
+                      navigate('/seller/menu-categories')
                     }}
                     className="p-2 rounded-lg bg-black text-white hover:bg-gray-800 transition-colors flex items-center gap-1.5"
                     title="Add Category"
@@ -1356,7 +1356,7 @@ export default function ItemDetailsPage() {
                     <button
                       onClick={() => {
                         setIsCategoryPopupOpen(false)
-                        navigate('/food/restaurant/menu-categories')
+                        navigate('/seller/menu-categories')
                       }}
                       className="inline-flex items-center gap-2 px-4 py-2 bg-black text-white rounded-lg font-semibold hover:bg-gray-800 transition-colors"
                     >
@@ -1412,7 +1412,7 @@ export default function ItemDetailsPage() {
                     <button
                       onClick={() => {
                         setIsCategoryPopupOpen(false)
-                        navigate('/food/restaurant/menu-categories')
+                        navigate('/seller/menu-categories')
                       }}
                       className="p-2 rounded-lg bg-black text-white hover:bg-gray-800 transition-colors flex items-center gap-1.5"
                       title="Add Category"
@@ -1439,7 +1439,7 @@ export default function ItemDetailsPage() {
                       <button
                         onClick={() => {
                           setIsCategoryPopupOpen(false)
-                          navigate('/food/restaurant/menu-categories')
+                          navigate('/seller/menu-categories')
                         }}
                         className="inline-flex items-center gap-2 px-4 py-2 bg-black text-white rounded-lg font-semibold hover:bg-gray-800 transition-colors"
                       >

@@ -162,11 +162,11 @@ export default function RestaurantWelcome() {
 
 
   const handleLogin = () => {
-    navigate("/food/restaurant/login")
+    navigate("/seller/login")
   }
 
   const handlePartner = () => {
-    navigate("/food/restaurant/signup")
+    navigate("/seller/signup")
   }
 
   // Auto-advance carousel every 2.5 seconds

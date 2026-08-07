@@ -197,7 +197,7 @@ export default function WithdrawalHistoryPage() {
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={() => navigate("/food/restaurant/hub-finance")}
+            onClick={() => navigate("/seller/hub-finance")}
             className="p-1.5 hover:bg-white/80 rounded-xl transition-colors"
             aria-label="Go back"
           >
@@ -218,7 +218,7 @@ export default function WithdrawalHistoryPage() {
         <div className="flex items-start gap-4">
           <button
             type="button"
-            onClick={() => navigate("/food/restaurant/hub-finance")}
+            onClick={() => navigate("/seller/hub-finance")}
             className="mt-1 p-2 rounded-xl border border-[#c8d0da] bg-white text-[#141820] hover:bg-[#eef1f5] transition-colors"
             aria-label="Back to payouts"
           >
@@ -234,7 +234,7 @@ export default function WithdrawalHistoryPage() {
         </div>
         <button
           type="button"
-          onClick={() => navigate("/food/restaurant/hub-finance")}
+          onClick={() => navigate("/seller/hub-finance")}
           className="inline-flex items-center gap-2 rounded-full border border-[#c8d0da] bg-white px-4 py-2.5 text-sm font-semibold text-[#141820] hover:bg-[#eef1f5] transition-colors"
         >
           <Wallet className="w-4 h-4" />
@@ -425,7 +425,7 @@ export default function WithdrawalHistoryPage() {
                 </p>
                 <button
                   type="button"
-                  onClick={() => navigate("/food/restaurant/hub-finance")}
+                  onClick={() => navigate("/seller/hub-finance")}
                   className="mt-4 w-full rounded-2xl bg-[#4f6f9a] py-3 text-sm font-bold text-white hover:bg-[#3f5a80] transition-colors"
                 >
                   Go to payouts

@@ -905,7 +905,7 @@ function AllOrders({ onSelectOrder, onCancel, searchQuery = "" }) {
         </div>
         <button
           type="button"
-          onClick={() => navigate("/food/restaurant/orders/all")}
+          onClick={() => navigate("/seller/orders/all")}
           className="text-sm font-semibold text-blue-600 hidden md:block hover:text-blue-700 transition-colors"
         >
           Full History &gt;
@@ -1926,7 +1926,7 @@ export default function OrdersMain() {
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={() => navigate("/food/restaurant/status")}
+            onClick={() => navigate("/seller/status")}
             className={`flex items-center gap-1.5 px-3 py-2 border rounded-xl hover:opacity-80 transition-all ${
               onlineStatus === "Online"
                 ? "bg-green-50 border-green-100"

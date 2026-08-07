@@ -122,7 +122,7 @@ export default function RestaurantSignup() {
       }
       sessionStorage.setItem("restaurantAuthData", JSON.stringify(authData))
 
-      navigate("/food/restaurant/otp")
+      navigate("/seller/otp")
     } catch (error) {
       const message =
         error?.response?.data?.message ||
@@ -312,7 +312,7 @@ export default function RestaurantSignup() {
             <span className="text-gray-600">Already have an account? </span>
             <button
               type="button"
-              onClick={() => navigate("/food/restaurant/login")}
+              onClick={() => navigate("/seller/login")}
               className="text-primary-orange hover:underline font-medium"
             >
               Login

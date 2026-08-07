@@ -64,6 +64,24 @@ const RootEntryRoute = () => {
 
 
 const AdminRouter = lazy(() => import('../modules/Food/components/admin/AdminRouter'))
+const SellerRouter = lazy(() => import('../modules/Food/components/restaurant/RestaurantRouter'))
+
+/**
+ * Sends the old /food/restaurant/* addresses to /seller/*.
+ *
+ * A redirect rather than a second mount: two live copies of the panel would
+ * mean two sessions, two sets of sockets, and a bug fixed in one of them. The
+ * rest of the path, the query string and the hash survive, so a deep link to a
+ * specific order still lands on it.
+ */
+const RedirectToSeller = () => {
+  const location = useLocation()
+  const target =
+    location.pathname.replace(/^\/food\/restaurant/, '/seller') +
+    location.search +
+    location.hash
+  return <Navigate to={target} replace />
+}
 
 const AppRoutes = () => {
   const location = useLocation()
@@ -99,6 +117,18 @@ const AppRoutes = () => {
       {/* Food Module */}
       <Route path="/food/*" element={<FoodAppWrapper />} />
 
+      {/* Seller Portal. Canonical home of the partner panel. */}
+      <Route
+        path="/seller/*"
+        element={
+          <Suspense fallback={<PageLoader />}>
+            <SellerRouter />
+          </Suspense>
+        }
+      />
+      {/* Where the panel used to live; bookmarks and old links still resolve. */}
+      <Route path="/food/restaurant/*" element={<RedirectToSeller />} />
+
       {/* Global Admin Portal - AdminRouter handles its own protection for sub-routes */}
       <Route path="/admin/*" element={<AdminRouter />} />
 
@@ -115,7 +145,7 @@ const AppRoutes = () => {
       
       {/* Dynamic intercept redirects for bare paths (accessed programmatically) */}
       <Route path="/user/*" element={<RedirectToFood />} />
-      <Route path="/restaurant/*" element={<RedirectToFood />} />
+      <Route path="/restaurant/*" element={<RedirectToSeller />} />
       <Route path="/delivery/*" element={<RedirectToFood />} />
       <Route path="/usermain/*" element={<RedirectToFood />} />
       <Route path="/profile/*" element={<RedirectToFood />} />

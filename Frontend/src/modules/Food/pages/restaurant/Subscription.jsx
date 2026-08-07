@@ -228,7 +228,7 @@ export default function Subscription() {
       <div className="sticky bg-white/95 backdrop-blur top-0 z-40 px-4 py-3 border-b border-gray-200 shrink-0 md:border-slate-200">
         <div className="flex items-center gap-3 md:max-w-5xl md:mx-auto md:px-4 md:py-2">
           <button
-            onClick={() => navigate("/food/restaurant/hub-finance")}
+            onClick={() => navigate("/seller/hub-finance")}
             className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors md:hidden"
             aria-label="Go back"
           >

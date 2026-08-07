@@ -874,7 +874,7 @@ export default function HubFinance() {
           <div className="flex items-center gap-1 ml-2">
             <button
               className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-              onClick={() => navigate("/food/restaurant/withdrawal-history")}
+              onClick={() => navigate("/seller/withdrawal-history")}
               title="Withdrawal History"
             >
               <Wallet className="w-5 h-5" style={{ color: "var(--module-theme-color, #2563EB)" }} />
@@ -927,7 +927,7 @@ export default function HubFinance() {
           </div>
           <button
             type="button"
-            onClick={() => navigate("/food/restaurant/withdrawal-history")}
+            onClick={() => navigate("/seller/withdrawal-history")}
             className="inline-flex items-center gap-2 rounded-full border border-[#c8d0da] bg-white px-4 py-2.5 text-sm font-semibold text-[#141820] hover:bg-[#eef1f5] transition-colors"
           >
             <History className="w-4 h-4" />
@@ -980,7 +980,7 @@ export default function HubFinance() {
                 initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
                 className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-5 flex items-start gap-4 mb-2 shadow-sm cursor-pointer md:col-start-2 md:row-start-1 md:mb-0"
-                onClick={() => navigate('/food/restaurant/subscription')}
+                onClick={() => navigate('/seller/subscription')}
               >
                 <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center flex-shrink-0 shadow-sm border border-amber-100">
                   <Info className="w-6 h-6 text-amber-600" />
@@ -1118,7 +1118,7 @@ export default function HubFinance() {
                 <h2 className="text-base font-bold text-gray-900 md:text-lg md:tracking-tight">Withdrawal requests</h2>
                 <button
                   type="button"
-                  onClick={() => navigate("/food/restaurant/withdrawal-history")}
+                  onClick={() => navigate("/seller/withdrawal-history")}
                   className="hidden md:inline-flex text-xs font-semibold text-[#4f6f9a] hover:underline"
                 >
                   View all
@@ -1162,7 +1162,7 @@ export default function HubFinance() {
                     {withdrawalRequests.length > 8 ? (
                       <button
                         type="button"
-                        onClick={() => navigate("/food/restaurant/withdrawal-history")}
+                        onClick={() => navigate("/seller/withdrawal-history")}
                         className="w-full text-sm font-medium hover:underline pt-1 md:hidden"
                         style={{ color: "var(--module-theme-color, #2563EB)" }}
                       >
@@ -1420,7 +1420,7 @@ export default function HubFinance() {
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-base font-bold text-gray-900 md:text-lg md:tracking-tight">Subscription billing</h2>
                 <button
-                  onClick={() => navigate('/food/restaurant/subscription')}
+                  onClick={() => navigate('/seller/subscription')}
                   className="text-xs font-semibold text-blue-600 hover:text-blue-700 md:text-[#4f6f9a]"
                 >
                   View all

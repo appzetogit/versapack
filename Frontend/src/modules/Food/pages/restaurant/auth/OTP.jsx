@@ -67,7 +67,7 @@ export default function RestaurantOTP() {
         )
       }
     } else {
-      navigate("/food/restaurant/login")
+      navigate("/seller/login")
       return
     }
 
@@ -193,7 +193,7 @@ export default function RestaurantOTP() {
         setRestaurantPendingPhone(normalizedPhone)
         sessionStorage.removeItem("restaurantAuthData")
         sessionStorage.removeItem("restaurantLoginPhone")
-        navigate("/food/restaurant/onboarding", { replace: true })
+        navigate("/seller/onboarding", { replace: true })
         return
       }
 
@@ -206,8 +206,8 @@ export default function RestaurantOTP() {
         window.dispatchEvent(new Event("restaurantAuthChanged"))
         sessionStorage.removeItem("restaurantAuthData")
         sessionStorage.removeItem("restaurantLoginPhone")
-        registerWebPushForCurrentModule("/food/restaurant", { force: true }).catch(() => {})
-        navigate("/food/restaurant", { replace: true })
+        registerWebPushForCurrentModule("/seller", { force: true }).catch(() => {})
+        navigate("/seller", { replace: true })
       }
     } catch (err) {
       const message =
@@ -220,7 +220,7 @@ export default function RestaurantOTP() {
         if (pendingPhone) setRestaurantPendingPhone(pendingPhone)
         sessionStorage.removeItem("restaurantAuthData")
         sessionStorage.removeItem("restaurantLoginPhone")
-        navigate("/food/restaurant/pending-verification", {
+        navigate("/seller/pending-verification", {
           replace: true,
           state: { phone: pendingPhone || "" },
         })
@@ -276,7 +276,7 @@ export default function RestaurantOTP() {
         <div className="relative shrink-0 overflow-hidden px-6 py-5 lg:hidden" style={{ backgroundColor: "#141018" }}>
           <button
             type="button"
-            onClick={() => navigate("/food/restaurant/login")}
+            onClick={() => navigate("/seller/login")}
             className="absolute left-5 top-5 flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 text-white"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -298,7 +298,7 @@ export default function RestaurantOTP() {
         <div className="hidden shrink-0 px-8 pt-6 lg:block">
           <button
             type="button"
-            onClick={() => navigate("/food/restaurant/login")}
+            onClick={() => navigate("/seller/login")}
             className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-600 shadow-sm transition-colors hover:bg-gray-50"
           >
             <ArrowLeft className="h-4 w-4" />

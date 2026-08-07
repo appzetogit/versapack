@@ -51,21 +51,21 @@ function RestaurantGlobalNotificationListenerInner() {
 function RestaurantGlobalNotificationListener() {
   const location = useLocation()
   const isRestaurantRoute =
-    location.pathname.startsWith("/food/restaurant") &&
-    !location.pathname.startsWith("/food/restaurants")
+    location.pathname.startsWith("/seller") &&
+    !location.pathname.startsWith("/sellers")
   const isRestaurantAuthRoute =
-    location.pathname === "/food/restaurant/login" ||
-    location.pathname === "/food/restaurant/auth/sign-in" ||
-    location.pathname === "/food/restaurant/signup" ||
-    location.pathname === "/food/restaurant/signup-email" ||
-    location.pathname === "/food/restaurant/forgot-password" ||
-    location.pathname === "/food/restaurant/otp" ||
-    location.pathname === "/food/restaurant/welcome" ||
-    location.pathname === "/food/restaurant/auth/google-callback"
+    location.pathname === "/seller/login" ||
+    location.pathname === "/seller/auth/sign-in" ||
+    location.pathname === "/seller/signup" ||
+    location.pathname === "/seller/signup-email" ||
+    location.pathname === "/seller/forgot-password" ||
+    location.pathname === "/seller/otp" ||
+    location.pathname === "/seller/welcome" ||
+    location.pathname === "/seller/auth/google-callback"
   const isOrderManagedRoute =
-    location.pathname === "/food/restaurant" ||
-    location.pathname === "/food/restaurant/orders" ||
-    location.pathname.startsWith("/food/restaurant/orders/")
+    location.pathname === "/seller" ||
+    location.pathname === "/seller/orders" ||
+    location.pathname.startsWith("/seller/orders/")
 
   const shouldListen =
     isRestaurantRoute &&
@@ -89,7 +89,7 @@ export default function App() {
 
   useEffect(() => {
     const resolveModule = () => {
-      if (location.pathname.startsWith("/food/restaurant")) return "restaurant"
+      if (location.pathname.startsWith("/seller")) return "restaurant"
       if (location.pathname.startsWith("/food/delivery")) return "delivery"
       return "user"
     }

@@ -1138,7 +1138,7 @@ export default function OutletInfo() {
         <div className="px-4 pt-4 pb-4 bg-white md:px-0 md:bg-transparent md:pt-4">
           <div className="flex items-start gap-4 md:rounded-2xl md:border md:border-slate-200 md:bg-white md:p-4 md:shadow-sm">
             <div className="flex flex-col gap-2 w-full">
-              <button onClick={() => navigate("/food/restaurant/ratings-reviews")} className="flex items-center gap-2 text-left w-full">
+              <button onClick={() => navigate("/seller/ratings-reviews")} className="flex items-center gap-2 text-left w-full">
                 <div
                   className="px-2.5 py-1.5 rounded flex items-center gap-1 shrink-0"
                   style={{
@@ -1393,7 +1393,7 @@ export default function OutletInfo() {
 
           <div
             className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl p-4 border border-amber-200 shadow-sm cursor-pointer md:col-span-2 md:shadow-md hover:border-amber-300 transition-colors"
-            onClick={() => navigate("/food/restaurant/subscription")}
+            onClick={() => navigate("/seller/subscription")}
           >
             <h3 className="text-sm font-semibold text-slate-900 mb-1">Subscription</h3>
             <p className="text-xs text-slate-600">

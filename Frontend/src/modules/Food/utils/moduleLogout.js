@@ -8,7 +8,7 @@ import { clearModuleAuth, clearAuthData } from "@food/utils/auth";
 import { resolveDeviceFcmToken } from "@food/utils/firebaseMessaging";
 
 const LOGIN_PATHS = {
-  restaurant: "/food/restaurant/login",
+  restaurant: "/seller/login",
   user: "/food/user/auth/login",
   delivery: "/food/delivery/login",
 };

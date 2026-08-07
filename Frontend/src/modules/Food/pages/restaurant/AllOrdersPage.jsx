@@ -673,7 +673,7 @@ export default function AllOrdersPage() {
                 if (typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches) {
                   setSelectedOrderId(order.mongoId || order.id)
                 } else {
-                  navigate(`/food/restaurant/orders/${order.mongoId || order.id}`)
+                  navigate(`/seller/orders/${order.mongoId || order.id}`)
                 }
               }}
               className={`bg-white border rounded-lg p-4 cursor-pointer hover:shadow-md transition-shadow ${

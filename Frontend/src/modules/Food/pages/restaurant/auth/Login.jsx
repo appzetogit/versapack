@@ -106,7 +106,7 @@ export default function RestaurantLogin() {
           module: "restaurant",
         })
       )
-      navigate("/food/restaurant/otp")
+      navigate("/seller/otp")
     } catch (apiErr) {
       setError(apiErr?.response?.data?.message || "Failed to send OTP")
     } finally {
@@ -231,15 +231,15 @@ export default function RestaurantLogin() {
                 Secure partner login &middot; {companyName}
               </p>
               <p className="text-[11px] text-gray-400">
-                <Link to="/food/restaurant/terms" className="transition-colors hover:text-[#FA0272]">
+                <Link to="/seller/terms" className="transition-colors hover:text-[#FA0272]">
                   Terms
                 </Link>
                 {" · "}
-                <Link to="/food/restaurant/privacy" className="transition-colors hover:text-[#FA0272]">
+                <Link to="/seller/privacy" className="transition-colors hover:text-[#FA0272]">
                   Privacy
                 </Link>
                 {" · "}
-                <Link to="/food/restaurant/help-content" className="transition-colors hover:text-[#FA0272]">
+                <Link to="/seller/help-content" className="transition-colors hover:text-[#FA0272]">
                   Support
                 </Link>
               </p>

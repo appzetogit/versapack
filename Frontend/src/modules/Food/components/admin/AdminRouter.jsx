@@ -194,7 +194,7 @@ function UnregisteredRestaurantsRouteGuard() {
   }, []);
 
   if (loading) return <Loader />;
-  if (!isEnabled) return <Navigate to="/admin/food/restaurants" replace />;
+  if (!isEnabled) return <Navigate to="/admin/sellers" replace />;
   return <UnregisteredRestaurants />;
 }
 

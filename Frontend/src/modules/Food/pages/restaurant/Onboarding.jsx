@@ -644,7 +644,7 @@ export default function RestaurantOnboarding() {
     } catch (error) {
       debugError("Logout failed:", error)
       clearModuleAuth("restaurant")
-      navigate("/food/restaurant/login", { replace: true })
+      navigate("/seller/login", { replace: true })
     } finally {
       setIsLoggingOut(false)
     }
@@ -1718,7 +1718,7 @@ export default function RestaurantOnboarding() {
         localStorage.setItem('restaurant_pendingPhone', normalizePhoneDigits(step1.ownerPhone))
       } catch {}
       toast.success('Registration submitted for admin approval.', { duration: 4000 })
-      navigate('/food/restaurant/pending-verification', {
+      navigate('/seller/pending-verification', {
         replace: true,
         state: { phone: normalizePhoneDigits(step1.ownerPhone) },
       })
@@ -3392,7 +3392,7 @@ export default function RestaurantOnboarding() {
 
   const handleOnboardingBack = () => {
     if (step > 1) goToStep(step - 1)
-    else navigate("/food/restaurant/explore")
+    else navigate("/seller/explore")
   }
 
   return (

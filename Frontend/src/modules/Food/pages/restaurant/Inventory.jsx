@@ -1863,9 +1863,9 @@ export default function Inventory() {
   const handleEditItem = (category, item) => {
     if (!item?.id) return
 
-    navigate(`/food/restaurant/hub-menu/item/${item.id}`, {
+    navigate(`/seller/hub-menu/item/${item.id}`, {
       state: {
-        backTo: "/food/restaurant/inventory",
+        backTo: "/seller/inventory",
         item: {
           ...item,
           category: category?.name || "",
@@ -2040,7 +2040,7 @@ export default function Inventory() {
             type="button"
             onClick={() => {
               if (activeTab === "add-ons") setIsAddAddonOpen(true)
-              else navigate("/food/restaurant/hub-menu/item/new")
+              else navigate("/seller/hub-menu/item/new")
             }}
             className="h-11 px-5 text-white rounded-xl font-semibold transition-colors flex items-center gap-2 shrink-0 hover:opacity-90"
             style={{ backgroundColor: "var(--module-theme-color, #16a34a)" }}
@@ -3225,8 +3225,8 @@ export default function Inventory() {
                 <button
                   onClick={() => {
                     setIsAddPopupOpen(false)
-                    navigate(`/food/restaurant/hub-menu/item/new`, {
-                      state: { backTo: "/food/restaurant/inventory" },
+                    navigate(`/seller/hub-menu/item/new`, {
+                      state: { backTo: "/seller/inventory" },
                     })
                   }}
                   className="w-full flex items-center gap-4 p-4 rounded-2xl bg-white border border-gray-100 shadow-sm hover:shadow-md hover:border-emerald-200 transition-all group"
