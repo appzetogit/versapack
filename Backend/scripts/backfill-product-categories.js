@@ -26,6 +26,28 @@ const APPLY = process.argv.includes('--apply');
  * match wins, so anything ambiguous is listed after the term that disambiguates
  * it.
  */
+/**
+ * Parent for a subcategory this script has to recreate.
+ *
+ * Two of the original subcategories were deleted, which is what orphaned most
+ * of these products in the first place: the item kept a categoryName pointing
+ * at a record that no longer existed.
+ */
+const PARENT_OF = {
+  'Milk': 'Dairy',
+  'Curd & Yogurt': 'Dairy',
+  'Butter & Cheese': 'Dairy',
+  'Fresh Fruits': 'Fruits & Vegetables',
+  'Fresh Vegetables': 'Fruits & Vegetables',
+  'Atta & Flour': 'Staples',
+  'Rice & Pulses': 'Staples',
+  'Oils': 'Staples',
+  'Biscuits': 'Snacks',
+  'Chips & Namkeen': 'Snacks',
+  'Tea & Coffee': 'Beverages',
+  'Soft Drinks': 'Beverages',
+};
+
 const BY_KEYWORD = [
   [/\bmilk\b/i, 'Milk'],
   [/curd|dahi|yogurt/i, 'Curd & Yogurt'],
@@ -66,13 +88,44 @@ async function main() {
   for (const item of orphans) {
     // The product's own categoryName first — it is what the seeder meant to
     // file it under — then the keyword table.
-    let category = item.categoryName
-      ? byName.get(String(item.categoryName).toLowerCase())
-      : null;
+    let wantedName = item.categoryName || '';
+    let category = wantedName ? byName.get(wantedName.toLowerCase()) : null;
 
     if (!category) {
       const hit = BY_KEYWORD.find(([pattern]) => pattern.test(item.name || ''));
-      if (hit) category = byName.get(hit[1].toLowerCase());
+      if (hit) {
+        wantedName = hit[1];
+        category = byName.get(wantedName.toLowerCase());
+      }
+    }
+
+    // The name resolved but the record is gone. Recreating it is the repair:
+    // leaving it out would file a grocery item under a catch-all forever.
+    if (!category && wantedName && PARENT_OF[wantedName]) {
+      const parent = byName.get(PARENT_OF[wantedName].toLowerCase());
+      if (APPLY) {
+        category = await FoodCategory.findOneAndUpdate(
+          { name: wantedName, restaurantId: { $exists: false } },
+          {
+            $set: {
+              name: wantedName,
+              ...(parent ? { parentId: parent._id } : {}),
+              foodTypeScope: 'Both',
+              approvalStatus: 'approved',
+              isApproved: true,
+              isActive: true,
+            },
+          },
+          { upsert: true, new: true },
+        ).lean();
+        byName.set(wantedName.toLowerCase(), category);
+        console.log(`  +  recreated category "${wantedName}"`);
+      } else {
+        console.log(`  +  would recreate category "${wantedName}"`);
+        // Counted as matched so the dry run reports the true outcome.
+        matched++;
+        continue;
+      }
     }
 
     if (!category) {
