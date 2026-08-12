@@ -2217,13 +2217,42 @@ export const listApprovedRestaurants = async (query = {}) => {
     };
 };
 
+/**
+ * Everything a customer-facing client may see about a seller.
+ *
+ * An allowlist on purpose. As an exclusion list, any sensitive field added to
+ * the schema later would leak by default — which is exactly how this endpoint
+ * came to return bank account numbers, IFSC codes, PAN numbers and a URL to the
+ * PAN scan to anyone who asked, unauthenticated.
+ *
+ * Never add to this list: accountNumber, accountHolderName, accountType,
+ * ifscCode, nameOnPan, panNumber, panImage, gstImage, gstRegistered,
+ * fssaiNumber, fssaiImage, fssaiExpiry, ownerName, ownerEmail, ownerPhone,
+ * ownerPhoneDigits, ownerPhoneLast10, primaryContactNumber, fcmTokens,
+ * fcmTokenMobile, tokenVersion, any subscription* or onboardingFee* field.
+ */
+export const PUBLIC_RESTAURANT_SELECT = [
+    '_id', 'restaurantName', 'restaurantNameNormalized', 'description',
+    'profileImage', 'coverImage', 'coverImages', 'galleryImages', 'menuImages',
+    'cuisines', 'rating', 'totalRatings',
+    'addressLine1', 'addressLine2', 'area', 'city', 'state', 'pincode',
+    'landmark', 'formattedAddress', 'location', 'latitude', 'longitude',
+    'estimatedDeliveryTime', 'estimatedDeliveryTimeMinutes',
+    'isAcceptingOrders', 'isVerified', 'openingTime', 'closingTime', 'openDays',
+    'outletTimings', 'deliveryTimings', 'outsideHoursOverride',
+    'pureVegRestaurant', 'diningSettings', 'offer', 'featuredDish',
+    'featuredPrice', 'status', 'zoneId', 'createdAt',
+].join(' ');
+
 export const getApprovedRestaurantByIdOrSlug = async (idOrSlug) => {
     const value = String(idOrSlug || '').trim();
     if (!value) return null;
 
     // ObjectId path
     if (/^[0-9a-fA-F]{24}$/.test(value)) {
-        const doc = await FoodRestaurant.findOne({ _id: value, status: 'approved' }).lean();
+        const doc = await FoodRestaurant.findOne({ _id: value, status: 'approved' })
+            .select(PUBLIC_RESTAURANT_SELECT)
+            .lean();
         if (!doc) return null;
         const [withTimings] = await attachOutletTimingsToRestaurants([
             normalizePublicRestaurantGeo(
@@ -2244,7 +2273,9 @@ export const getApprovedRestaurantByIdOrSlug = async (idOrSlug) => {
     const doc = await FoodRestaurant.findOne({
         status: 'approved',
         restaurantNameNormalized
-    }).lean();
+    })
+        .select(PUBLIC_RESTAURANT_SELECT)
+        .lean();
     if (!doc) return null;
     const [withTimings] = await attachOutletTimingsToRestaurants([
         normalizePublicRestaurantGeo(
