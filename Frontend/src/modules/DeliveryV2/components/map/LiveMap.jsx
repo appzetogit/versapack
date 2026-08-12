@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import { getGoogleMapsApiKeySync } from '@food/utils/googleMapsApiKey'
 import { 
   GoogleMap, 
   Marker, 
@@ -44,7 +45,7 @@ export const LiveMap = ({ onMapClick, onMapLoad, onPathReceived, onPolylineRecei
   const { riderLocation, activeOrder, tripStatus, setRouteMetrics, clearRouteMetrics } = useDeliveryStore();
   
   const { isLoaded, loadError } = useJsApiLoader({
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
+    googleMapsApiKey: getGoogleMapsApiKeySync(),
     libraries: LIBRARIES
   });
 

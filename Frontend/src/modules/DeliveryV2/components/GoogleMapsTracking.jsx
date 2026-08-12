@@ -1,4 +1,5 @@
 import { useCallback, useRef, useEffect, useState } from 'react'
+import { getGoogleMapsApiKeySync } from '@food/utils/googleMapsApiKey'
 import { GoogleMap, useJsApiLoader, Marker, Polyline } from '@react-google-maps/api'
 import { motion } from 'framer-motion'
 const debugLog = (...args) => {}
@@ -66,7 +67,7 @@ export default function GoogleMapsTracking({
   onRouteInfoUpdate,
   lastUpdate
 }) {
-  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
+  const apiKey = getGoogleMapsApiKeySync()
   const mapRef = useRef(null)
   const directionsServiceRef = useRef(null)
   const directionsRendererRef = useRef(null)

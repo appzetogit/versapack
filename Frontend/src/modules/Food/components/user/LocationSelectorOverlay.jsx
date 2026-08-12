@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect, useRef } from "react"
+import { getGoogleMapsApiKeySync } from '@food/utils/googleMapsApiKey'
 import { ChevronLeft, ChevronRight, Plus, MapPin, MoreHorizontal, Navigation, Home, Building2, Briefcase, Phone, X, Crosshair } from "lucide-react"
 import { Button } from "@food/components/ui/button"
 import { Input } from "@food/components/ui/input"
@@ -18,7 +19,8 @@ const debugWarn = (...args) => {}
 const debugError = (...args) => {}
 
 // Enable Maps if API Key is available, otherwise fallback to coordinates-only mode
-const MAPS_ENABLED = !!import.meta.env.VITE_GOOGLE_MAPS_API_KEY
+// Read at call time, not module load: settings arrive after the bundle.
+const mapsEnabled = () => !!getGoogleMapsApiKeySync()
 
 
 // Google Maps implementation - Leaflet components removed
@@ -179,7 +181,7 @@ export default function LocationSelectorOverlay({ isOpen, onClose }) {
 
   // Load Google Maps API key from backend
   useEffect(() => {
-    if (!MAPS_ENABLED) return
+    if (!mapsEnabled()) return
     import('@food/utils/googleMapsApiKey.js').then(({ getGoogleMapsApiKey }) => {
       getGoogleMapsApiKey().then(key => {
         setGOOGLE_MAPS_API_KEY(key)
@@ -191,7 +193,7 @@ export default function LocationSelectorOverlay({ isOpen, onClose }) {
 
   // Debug: Log API key status (only first few characters for security)
   useEffect(() => {
-    if (!MAPS_ENABLED) return
+    if (!mapsEnabled()) return
     if (GOOGLE_MAPS_API_KEY) {
       debugLog("? Google Maps API Key loaded:", GOOGLE_MAPS_API_KEY.substring(0, 10) + "...")
     } else {
@@ -443,7 +445,7 @@ export default function LocationSelectorOverlay({ isOpen, onClose }) {
 
   // Initialize Google Maps with Loader (ZOMATO-STYLE)
   useEffect(() => {
-    if (!MAPS_ENABLED) {
+    if (!mapsEnabled()) {
       // Maps disabled: ensure loading spinner is off and rely on coordinates-only UX
       if (mapLoading) setMapLoading(false)
       return

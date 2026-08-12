@@ -51,6 +51,7 @@ export default function BusinessSetup() {
     state: "",
     pincode: "",
     region: "",
+    googleMapsApiKey: "",
   });
 
   // Fetch business settings on mount
@@ -74,6 +75,7 @@ export default function BusinessSetup() {
           state: settings.state || "",
           pincode: settings.pincode || "",
           region: settings.region || "India",
+          googleMapsApiKey: settings.googleMapsApiKey || "",
         });
 
         // Set logo and favicon previews if they exist
@@ -160,6 +162,8 @@ export default function BusinessSetup() {
         state: formData.state.trim(),
         pincode: formData.pincode.trim(),
         region: formData.region,
+        // Trimmed, and sent even when empty so clearing the field revokes it.
+        googleMapsApiKey: formData.googleMapsApiKey.trim(),
       };
 
       // Prepare files
@@ -417,6 +421,32 @@ export default function BusinessSetup() {
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
+            </div>
+
+            {/* Google Maps key. Set here so rotating it does not need a rebuild
+                of every surface that draws a map. */}
+            <div className="mb-4">
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                Google Maps API Key
+              </label>
+              <input
+                type="text"
+                placeholder="AIza..."
+                value={formData.googleMapsApiKey}
+                onChange={(e) =>
+                  handleInputChange("googleMapsApiKey", e.target.value)
+                }
+                className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+              <p className="mt-1.5 text-[11px] text-slate-500">
+                Used by every map in the customer app, seller panel and delivery
+                app. A browser key is visible to anyone who opens the site, so
+                restrict it to your domains under{" "}
+                <span className="font-medium">
+                  Google Cloud &rarr; Credentials &rarr; HTTP referrers
+                </span>
+                . Leave empty to fall back to the build&apos;s environment.
+              </p>
             </div>
 
             {/* Logo & favicon upload */}

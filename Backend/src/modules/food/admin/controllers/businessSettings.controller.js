@@ -189,7 +189,7 @@ export async function updateOrderAcceptanceSettings(req, res, next) {
 export async function updateBusinessSettings(req, res, next) {
     try {
         const data = req.body.data ? JSON.parse(req.body.data) : {};
-        const { companyName, email, phoneCountryCode, phoneNumber, address, state, pincode, region } = data;
+        const { companyName, email, phoneCountryCode, phoneNumber, address, state, pincode, region, googleMapsApiKey } = data;
 
         // Validation
         if (!companyName || companyName.trim().length < 2 || companyName.trim().length > 50) {
@@ -228,6 +228,11 @@ export async function updateBusinessSettings(req, res, next) {
         if (state !== undefined) settings.state = state;
         if (pincode !== undefined) settings.pincode = pincode;
         if (region) settings.region = region;
+        // Sent empty on purpose means "remove the key", which has to be
+        // possible: a leaked key needs revoking here as well as in Google.
+        if (googleMapsApiKey !== undefined) {
+            settings.googleMapsApiKey = String(googleMapsApiKey || '').trim();
+        }
 
         // Handle file uploads
         if (req.files) {

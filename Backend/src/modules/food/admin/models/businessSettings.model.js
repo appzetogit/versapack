@@ -50,7 +50,18 @@ const businessSettingsSchema = new mongoose.Schema(
                 fontFamily: { type: String, default: 'Poppins' }
             }
         },
-        orderAcceptanceTimeMinutes: { type: Number, default: 4, min: 1, max: 20 }
+        orderAcceptanceTimeMinutes: { type: Number, default: 4, min: 1, max: 20 },
+        /**
+         * Google Maps browser key, set once here instead of baked into each
+         * build's environment.
+         *
+         * It is served publicly and that is correct — a Maps browser key is
+         * read by the browser and cannot be hidden. What protects it is an
+         * HTTP-referrer restriction in the Google Cloud console, not secrecy,
+         * so a key pasted here must be restricted to your domains or anyone can
+         * spend your quota.
+         */
+        googleMapsApiKey: { type: String, default: '', trim: true }
     },
     { timestamps: true }
 );

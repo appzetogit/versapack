@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect, useRef, useCallback } from "react"
+import { getGoogleMapsApiKeySync } from '@food/utils/googleMapsApiKey'
 import { useLocation, useNavigate } from "react-router-dom"
 import { ChevronLeft, ChevronRight, Plus, MapPin, MoreHorizontal, Navigation, Home, Building2, Briefcase, Phone, X, Crosshair, Search } from "lucide-react"
 import { Button } from "@food/components/ui/button"
@@ -23,7 +24,8 @@ const debugWarn = (...args) => {}
 const debugError = (...args) => {}
 
 // Enable Maps if API Key is available, otherwise fallback to coordinates-only mode
-const MAPS_ENABLED = !!import.meta.env.VITE_GOOGLE_MAPS_API_KEY
+// Read at call time, not module load: settings arrive after the bundle.
+const mapsEnabled = () => !!getGoogleMapsApiKeySync()
 
 // Calculate distance between two coordinates using Haversine formula
 function calculateDistance(lat1, lon1, lat2, lon2) {
@@ -128,7 +130,7 @@ export default function AddressSelectorPage() {
 
   // Load Google Maps API key
   useEffect(() => {
-    if (!MAPS_ENABLED) return
+    if (!mapsEnabled()) return
     import('@food/utils/googleMapsApiKey.js').then(({ getGoogleMapsApiKey }) => {
       getGoogleMapsApiKey().then(key => {
         setGOOGLE_MAPS_API_KEY(key)
@@ -316,7 +318,7 @@ export default function AddressSelectorPage() {
 
   // Map Initialization logic
   useEffect(() => {
-    if (!MAPS_ENABLED || !showAddressForm || !mapContainerRef.current || !GOOGLE_MAPS_API_KEY) return
+    if (!mapsEnabled() || !showAddressForm || !mapContainerRef.current || !GOOGLE_MAPS_API_KEY) return
 
     let isMounted = true
     setMapLoading(true)

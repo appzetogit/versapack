@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import { getGoogleMapsApiKeySync } from '@food/utils/googleMapsApiKey'
 import { 
   GoogleMap, 
   useJsApiLoader, 
@@ -56,7 +57,7 @@ const DeliveryTrackingMap = ({
   const interpStateRef = useRef({ lastPos: null, nextPos: null, startTime: 0 });
 
   const { isLoaded } = useJsApiLoader({
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
+    googleMapsApiKey: getGoogleMapsApiKeySync(),
     libraries: LIBRARIES,
   });
 
