@@ -124,14 +124,22 @@ export async function getBusinessSettings(req, res, next) {
 
         const payload = ensurePowerScanningOnSettings(settings.toObject());
 
-        // The credential itself is never in `settings` -- the schema's
-        // `select: false` keeps it out -- so this reads it separately and
-        // returns only a description of it. Doing it in two steps is what makes
-        // it impossible to accidentally spread the key into the response.
-        const withSecret = await FoodBusinessSettings.findById(settings._id)
-            .select('+firebaseServiceAccount')
-            .lean();
-        payload.firebaseServiceAccount = describeServiceAccount(withSecret?.firebaseServiceAccount);
+        // Admins only. This same handler also serves /business-settings/public,
+        // which is unauthenticated -- and while the description holds no secret,
+        // the service account's client email names our admin-SDK identity and is
+        // nobody's business but the operator's. The public route runs before the
+        // admin middleware, so an absent req.user is what distinguishes them.
+        //
+        // The credential itself is never in `settings`: the schema's
+        // `select: false` keeps it out, so this reads it separately and returns
+        // only a description. Two steps rather than one is what makes it
+        // impossible to accidentally spread the key into the response.
+        if (req.user) {
+            const withSecret = await FoodBusinessSettings.findById(settings._id)
+                .select('+firebaseServiceAccount')
+                .lean();
+            payload.firebaseServiceAccount = describeServiceAccount(withSecret?.firebaseServiceAccount);
+        }
 
         return sendResponse(res, 200, 'Business settings fetched successfully', payload);
     } catch (error) {

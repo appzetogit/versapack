@@ -26,6 +26,20 @@ const FORBIDDEN = [
   'subscriptionAmount', 'subscriptionDueAmount', 'subscriptionPaidAmount',
   'subscriptionAutoDeductedAmount', 'subscriptionStatus', 'subscriptionPlan',
   'onboardingFeeAmount', 'onboardingFeePaid', 'onboardingFeePaymentId',
+  // Firebase: the *web* config is public by design and must stay readable, so
+  // only the server credential is named here. `firebaseServiceAccount` covers
+  // the raw JSON and the admin-only description of it alike.
+  'firebaseServiceAccount', 'private_key', 'private_key_id', 'client_email',
+];
+
+/**
+ * Substrings that must not appear anywhere in an unauthenticated payload.
+ *
+ * A key check alone missed the first Firebase regression: the credential's
+ * client email came back nested inside a field whose own name was innocuous.
+ */
+const FORBIDDEN_SUBSTRINGS = [
+  'BEGIN PRIVATE KEY', 'firebase-adminsdk', 'iam.gserviceaccount.com',
 ];
 
 let failures = 0;
@@ -54,7 +68,17 @@ async function check(label, url) {
     return;
   }
   const before = failures;
-  scan((await res.json())?.data, 'data', label);
+  const data = (await res.json())?.data;
+  scan(data, 'data', label);
+
+  const serialized = JSON.stringify(data ?? '');
+  for (const needle of FORBIDDEN_SUBSTRINGS) {
+    if (serialized.includes(needle)) {
+      console.log(`  LEAK  ${label} -> payload contains "${needle}"`);
+      failures++;
+    }
+  }
+
   if (failures === before) console.log(`  ok    ${label}`);
 }
 
@@ -74,6 +98,7 @@ async function main() {
   await check('restaurants/:id/menu', `${BASE}/food/restaurant/restaurants/${sellerId}/menu`);
   await check('search/unified', `${BASE}/food/search/unified?q=milk`);
   await check('public/foods', `${BASE}/food/restaurant/public/foods?limit=5`);
+  await check('business-settings/public', `${BASE}/food/admin/business-settings/public`);
 
   console.log(`\n${failures === 0 ? 'PASS — no private field exposed' : `FAIL — ${failures} leaked field(s)`}`);
   process.exit(failures === 0 ? 0 : 1);
