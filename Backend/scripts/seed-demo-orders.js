@@ -26,7 +26,20 @@ const WIPE = process.argv.includes('--wipe');
 
 /** Tag written onto every order this creates; also how --wipe finds them. */
 const SEED_NOTE = 'seed:demo-orders';
-const SELLER_SEED_TAG = 'seed:quick-commerce';
+
+/**
+ * The demo sellers, identified by the phone numbers seed-quick-commerce.js
+ * upserts them on.
+ *
+ * Not the `website: 'seed:quick-commerce'` tag that script appears to set --
+ * `website` is not on the restaurant schema, so Mongoose strips it on save and
+ * the field is undefined on every seeded seller. (That also means that script's
+ * own --wipe matches nothing, which is worth fixing separately.)
+ *
+ * A hardcoded list is the safer key regardless: it cannot be widened by a
+ * stray document, so this can only ever touch these two stores.
+ */
+const SEED_SELLER_PHONES = ['9000000101', '9000000102'];
 
 const DAYS = 30;
 const ORDERS_PER_DAY = [2, 5, 3, 7, 4, 9, 6];
@@ -74,9 +87,7 @@ async function main() {
         return;
     }
 
-    // seed-quick-commerce.js stores its tag in `website`, which is also what its
-    // own --wipe matches on.
-    const sellers = await FoodRestaurant.find({ website: SELLER_SEED_TAG })
+    const sellers = await FoodRestaurant.find({ ownerPhone: { $in: SEED_SELLER_PHONES } })
         .select('_id restaurantName zoneId')
         .lean();
 
