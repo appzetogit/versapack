@@ -100,6 +100,46 @@ const toBase64Url = (input) =>
 
 const normalizePrivateKey = (key) => String(key || '').replace(/\\n/g, '\n').trim();
 
+/**
+ * Loads the service account saved in the admin panel into the cache.
+ *
+ * The resolver below is synchronous and used on hot paths, so it cannot read
+ * the database itself. This primes it instead: called once at boot and again
+ * whenever an admin saves, which is the only time the answer changes.
+ *
+ * A missing or unparseable stored credential leaves the cache alone, so the
+ * env/file configuration keeps working rather than push going dark because
+ * somebody pasted bad JSON.
+ */
+export async function reloadServiceAccountFromSettings() {
+    cachedServiceAccount = null;
+    try {
+        const { FoodBusinessSettings } = await import('../../modules/food/admin/models/businessSettings.model.js');
+        const doc = await FoodBusinessSettings.findOne().select('+firebaseServiceAccount').lean();
+        const raw = sanitizeString(doc?.firebaseServiceAccount);
+        if (!raw) return false;
+
+        const parsed = JSON.parse(raw);
+        if (!parsed?.client_email || !parsed?.private_key) return false;
+
+        cachedServiceAccount = parsed;
+        logger.info(`Firebase service account loaded from admin settings (${parsed.project_id})`);
+        return true;
+    } catch (err) {
+        logger.error(`Could not load Firebase service account from settings: ${err.message}`);
+        return false;
+    }
+}
+
+/** Drops the cached credential so the next read resolves afresh. */
+export function clearCachedServiceAccount() {
+    cachedServiceAccount = null;
+    // Re-primed rather than left empty: clearing alone would silently fall back
+    // to the env file until the next restart, which is the opposite of what
+    // saving a new credential is meant to do.
+    void reloadServiceAccountFromSettings();
+}
+
 const getServiceAccountFromEnv = () => {
     if (cachedServiceAccount) return cachedServiceAccount;
 

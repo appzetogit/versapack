@@ -52,7 +52,24 @@ export default function BusinessSetup() {
     pincode: "",
     region: "",
     googleMapsApiKey: "",
+    firebase: {
+      apiKey: "",
+      authDomain: "",
+      projectId: "",
+      storageBucket: "",
+      messagingSenderId: "",
+      appId: "",
+      measurementId: "",
+      databaseURL: "",
+      vapidKey: "",
+    },
   });
+
+  // Kept out of formData: it is write-only. The server never sends the
+  // credential back, so there is nothing to pre-fill and an empty box must mean
+  // "leave the saved one alone" rather than "clear it".
+  const [serviceAccountInput, setServiceAccountInput] = useState("");
+  const [serviceAccountStatus, setServiceAccountStatus] = useState(null);
 
   // Fetch business settings on mount
   useEffect(() => {
@@ -76,7 +93,20 @@ export default function BusinessSetup() {
           pincode: settings.pincode || "",
           region: settings.region || "India",
           googleMapsApiKey: settings.googleMapsApiKey || "",
+          firebase: {
+            apiKey: settings.firebase?.apiKey || "",
+            authDomain: settings.firebase?.authDomain || "",
+            projectId: settings.firebase?.projectId || "",
+            storageBucket: settings.firebase?.storageBucket || "",
+            messagingSenderId: settings.firebase?.messagingSenderId || "",
+            appId: settings.firebase?.appId || "",
+            measurementId: settings.firebase?.measurementId || "",
+            databaseURL: settings.firebase?.databaseURL || "",
+            vapidKey: settings.firebase?.vapidKey || "",
+          },
         });
+
+        setServiceAccountStatus(settings.firebaseServiceAccount || null);
 
         // Set logo and favicon previews if they exist
         if (settings.logo?.url) {
@@ -110,6 +140,13 @@ export default function BusinessSetup() {
     setFormData((prev) => ({
       ...prev,
       [field]: value,
+    }));
+  };
+
+  const handleFirebaseChange = (field, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      firebase: { ...prev.firebase, [field]: value },
     }));
   };
 
@@ -164,7 +201,17 @@ export default function BusinessSetup() {
         region: formData.region,
         // Trimmed, and sent even when empty so clearing the field revokes it.
         googleMapsApiKey: formData.googleMapsApiKey.trim(),
+        firebase: Object.fromEntries(
+          Object.entries(formData.firebase).map(([k, v]) => [k, String(v || "").trim()])
+        ),
       };
+
+      // Omitted entirely when the box is empty. Sending "" would be read as an
+      // explicit clear and wipe a working credential on any unrelated save.
+      const serviceAccount = serviceAccountInput.trim();
+      if (serviceAccount) {
+        dataToSend.firebaseServiceAccount = serviceAccount;
+      }
 
       // Prepare files
       const files = {};
@@ -219,6 +266,13 @@ export default function BusinessSetup() {
           setDeliveryFaviconPreview(updatedSettings.deliveryFavicon.url);
           setDeliveryFaviconFile(null);
         }
+      }
+
+      // Emptied on success so the credential is not left sitting in the DOM,
+      // and the status line below takes over as the record of what is saved.
+      if (serviceAccount) {
+        setServiceAccountInput("");
+        setServiceAccountStatus(updatedSettings?.firebaseServiceAccount || null);
       }
 
       toast.success("Business settings saved successfully");
@@ -447,6 +501,122 @@ export default function BusinessSetup() {
                 </span>
                 . Leave empty to fall back to the build&apos;s environment.
               </p>
+            </div>
+
+            {/* Firebase. Split in two on purpose: the web config is public and
+                editable inline, the service account is a server credential and
+                is write-only. */}
+            <div className="mb-4 border border-slate-200 rounded-lg p-4">
+              <h3 className="text-xs font-bold text-slate-800 mb-1">Firebase</h3>
+              <p className="text-[11px] text-slate-500 mb-3">
+                Used for push notifications and realtime order tracking across
+                the customer app, seller app and delivery app. Leave a field
+                empty to fall back to the build&apos;s environment.
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {[
+                  ["apiKey", "Web API Key", "AIza..."],
+                  ["projectId", "Project ID", "my-project-a1b2c"],
+                  ["authDomain", "Auth Domain", "my-project.firebaseapp.com"],
+                  ["storageBucket", "Storage Bucket", "my-project.firebasestorage.app"],
+                  ["messagingSenderId", "Messaging Sender ID", "123456789012"],
+                  ["appId", "App ID", "1:1234:web:abcd"],
+                  ["measurementId", "Measurement ID", "G-XXXXXXX"],
+                  ["databaseURL", "Realtime Database URL", "https://my-project-default-rtdb.firebaseio.com"],
+                ].map(([field, label, placeholder]) => (
+                  <div key={field}>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                      {label}
+                    </label>
+                    <input
+                      type="text"
+                      placeholder={placeholder}
+                      value={formData.firebase[field]}
+                      onChange={(e) => handleFirebaseChange(field, e.target.value)}
+                      className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-3">
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                  Web Push Certificate (VAPID public key)
+                </label>
+                <input
+                  type="text"
+                  placeholder="BC..."
+                  value={formData.firebase.vapidKey}
+                  onChange={(e) => handleFirebaseChange("vapidKey", e.target.value)}
+                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+                <p className="mt-1.5 text-[11px] text-slate-500">
+                  Firebase Console &rarr; Project settings &rarr; Cloud
+                  Messaging &rarr; Web Push certificates. These values above are
+                  public — Firebase ships them inside every app build — so they
+                  are safe here. Your project is protected by its security rules
+                  and by restricting the API key, not by hiding them.
+                </p>
+              </div>
+
+              <div className="mt-4 pt-4 border-t border-slate-200">
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                  Service Account JSON
+                  <span className="ml-2 font-normal text-[11px] text-amber-700">
+                    server credential — never shown again after saving
+                  </span>
+                </label>
+
+                {serviceAccountStatus?.configured ? (
+                  <div className="mb-2 text-[11px] rounded-lg bg-slate-50 border border-slate-200 px-3 py-2">
+                    {serviceAccountStatus.invalid ? (
+                      <span className="text-red-600 font-medium">
+                        A service account is saved but is not valid JSON. Push
+                        will fail until it is replaced.
+                      </span>
+                    ) : (
+                      <span className="text-slate-600">
+                        <span className="text-green-700 font-medium">Configured</span>
+                        {" — project "}
+                        <span className="font-mono">{serviceAccountStatus.projectId || "unknown"}</span>
+                        {serviceAccountStatus.clientEmail ? (
+                          <>
+                            {", "}
+                            <span className="font-mono">{serviceAccountStatus.clientEmail}</span>
+                          </>
+                        ) : null}
+                        {serviceAccountStatus.privateKeyId ? (
+                          <>
+                            {", key "}
+                            <span className="font-mono">{serviceAccountStatus.privateKeyId}</span>
+                          </>
+                        ) : null}
+                      </span>
+                    )}
+                  </div>
+                ) : (
+                  <div className="mb-2 text-[11px] rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-amber-800">
+                    No service account saved — push is using the value from the
+                    server&apos;s environment.
+                  </div>
+                )}
+
+                <textarea
+                  rows={5}
+                  placeholder='Paste the full JSON here to replace it, e.g. {"type":"service_account","project_id":"...","private_key":"..."}'
+                  value={serviceAccountInput}
+                  onChange={(e) => setServiceAccountInput(e.target.value)}
+                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+                <p className="mt-1.5 text-[11px] text-slate-500">
+                  Firebase Console &rarr; Project settings &rarr; Service
+                  accounts &rarr; Generate new private key. Unlike the values
+                  above, this one can send push to every device and read your
+                  whole database, so it is stored write-only and never sent back
+                  to this page. Leave the box empty to keep the saved one.
+                </p>
+              </div>
             </div>
 
             {/* Logo & favicon upload */}

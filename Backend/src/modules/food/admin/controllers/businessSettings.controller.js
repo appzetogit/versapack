@@ -2,6 +2,40 @@ import { FoodBusinessSettings } from '../models/businessSettings.model.js';
 import { sendResponse } from '../../../../utils/response.js';
 import { uploadImageBufferDetailed } from '../../../../services/cloudinary.service.js';
 
+/** The web-config keys the admin panel may write. Anything else is ignored. */
+const FIREBASE_WEB_FIELDS = [
+    'apiKey', 'authDomain', 'projectId', 'storageBucket',
+    'messagingSenderId', 'appId', 'measurementId', 'databaseURL', 'vapidKey'
+];
+
+/**
+ * What the panel is told about the stored service account.
+ *
+ * Deliberately never the credential itself -- only enough to answer "is one
+ * saved, and is it the project I think it is". Returning the private key so the
+ * form could pre-fill it would put a push-and-database credential into every
+ * admin's browser and every proxy log in between, to save retyping something
+ * that is only ever replaced wholesale.
+ */
+const describeServiceAccount = (raw) => {
+    const value = String(raw || '').trim();
+    if (!value) return { configured: false };
+
+    try {
+        const parsed = JSON.parse(value);
+        return {
+            configured: true,
+            projectId: parsed.project_id || '',
+            clientEmail: parsed.client_email || '',
+            privateKeyId: parsed.private_key_id ? `…${String(parsed.private_key_id).slice(-6)}` : ''
+        };
+    } catch {
+        // Stored but unparseable: say so rather than reporting it as working,
+        // because push will fail at send time and the admin needs to know why.
+        return { configured: true, invalid: true };
+    }
+};
+
 const POWER_SCANNING_DEFAULT = {
     user: { themeColor: '#FA0272', fontFamily: 'Poppins' },
     restaurant: { themeColor: '#2563EB', fontFamily: 'Poppins' },
@@ -89,6 +123,16 @@ export async function getBusinessSettings(req, res, next) {
         }
 
         const payload = ensurePowerScanningOnSettings(settings.toObject());
+
+        // The credential itself is never in `settings` -- the schema's
+        // `select: false` keeps it out -- so this reads it separately and
+        // returns only a description of it. Doing it in two steps is what makes
+        // it impossible to accidentally spread the key into the response.
+        const withSecret = await FoodBusinessSettings.findById(settings._id)
+            .select('+firebaseServiceAccount')
+            .lean();
+        payload.firebaseServiceAccount = describeServiceAccount(withSecret?.firebaseServiceAccount);
+
         return sendResponse(res, 200, 'Business settings fetched successfully', payload);
     } catch (error) {
         next(error);
@@ -189,7 +233,10 @@ export async function updateOrderAcceptanceSettings(req, res, next) {
 export async function updateBusinessSettings(req, res, next) {
     try {
         const data = req.body.data ? JSON.parse(req.body.data) : {};
-        const { companyName, email, phoneCountryCode, phoneNumber, address, state, pincode, region, googleMapsApiKey } = data;
+        const {
+            companyName, email, phoneCountryCode, phoneNumber, address, state, pincode, region,
+            googleMapsApiKey, firebase, firebaseServiceAccount
+        } = data;
 
         // Validation
         if (!companyName || companyName.trim().length < 2 || companyName.trim().length > 50) {
@@ -232,6 +279,43 @@ export async function updateBusinessSettings(req, res, next) {
         // possible: a leaked key needs revoking here as well as in Google.
         if (googleMapsApiKey !== undefined) {
             settings.googleMapsApiKey = String(googleMapsApiKey || '').trim();
+        }
+
+        // Field by field off an allowlist, not a wholesale assign: the panel
+        // posts a plain object, and letting it set arbitrary keys on a
+        // subdocument is how `firebaseServiceAccount` would end up smuggled into
+        // the public half.
+        if (firebase && typeof firebase === 'object') {
+            for (const key of FIREBASE_WEB_FIELDS) {
+                if (firebase[key] !== undefined) {
+                    settings.firebase[key] = String(firebase[key] || '').trim();
+                }
+            }
+        }
+
+        // Undefined means the form did not send one, which must leave the stored
+        // credential alone -- the panel never receives it, so every ordinary save
+        // would otherwise wipe it. Empty string is the explicit "remove it".
+        if (firebaseServiceAccount !== undefined) {
+            const raw = String(firebaseServiceAccount || '').trim();
+            if (raw) {
+                let parsed;
+                try {
+                    parsed = JSON.parse(raw);
+                } catch {
+                    return res.status(400).json({ success: false, message: 'Service account must be valid JSON' });
+                }
+                // Checked now rather than at 3am when push silently stops: these
+                // three are what the FCM signing path actually reads.
+                for (const field of ['project_id', 'client_email', 'private_key']) {
+                    if (!parsed[field]) {
+                        return res.status(400).json({ success: false, message: `Service account JSON is missing "${field}"` });
+                    }
+                }
+                settings.firebaseServiceAccount = JSON.stringify(parsed);
+            } else {
+                settings.firebaseServiceAccount = '';
+            }
         }
 
         // Handle file uploads
@@ -281,7 +365,23 @@ export async function updateBusinessSettings(req, res, next) {
         }
 
         await settings.save();
-        return sendResponse(res, 200, 'Business settings updated successfully', settings);
+
+        // A saved service account has to reach the running process, or push
+        // keeps using the old project until someone restarts and nobody
+        // connects the two.
+        if (firebaseServiceAccount !== undefined) {
+            const { clearCachedServiceAccount } = await import('../../../../core/notifications/firebase.service.js');
+            clearCachedServiceAccount();
+        }
+
+        // The in-memory doc is now holding the credential we just set, and
+        // returning it would hand the key straight back to the browser -- the
+        // exact thing `select: false` exists to prevent. Swap it for the same
+        // description the GET returns.
+        const payload = settings.toObject();
+        payload.firebaseServiceAccount = describeServiceAccount(settings.firebaseServiceAccount);
+
+        return sendResponse(res, 200, 'Business settings updated successfully', payload);
     } catch (error) {
         next(error);
     }

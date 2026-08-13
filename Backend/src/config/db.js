@@ -6,6 +6,13 @@ export const connectDB = async () => {
     try {
         const conn = await mongoose.connect(config.mongodbUri);
         logger.info(`MongoDB connected: ${conn.connection.host}`);
+
+        // Once the database is up, a service account saved in the admin panel
+        // takes precedence over the one in the environment. Deliberately not
+        // awaited or fatal: push failing to configure must not stop the API
+        // from serving, and the env/file credential still covers it.
+        const { reloadServiceAccountFromSettings } = await import('../core/notifications/firebase.service.js');
+        void reloadServiceAccountFromSettings();
     } catch (error) {
         logger.error(`MongoDB connection error: ${error.message}`);
         process.exit(1);
