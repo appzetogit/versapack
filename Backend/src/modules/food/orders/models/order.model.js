@@ -20,6 +20,18 @@ const orderItemSchema = new mongoose.Schema(
         gstRate: { type: Number, min: 0, max: 100, default: null },
         brand: { type: String, trim: true, default: '' },
         packSize: { type: String, trim: true, default: '' },
+        /**
+         * Category this line belonged to, snapshotted at order time.
+         *
+         * Without it, "top selling categories" had to join order lines back to
+         * the live catalogue by product name -- which silently drops every
+         * product since renamed or deleted, and mis-attributes any two sellers
+         * that use the same name. Recorded like the price is, and for the same
+         * reason: the report must describe what was sold, not what the
+         * catalogue happens to say today.
+         */
+        categoryId: { type: mongoose.Schema.Types.ObjectId, default: null },
+        categoryName: { type: String, trim: true, default: '' },
         image: { type: String, default: '' },
         notes: { type: String, default: '' },
         /**

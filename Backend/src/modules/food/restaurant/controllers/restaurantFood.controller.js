@@ -6,6 +6,7 @@ import {
     updateRestaurantFoodStock,
     listLowStockFoods
 } from '../services/restaurantFood.service.js';
+import { getRestaurantAnalytics } from '../services/restaurantAnalytics.service.js';
 
 export const createRestaurantFoodController = async (req, res, next) => {
     try {
@@ -35,6 +36,17 @@ export const listLowStockFoodsController = async (req, res, next) => {
         const restaurantId = req.user?.userId;
         const result = await listLowStockFoods(restaurantId);
         return sendResponse(res, 200, 'Low stock items fetched successfully', result);
+    } catch (error) {
+        next(error);
+    }
+};
+
+/** GET /analytics?from=&to= — sales figures over a date range. */
+export const getAnalyticsController = async (req, res, next) => {
+    try {
+        const restaurantId = req.user?.userId;
+        const result = await getRestaurantAnalytics(restaurantId, req.query || {});
+        return sendResponse(res, 200, 'Analytics fetched successfully', result);
     } catch (error) {
         next(error);
     }

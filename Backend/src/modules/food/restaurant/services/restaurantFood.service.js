@@ -139,6 +139,21 @@ const buildCatalogUpdate = (body = {}) => {
 
     if (body.brand !== undefined) update.brand = toStr(body.brand);
     if (body.packSize !== undefined) update.packSize = toStr(body.packSize);
+    if (body.sku !== undefined) update.sku = toStr(body.sku);
+    if (body.barcode !== undefined) update.barcode = toStr(body.barcode);
+
+    if (body.expiryDate !== undefined) {
+        if (body.expiryDate === null || body.expiryDate === '') {
+            update.expiryDate = null;
+        } else {
+            const expiry = new Date(body.expiryDate);
+            // An unparseable date becomes Invalid Date, which Mongoose casts to
+            // null -- so the seller would be told the save worked and the expiry
+            // would simply have vanished. Reject it instead.
+            if (Number.isNaN(expiry.getTime())) throw new ValidationError('Expiry date is invalid');
+            update.expiryDate = expiry;
+        }
+    }
 
     if (body.mrp !== undefined) {
         if (body.mrp === null || body.mrp === '') {

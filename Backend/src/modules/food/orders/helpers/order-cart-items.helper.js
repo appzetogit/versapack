@@ -183,6 +183,9 @@ export async function resolveOrderCartItems(restaurantId, rawItems = []) {
             : Number(foodDoc.gstRate),
         brand: String(foodDoc.brand || ''),
         packSize: String(foodDoc.packSize || ''),
+        // Snapshotted so category reporting survives a rename or a delete.
+        categoryId: foodDoc.categoryId || null,
+        categoryName: String(foodDoc.categoryName || ''),
         isVeg: String(foodDoc.foodType || '').toLowerCase() === 'veg',
         image: String(foodDoc.image || rawItem?.image || ''),
         notes: String(rawItem?.notes || ''),

@@ -43,6 +43,27 @@ const foodSchema = new mongoose.Schema(
         /** What one unit is: "500 g", "1 L", "pack of 6". Free text, since packs are not standard. */
         packSize: { type: String, trim: true, default: '' },
         /**
+         * The seller's own stock-keeping code.
+         *
+         * Indexed but deliberately not unique: sellers pick their own codes and
+         * two of them will collide, so uniqueness could only ever be per-seller,
+         * and enforcing it globally would reject a legitimate second seller.
+         */
+        sku: { type: String, trim: true, default: '', index: true },
+        /**
+         * Scanned barcode (EAN/UPC). Distinct from `sku`: a barcode identifies
+         * the manufactured product, an SKU identifies the seller's shelf entry,
+         * and searching by one must not silently match the other.
+         */
+        barcode: { type: String, trim: true, default: '', index: true },
+        /**
+         * Batch expiry. Null means non-perishable or simply not tracked — the
+         * two are indistinguishable here and both mean "never flag this".
+         *
+         * Date, not string, so a range query can find what expires this week.
+         */
+        expiryDate: { type: Date, default: null, index: true },
+        /**
          * Printed maximum retail price, shown struck through next to `price`.
          *
          * Kept separate from `otherPrice`, which is a compare-at price against
