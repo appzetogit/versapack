@@ -194,7 +194,8 @@ async function main() {
                     customerName: customer.name,
                     customerPhone: customer.phone,
                     pricing: { subtotal, deliveryFee, platformFee, tax, total },
-                    payment: { method: 'cod', status: 'paid' },
+                    // 'cash', not 'cod' -- the schema enum spells it the first way.
+                    payment: { method: 'cash', status: 'paid' },
                     orderStatus: 'delivered',
                     // The tag lives here because it is the only free-text field
                     // on the order, and --wipe has to be able to find these
