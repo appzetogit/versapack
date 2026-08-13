@@ -60,6 +60,11 @@ const ADDRESS = {
     state: 'Karnataka',
     pincode: '560038',
     phone: '9000009001',
+    // Required, not decorative: deliveryAddress.location carries a 2dsphere
+    // index, and a Point without coordinates is rejected outright at save.
+    // Inside the seeded Bengaluru zone and a few km from both demo sellers, so
+    // distance and serviceability come out plausible rather than absurd.
+    location: { type: 'Point', coordinates: [77.6408, 12.9784], latitude: 12.9784, longitude: 77.6408 },
 };
 
 const round2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
