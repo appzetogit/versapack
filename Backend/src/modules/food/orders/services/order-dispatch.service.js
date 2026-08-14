@@ -100,9 +100,12 @@ const DRIVER_ACCEPT_WINDOW_MS = 45000;
  * the app can render it with no follow-up API call â€” important when the device is locked
  * or the app was killed.
  */
-function buildIncomingOrderPushData(order, payload, acceptanceDeadlineAt) {
-  const s = (v) => (v === undefined || v === null ? '' : String(v));
+/** FCM data values must be strings; null/undefined become '' rather than "null". */
+const s = (v) => (v === undefined || v === null ? '' : String(v));
 
+// Exported so the payload can be inspected against a real order without
+// dispatching one; nothing outside this module calls it in production.
+export function buildIncomingOrderPushData(order, payload, acceptanceDeadlineAt) {
   const earning = s(payload?.riderEarning ?? 0);
   const distance = s(payload?.tripDistanceKm ?? '');
   const bodyLines = [
@@ -171,7 +174,43 @@ function buildIncomingOrderPushData(order, payload, acceptanceDeadlineAt) {
     customerName: s(payload?.customerName || order?.customerName || ''),
     customerPhone: s(payload?.customerPhone || order?.customerPhone || ''),
     itemsCount: s(Array.isArray(order?.items) ? order.items.length : ''),
+    // paymentMethod alone cannot distinguish a prepaid order that is paid from
+    // one still awaiting payment, so the card had to assume. Sending the status
+    // makes the chip say what is actually true.
+    paymentStatus: s(payload?.paymentStatus || order?.payment?.status || ''),
+    items: buildPushItems(order?.items),
   };
+}
+
+/**
+ * Product thumbnails for the alert card, as a JSON string.
+ *
+ * FCM data values must be strings and the whole map has a hard 4 KB ceiling, so
+ * this is the one field that has to be actively kept small:
+ *
+ *  - Capped at 4 entries. The card draws 3 and derives its "+N" pill from
+ *    `itemsCount`, which stays the true total -- so trimming here never changes
+ *    the number the rider sees.
+ *  - Only name/quantity/image. Nothing else is rendered, and image URLs are
+ *    already the largest thing on the wire.
+ *  - If it still exceeds 1 KB the images are dropped and names sent alone,
+ *    rather than truncating the string into JSON the app cannot parse. A card
+ *    with no thumbnails degrades; a card with broken JSON does not render.
+ */
+function buildPushItems(items) {
+  const list = Array.isArray(items) ? items.slice(0, 4) : [];
+  if (list.length === 0) return '[]';
+
+  const withImages = list.map((i) => ({
+    name: String(i?.name || ''),
+    quantity: Number(i?.quantity || 1),
+    image: String(i?.image || ''),
+  }));
+
+  const encoded = JSON.stringify(withImages);
+  if (Buffer.byteLength(encoded, 'utf8') <= 1024) return encoded;
+
+  return JSON.stringify(withImages.map(({ image, ...rest }) => rest));
 }
 
 /**
@@ -459,16 +498,23 @@ export async function tryAutoAssign(orderId, options = {}) {
         // driver was never woken on a re-offer round â€” the order could sit unassigned while
         // every nearby rider was simply not looking at the app. Push on every round.
         try {
-          await notifyOwnersActionableAlert(
-            reofferEligible.map((p) => ({ ownerType: 'DELIVERY_PARTNER', ownerId: p.partnerId })),
-            {
-              title: 'New order available!',
-              body: `Order #${order.order_id || order._id} is still available. Tap to accept.`,
-              androidTag: `order_${order._id.toString()}`,
-              androidChannelId: 'incoming_orders_channel_v3',
-              data: buildIncomingOrderPushData(order, payload, acceptanceDeadlineAt),
-            },
-          );
+          // One call per partner, because pickupDistanceKm is rider-specific.
+          // This costs nothing extra: sendNotificationToOwners already loops
+          // over its targets sequentially, so a batched call was never one
+          // request anyway.
+          const basePush = buildIncomingOrderPushData(order, payload, acceptanceDeadlineAt);
+          for (const p of reofferEligible) {
+            await notifyOwnersActionableAlert(
+              [{ ownerType: 'DELIVERY_PARTNER', ownerId: p.partnerId }],
+              {
+                title: 'New order available!',
+                body: `Order #${order.order_id || order._id} is still available. Tap to accept.`,
+                androidTag: `order_${order._id.toString()}`,
+                androidChannelId: 'new_orders_v2',
+                data: { ...basePush, pickupDistanceKm: s(p.distanceKm ?? '') },
+              },
+            );
+          }
         } catch (err) {
           logger.warn(`Re-offer push failed for order ${order._id}: ${err.message}`);
         }
@@ -504,38 +550,39 @@ export async function tryAutoAssign(orderId, options = {}) {
       }
     }
 
-    // Batch Push Notifications
-    const pushTargets = eligible.map(p => ({
-      ownerType: 'DELIVERY_PARTNER',
-      ownerId: p.partnerId
-    }));
-
-    if (pushTargets.length > 0) {
+    if (eligible.length > 0) {
       try {
-        await notifyOwnersActionableAlert(
-          pushTargets,
-          {
-            title: 'New order available!',
-            body: `Order #${order.order_id || order._id} is available. You have ${Math.round(DRIVER_ACCEPT_WINDOW_MS / 1000)} seconds to accept!`,
-            // Two messages â€” see notifyOwnersActionableAlert.
-            //
-            // This alert needs the app's own full-screen UI (which only a
-            // data-only message can trigger) AND delivery on ROMs that refuse
-            // to start the app (which only a notification block achieves).
-            // Blending them into one message quietly lost the first: Android
-            // renders a message that has a notification block and never calls
-            // the handler that would have raised the overlay.
-            //
-            // The tag is the contract with the app (cancel(0, tag:) in
-            // fcm_service.dart) â€” change one and you must change the other.
-            androidTag: `order_${order._id.toString()}`,
-            // The app's incoming channel is the _v3 id; the service default is
-            // the stale v1 name, and Android silently downgrades an unknown
-            // channel to low importance â€” no sound, no heads-up.
-            androidChannelId: 'incoming_orders_channel_v3',
-            data: buildIncomingOrderPushData(order, payload, acceptanceDeadlineAt),
-          }
-        );
+        // Sent per partner rather than as one batch, because pickupDistanceKm
+        // is the rider's own distance to the store. No extra requests: the
+        // fan-out inside sendNotificationToOwners was already a sequential loop
+        // over targets.
+        const basePush = buildIncomingOrderPushData(order, payload, acceptanceDeadlineAt);
+        for (const p of eligible) {
+          await notifyOwnersActionableAlert(
+            [{ ownerType: 'DELIVERY_PARTNER', ownerId: p.partnerId }],
+            {
+              title: 'New order available!',
+              body: `Order #${order.order_id || order._id} is available. You have ${Math.round(DRIVER_ACCEPT_WINDOW_MS / 1000)} seconds to accept!`,
+              // Two messages â€” see notifyOwnersActionableAlert.
+              //
+              // This alert needs the app's own full-screen UI (which only a
+              // data-only message can trigger) AND delivery on ROMs that refuse
+              // to start the app (which only a notification block achieves).
+              // Blending them into one message quietly lost the first: Android
+              // renders a message that has a notification block and never calls
+              // the handler that would have raised the overlay.
+              //
+              // The tag is the contract with the app (cancel(0, tag:) in
+              // fcm_service.dart) â€” change one and you must change the other.
+              androidTag: `order_${order._id.toString()}`,
+              // Must match a channel the delivery app actually creates: Android
+              // silently demotes an unknown channel id to low importance, which
+              // on the device looks exactly like the push never arriving.
+              androidChannelId: 'new_orders_v2',
+              data: { ...basePush, pickupDistanceKm: s(p.distanceKm ?? '') },
+            }
+          );
+        }
       } catch (err) {
         logger.warn(`Push notifications failed for broadcast on order ${order._id}: ${err.message}`);
       }

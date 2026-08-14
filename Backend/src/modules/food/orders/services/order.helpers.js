@@ -576,7 +576,7 @@ export async function notifyRestaurantNewOrder(orderDoc) {
         body: bodyText,
         androidTag: `order_${orderDoc._id?.toString?.() || ""}`,
         // The channel the restaurant app actually creates. The service default
-        // is incoming_orders_channel, which exists only in the rider app —
+        // is the rider app's new-order channel, which does not exist here —
         // Android silently demotes an unknown channel to low importance, so the
         // alert would arrive without sound or a heads-up even once it displayed.
         androidChannelId: "new_order_channel",

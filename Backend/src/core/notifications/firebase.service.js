@@ -34,15 +34,22 @@ const MAX_TOKENS_PER_PLATFORM = 3;
  * never arriving, which is why these defaults are taken from the apps' own source
  * rather than from what anyone assumed the ids were.
  *
- * Delivery app (Flutter_delivery, lib/core/services/fcm_service.dart):
- *   'incoming_orders_channel' — Importance.max, full-screen incoming order alerts
- *   'orders_channel'          — Importance.max, order status updates
- *   It does NOT define 'high_importance_channel' anywhere, and has no
- *   default_notification_channel_id in its manifest.
+ * Delivery app (quickcommerce_delivery, com.quickcommerce.delivery):
+ *   'new_orders_v2' — Importance.max, full-screen incoming order alerts, and
+ *   the sound is set on the channel (raw/neworder.mp3). From Android 8 the
+ *   channel owns the sound, so the per-message `sound` below only affects
+ *   older devices.
+ *   The app also still registers the previous 'incoming_orders_channel_v3', so
+ *   this id can change on either side independently; that legacy channel is
+ *   due for removal from the app once this is deployed.
  *
  * User app (flutter-food-user-application, lib/src/platform/notifications/push_service.dart):
  *   'high_importance_channel' — Importance.max, and the manifest's
  *   com.google.firebase.messaging.default_notification_channel_id.
+ *
+ * A channel id cannot be re-pointed once created: Android freezes a channel's
+ * importance and sound at creation, so the apps bump the suffix (_v2, _v3)
+ * rather than editing one in place. That is why these ids look versioned.
  *
  * Both overridable, so a client-side rename is an env change rather than a deploy.
  */
@@ -54,7 +61,7 @@ const MAX_TOKENS_PER_PLATFORM = 3;
  */
 const NEW_ORDER_TTL_SECONDS = Number(process.env.FCM_NEW_ORDER_TTL_SECONDS) || 60;
 
-const NEW_ORDER_CHANNEL_ID = process.env.FCM_NEW_ORDER_CHANNEL_ID || 'incoming_orders_channel';
+const NEW_ORDER_CHANNEL_ID = process.env.FCM_NEW_ORDER_CHANNEL_ID || 'new_orders_v2';
 const DEFAULT_CHANNEL_ID = process.env.FCM_DEFAULT_CHANNEL_ID || 'high_importance_channel';
 
 let cachedAccessToken = null;
@@ -292,7 +299,12 @@ const buildMessagePayload = (payload = {}, token) => {
             ...(sanitizeString(payload.androidTag)
                 ? { tag: sanitizeString(payload.androidTag) }
                 : {}),
-            ...(isNewOrderAlert ? { sound: 'tujh_bin' } : {})
+            // Matches res/raw/neworder.mp3 in the delivery app. The previous
+            // value named a resource that does not exist (the file is
+            // tujh_bin1.mp3), and Android answers a missing sound resource with
+            // the default tone rather than an error -- so it had been silently
+            // wrong. Only affects pre-Android-8; above that the channel wins.
+            ...(isNewOrderAlert ? { sound: 'neworder' } : {})
         };
     }
 
@@ -313,7 +325,12 @@ const buildMessagePayload = (payload = {}, token) => {
             aps: isDataOnlyPush
                 ? { 'content-available': 1 }
                 : {
-                      sound: isNewOrderAlert ? 'tujh_bin.caf' : 'default',
+                      // The iOS app bundles no custom sound, and APNs drops
+                      // silently to the default tone for one it cannot find --
+                      // so naming a missing file bought nothing and hid the
+                      // fact that it was never playing. Restore a custom sound
+                      // here only once the app actually ships the .caf.
+                      sound: 'default',
                       'content-available': 1,
                       ...(isNewOrderAlert ? { 'interruption-level': 'time-sensitive' } : {})
                   }
