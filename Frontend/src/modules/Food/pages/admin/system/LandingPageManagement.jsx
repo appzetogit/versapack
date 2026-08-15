@@ -1467,7 +1467,7 @@ export default function LandingPageManagement() {
                 <input
                   ref={topBannersFileInputRef}
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm"
                   multiple
                   onChange={handleTopBannerFileSelect}
                   className="hidden"
@@ -1614,7 +1614,7 @@ export default function LandingPageManagement() {
                 <input
                   ref={bannersFileInputRef}
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm"
                   multiple
                   onChange={handleBannerFileSelect}
                   className="hidden"
@@ -1760,7 +1760,7 @@ export default function LandingPageManagement() {
                 <input
                   ref={under250BannersFileInputRef}
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm"
                   multiple
                   onChange={handleUnder250BannerFileSelect}
                   className="hidden"
@@ -1876,7 +1876,7 @@ export default function LandingPageManagement() {
                 <input
                   ref={diningBannersFileInputRef}
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm"
                   multiple
                   onChange={handleDiningBannerFileSelect}
                   className="hidden"

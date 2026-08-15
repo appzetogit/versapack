@@ -122,6 +122,7 @@ import exploreOffers from "@food/assets/explore more icons/offers.png";
 import exploreGourmet from "@food/assets/explore more icons/gourmet.png";
 import exploreTop10 from "@food/assets/explore more icons/top 10.png";
 import exploreCollection from "@food/assets/explore more icons/collection.png";
+import { isVideoUrl } from "@food/utils/mediaType";
 
 // Banner images for hero carousel - will be fetched from API
 
@@ -1430,7 +1431,10 @@ export default function Home() {
   // Preload hero images to avoid white blink during slide transition.
   useEffect(() => {
     heroBannerImages.forEach((src) => {
-      if (!src) return;
+      // Videos are skipped: an Image() cannot decode one, so this would fetch
+      // the whole clip only to discard it — the <video> element's own preload
+      // handles them.
+      if (!src || isVideoUrl(src)) return;
       const img = new window.Image();
       img.src = src;
     });
@@ -2929,14 +2933,32 @@ export default function Home() {
                   zIndex: currentBannerIndex === index ? 2 : 1,
                   pointerEvents: "none",
                 }}>
-                <img
-                  src={image}
-                  alt={`Hero Banner ${index + 1}`}
-                  className="h-full w-full object-cover"
-                  loading={index === currentBannerIndex ? "eager" : "lazy"}
-                  fetchPriority={index === currentBannerIndex ? "high" : "low"}
-                  draggable={false}
-                />
+                {isVideoUrl(image) ? (
+                  // muted + playsInline are what make autoplay legal on mobile
+                  // Safari and Chrome. Without muted the browser silently
+                  // refuses to start and the banner stays a black rectangle.
+                  // Off-screen slides fetch metadata only, so a carousel of
+                  // clips does not pull every file down on a phone connection.
+                  <video
+                    src={image}
+                    className="h-full w-full object-cover"
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    preload={index === currentBannerIndex ? "auto" : "metadata"}
+                    aria-label={`Hero Banner ${index + 1}`}
+                  />
+                ) : (
+                  <img
+                    src={image}
+                    alt={`Hero Banner ${index + 1}`}
+                    className="h-full w-full object-cover"
+                    loading={index === currentBannerIndex ? "eager" : "lazy"}
+                    fetchPriority={index === currentBannerIndex ? "high" : "low"}
+                    draggable={false}
+                  />
+                )}
               </div>
             ))}
           </div>

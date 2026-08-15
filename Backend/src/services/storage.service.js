@@ -14,6 +14,39 @@ const ALLOWED_MIME_TYPES = new Set([
     'image/gif'
 ]);
 
+/**
+ * Video formats accepted for banners.
+ *
+ * Only the two every browser can play natively. Deliberately not .mov/.avi/.mkv:
+ * nothing here transcodes, so a format the browser cannot decode would upload
+ * cleanly, store fine, and then show an admin a blank banner with no error to
+ * explain it.
+ */
+const VIDEO_MIME_TYPES = new Map([
+    ['video/mp4', '.mp4'],
+    ['video/webm', '.webm']
+]);
+
+/**
+ * Confirms the bytes match the declared type.
+ *
+ * The mimetype on a multipart upload is supplied by the client and is not
+ * evidence of anything. These files are written under the same origin the app
+ * is served from, so accepting an arbitrary buffer because its header claimed
+ * video/mp4 would be a way to host active content on our own domain.
+ */
+const looksLikeDeclaredVideo = (buffer, mimeType) => {
+    if (!Buffer.isBuffer(buffer) || buffer.length < 12) return false;
+
+    if (mimeType === 'video/webm') {
+        // EBML header, shared with Matroska.
+        return buffer[0] === 0x1a && buffer[1] === 0x45 && buffer[2] === 0xdf && buffer[3] === 0xa3;
+    }
+
+    // ISO base media: a size field, then the literal 'ftyp' at offset 4.
+    return buffer.toString('ascii', 4, 8) === 'ftyp';
+};
+
 const WEBP_MIME = 'image/webp';
 const GIF_MIME = 'image/gif';
 const FOLDER_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9/_-]*$/;
@@ -183,8 +216,33 @@ export const saveImageFile = async (file, folder) => {
     }
 
     const mimeType = String(file.mimetype || '').toLowerCase();
+
+    // Video is stored byte-for-byte: sharp cannot read it, and there is no
+    // transcoding step here. The size ceiling in the upload middleware is what
+    // keeps this reasonable.
+    if (VIDEO_MIME_TYPES.has(mimeType)) {
+        if (!looksLikeDeclaredVideo(file.buffer, mimeType)) {
+            throw new ValidationError('That file is not a valid MP4 or WebM video');
+        }
+
+        const safeVideoFolder = sanitizeUploadFolder(folder);
+        const videoFilename = buildFilename(VIDEO_MIME_TYPES.get(mimeType));
+        const videoRelativePath = path.posix.join(safeVideoFolder, videoFilename);
+
+        await ensureUploadStorageReady(safeVideoFolder);
+        await fs.writeFile(getAbsolutePath(videoRelativePath), file.buffer);
+
+        return {
+            url: buildPublicUrl(videoRelativePath),
+            path: videoRelativePath,
+            filename: videoFilename,
+            mimeType,
+            size: file.buffer.length
+        };
+    }
+
     if (!ALLOWED_MIME_TYPES.has(mimeType)) {
-        throw new ValidationError('Only JPEG, PNG, WebP, and GIF images are allowed');
+        throw new ValidationError('Only JPEG, PNG, WebP, GIF, MP4 and WebM files are allowed');
     }
 
     const safeFolder = sanitizeUploadFolder(folder);

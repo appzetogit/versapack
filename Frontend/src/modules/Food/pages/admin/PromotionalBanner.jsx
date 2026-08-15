@@ -372,7 +372,7 @@ export default function PromotionalBanner() {
                           <p className="text-[10px] text-slate-400 font-medium uppercase tracking-widest">Upload 5:1 Image</p>
                         </div>
                       )}
-                      <input type="file" accept="image/*" onChange={handleFileChange} className="absolute inset-0 opacity-0 cursor-pointer" />
+                      <input type="file" accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm" onChange={handleFileChange} className="absolute inset-0 opacity-0 cursor-pointer" />
                     </div>
                     <p className="text-[10px] text-slate-400">JPEG, PNG or WebP. Max 2MB.</p>
                   </div>
