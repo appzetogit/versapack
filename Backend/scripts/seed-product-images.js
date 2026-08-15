@@ -220,13 +220,22 @@ async function main() {
   let withImage = 0;
   let noImage = 0;
 
-  for (const [name, brand, packSize, price, mrp, gstRate, stockQty, categoryName, term] of CATALOGUE) {
+  for (const [catalogueIndex, [name, brand, packSize, price, mrp, gstRate, stockQty, categoryName, term]] of CATALOGUE.entries()) {
     const category = categoryByName.get(categoryName);
 
     for (const [index, seller] of sellers.entries()) {
-      // The second seller carries a subset at a slightly higher price, so the
-      // same product genuinely appears from two sellers.
-      if (index > 0 && created % 3 === 0) continue;
+      // Which products a seller stocks is decided per (seller, product), not by
+      // a running counter.
+      //
+      // The previous rule skipped on `created % 3`, a global counter that
+      // advanced as other sellers were written — so whether a seller got a
+      // product depended on how many had been created before it. In practice
+      // three sellers ended up with the full catalogue and four with nothing
+      // at all, which is not a subset, just an accident.
+      //
+      // Every third product is held back from every seller after the first, so
+      // catalogues still differ between sellers, but each one is stocked.
+      if (index > 0 && catalogueIndex % 3 === 2) continue;
       const sellerPrice = index > 0 ? Math.min(Math.round(price * 1.05), mrp || price) : price;
 
       const existing = await FoodItem.findOne({ restaurantId: seller._id, name })
