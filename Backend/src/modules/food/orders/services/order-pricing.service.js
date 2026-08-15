@@ -252,9 +252,6 @@ export function resolveUserDeliveryFee(feeSettings = {}, { subtotal = 0, distanc
 }
 
 export function calculateRiderEarning(feeSettings = {}, distanceKm) {
-  const distance = Number(distanceKm);
-  if (!Number.isFinite(distance) || distance < 0) return 0;
-
   const ranges = Array.isArray(feeSettings.deliveryFeeRanges)
     ? feeSettings.deliveryFeeRanges
     : [];
@@ -262,16 +259,39 @@ export function calculateRiderEarning(feeSettings = {}, distanceKm) {
 
   // basePay and perKm are mutually exclusive (the admin UI enforces this too):
   // a flat basePay wins, otherwise pay per km of the actual trip.
-  const payFor = (range) => {
+  const payFor = (range, km) => {
     const basePay = Number(range?.deliveryBoyBasePay || 0);
     const perKm = Number(range?.deliveryBoyPerKm || 0);
 
     if (basePay > 0) return basePay;
-    if (perKm > 0) return distance * perKm;
+    if (perKm > 0) return km * perKm;
     return 0;
   };
 
-  const matched = matchFeeRange(ranges, distance, payFor);
+  // An unknown distance is not a zero-kilometre trip.
+  //
+  // Number(null) is 0, and 0 is finite and non-negative, so coercing before
+  // testing made every order whose distance could not be resolved look like a
+  // delivery to the shop's own door. calculateDistanceKm returns null (not 0)
+  // when either endpoint lacks coordinates, and resolveUserDeliveryFee already
+  // tells the two apart -- it tests Number.isFinite on the raw value, which is
+  // false for null. This did not, so the customer correctly fell back to the
+  // base fee while the rider was paid for 0 km.
+  //
+  // Falls back to the shortest band, mirroring the customer side's fallback to
+  // the base fee. Deliberately not the widest band: one missing coordinate
+  // should not trigger a full long-distance payout. A perKm-only band is
+  // credited one kilometre so a real delivery never pays nothing.
+  if (distanceKm === null || distanceKm === undefined || distanceKm === '') {
+    const shortest = [...ranges].sort((a, b) => Number(a?.min ?? 0) - Number(b?.min ?? 0))[0];
+    const guaranteed = payFor(shortest, 1);
+    return Number.isFinite(guaranteed) ? Math.round(guaranteed) : 0;
+  }
+
+  const distance = Number(distanceKm);
+  if (!Number.isFinite(distance) || distance < 0) return 0;
+
+  const matched = matchFeeRange(ranges, distance, (range) => payFor(range, distance));
   // A matched band is authoritative — including an explicit 0.
   if (matched != null && Number.isFinite(matched)) return Math.round(matched);
 
@@ -282,7 +302,7 @@ export function calculateRiderEarning(feeSettings = {}, distanceKm) {
   const widest = [...ranges].sort(
     (a, b) => Number(a?.max ?? 0) - Number(b?.max ?? 0),
   )[ranges.length - 1];
-  const fallback = payFor(widest);
+  const fallback = payFor(widest, distance);
   return Number.isFinite(fallback) ? Math.round(fallback) : 0;
 }
 
