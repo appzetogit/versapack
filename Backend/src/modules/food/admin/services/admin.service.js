@@ -3057,6 +3057,12 @@ export async function updateRestaurantById(id, body = {}) {
     if (body.autoAcceptOrders !== undefined) {
         doc.autoAcceptOrders = parseBooleanLike(body.autoAcceptOrders, 'autoAcceptOrders');
     }
+    // Same reasoning, with money attached: this excludes the seller from
+    // monthly subscription invoicing entirely, so it must never be reachable
+    // from the seller's own panel.
+    if (body.billingExempt !== undefined) {
+        doc.billingExempt = parseBooleanLike(body.billingExempt, 'billingExempt');
+    }
     if (body.isAcceptingOrders !== undefined) {
         doc.isAcceptingOrders = parseBooleanLike(body.isAcceptingOrders, 'isAcceptingOrders');
         doc.outsideHoursOverride = false;

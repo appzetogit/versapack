@@ -105,6 +105,9 @@ const normalizeDetailsFormFromRestaurant = (restaurant) => {
       restaurant?.estimatedDeliveryTime ??
       "",
     offer: restaurant?.offer || "",
+    // Defaults to false rather than true: a seller who predates this field has
+    // no value stored, and defaulting to exempt would quietly stop billing them.
+    billingExempt: restaurant?.billingExempt === true,
     openingTime: restaurant?.openingTime || restaurant?.deliveryTimings?.openingTime || "",
     closingTime: restaurant?.closingTime || restaurant?.deliveryTimings?.closingTime || "",
     isActive: restaurant?.isActive !== false,
@@ -330,6 +333,7 @@ export default function EditRestaurant() {
       const payload = {
         name: detailsForm.name,
         pureVegRestaurant: detailsForm.pureVegRestaurant === true,
+        billingExempt: detailsForm.billingExempt === true,
         ownerName: detailsForm.ownerName,
         ownerEmail: detailsForm.ownerEmail,
         ownerPhone: detailsForm.ownerPhone,
@@ -574,6 +578,37 @@ export default function EditRestaurant() {
                 <div>
                   <Label>Primary Email</Label>
                   <Input value={detailsForm.email} onChange={(e) => setDetailsForm((p) => ({ ...p, email: e.target.value }))} />
+                </div>
+                <div>
+                  <Label>Exempt from Subscription Billing</Label>
+                  <div className="mt-2 flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setDetailsForm((p) => ({ ...p, billingExempt: true }))}
+                      className={`px-3 py-1.5 text-xs rounded-full border ${
+                        detailsForm.billingExempt === true
+                          ? "bg-amber-600 text-white border-amber-600"
+                          : "bg-white text-slate-700 border-slate-300"
+                      }`}
+                    >
+                      Exempt
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDetailsForm((p) => ({ ...p, billingExempt: false }))}
+                      className={`px-3 py-1.5 text-xs rounded-full border ${
+                        detailsForm.billingExempt === false
+                          ? "bg-slate-900 text-white border-slate-900"
+                          : "bg-white text-slate-700 border-slate-300"
+                      }`}
+                    >
+                      Billed
+                    </button>
+                  </div>
+                  <p className="mt-1.5 text-[11px] text-slate-500">
+                    Exempt sellers are skipped by the monthly invoice run. Use for demo
+                    stores, trials and bespoke arrangements — it does not stop them trading.
+                  </p>
                 </div>
                 <div>
                   <Label>Owner Name</Label>
