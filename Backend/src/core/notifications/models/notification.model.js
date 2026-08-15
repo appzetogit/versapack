@@ -35,7 +35,11 @@ const notificationSchema = new mongoose.Schema(
         },
         source: {
             type: String,
-            enum: ['ADMIN_BROADCAST', 'FSSAI_EXPIRY', 'SUPPORT_RESPONSE'],
+            // SUBSCRIPTION_BILLING was missing, so every billing notification
+            // failed validation and was thrown away: sellers were invoiced and
+            // never told. The invoice itself saved regardless, which is why this
+            // went unnoticed — only a warning in the log marked it.
+            enum: ['ADMIN_BROADCAST', 'FSSAI_EXPIRY', 'SUPPORT_RESPONSE', 'SUBSCRIPTION_BILLING'],
             default: 'ADMIN_BROADCAST',
             index: true
         },
