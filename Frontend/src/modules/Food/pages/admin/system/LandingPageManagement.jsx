@@ -352,7 +352,7 @@ export default function LandingPageManagement() {
    * thing a banner upload carries, and a slow connection can spend minutes on
    * one before the server says no.
    */
-  const MAX_BANNER_MB = 25
+  const MAX_BANNER_MB = 50
 
   const oversizedFile = (files) =>
     files.find((file) => file.size > MAX_BANNER_MB * 1024 * 1024)
