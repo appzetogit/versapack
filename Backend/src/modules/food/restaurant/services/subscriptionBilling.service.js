@@ -246,7 +246,10 @@ export async function runMonthlyBilling(billingMonth, { generatedBy = "system" }
   );
 
   const settings = (await getRestaurantSubscriptionSettings()) || {};
-  const restaurants = await FoodRestaurant.find({ status: "approved" })
+  // $ne: true rather than false — every seller predating this field has no
+  // value at all, and { billingExempt: false } would match none of them and
+  // silently bill nobody.
+  const restaurants = await FoodRestaurant.find({ status: "approved", billingExempt: { $ne: true } })
     .select("_id restaurantName")
     .lean();
 
