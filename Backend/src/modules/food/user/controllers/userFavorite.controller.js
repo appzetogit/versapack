@@ -18,7 +18,7 @@ export async function addFavoriteRestaurantController(req, res, next) {
             me(req),
             req.params.restaurantId
         );
-        return sendResponse(res, 200, 'Restaurant added to favorites', data);
+        return sendResponse(res, 200, 'Store added to favorites', data);
     } catch (err) {
         next(err);
     }
@@ -30,7 +30,7 @@ export async function removeFavoriteRestaurantController(req, res, next) {
             me(req),
             req.params.restaurantId
         );
-        return sendResponse(res, 200, 'Restaurant removed from favorites', data);
+        return sendResponse(res, 200, 'Store removed from favorites', data);
     } catch (err) {
         next(err);
     }

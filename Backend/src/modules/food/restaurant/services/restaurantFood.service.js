@@ -246,14 +246,14 @@ const buildAvailabilityUpdate = (body = {}) => {
 
 const getRestaurantContext = async (restaurantId) => {
     if (!restaurantId || !mongoose.Types.ObjectId.isValid(String(restaurantId))) {
-        throw new ValidationError('Invalid restaurant id');
+        throw new ValidationError('Invalid store id');
     }
 
     const restaurant = await FoodRestaurant.findById(restaurantId)
         .select('pureVegRestaurant')
         .lean();
     if (!restaurant?._id) {
-        throw new ValidationError('Restaurant not found');
+        throw new ValidationError('Store not found');
     }
 
     return {
@@ -317,7 +317,7 @@ const resolveCategoryForRestaurant = async (context, body = {}) => {
     }
 
     if (!category?._id) {
-        throw new ValidationError('Category not found for this restaurant');
+        throw new ValidationError('Category not found for this store');
     }
 
     await backfillLegacyCategoryWorkflow([category]);
@@ -326,7 +326,7 @@ const resolveCategoryForRestaurant = async (context, body = {}) => {
         throw new ValidationError('This category is awaiting admin approval');
     }
     if (context.pureVegRestaurant && String(category.foodTypeScope || '') !== 'Veg') {
-        throw new ValidationError('Pure veg restaurants can only use veg categories');
+        throw new ValidationError('Pure veg stores can only use veg categories');
     }
     if (!categoryAllowsFoodType(category.foodTypeScope, foodType)) {
         throw new ValidationError(`This ${category.foodTypeScope} category cannot accept ${foodType} food`);

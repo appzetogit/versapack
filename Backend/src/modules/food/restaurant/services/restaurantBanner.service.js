@@ -18,10 +18,10 @@ const readBanners = (doc) =>
 
 const loadRestaurant = async (restaurantId) => {
     if (!restaurantId || !mongoose.Types.ObjectId.isValid(String(restaurantId))) {
-        throw new ValidationError('Invalid restaurant id');
+        throw new ValidationError('Invalid store id');
     }
     const doc = await FoodRestaurant.findById(restaurantId).select('coverImages profileImage').lean();
-    if (!doc) throw new ValidationError('Restaurant not found');
+    if (!doc) throw new ValidationError('Store not found');
     return doc;
 };
 
@@ -42,12 +42,12 @@ const MAX_GALLERY = 10;
 /** Main cover image + premises gallery (the photos the rider sees at pickup). */
 export const getRestaurantMedia = async (restaurantId) => {
     if (!restaurantId || !mongoose.Types.ObjectId.isValid(String(restaurantId))) {
-        throw new ValidationError('Invalid restaurant id');
+        throw new ValidationError('Invalid store id');
     }
     const doc = await FoodRestaurant.findById(restaurantId)
         .select('coverImage galleryImages coverImages profileImage')
         .lean();
-    if (!doc) throw new ValidationError('Restaurant not found');
+    if (!doc) throw new ValidationError('Store not found');
 
     const gallery = (Array.isArray(doc.galleryImages) ? doc.galleryImages : []).map(toUrl).filter(Boolean);
     return {
@@ -60,7 +60,7 @@ export const getRestaurantMedia = async (restaurantId) => {
 /** Replace the single main cover image. */
 export const uploadRestaurantCoverImage = async (restaurantId, file) => {
     if (!restaurantId || !mongoose.Types.ObjectId.isValid(String(restaurantId))) {
-        throw new ValidationError('Invalid restaurant id');
+        throw new ValidationError('Invalid store id');
     }
     if (!file?.buffer) throw new ValidationError('Cover image file is required');
 
@@ -75,13 +75,13 @@ export const uploadRestaurantCoverImage = async (restaurantId, file) => {
 /** Append premises photos, capped at MAX_GALLERY. */
 export const uploadRestaurantGalleryImages = async (restaurantId, files = []) => {
     if (!restaurantId || !mongoose.Types.ObjectId.isValid(String(restaurantId))) {
-        throw new ValidationError('Invalid restaurant id');
+        throw new ValidationError('Invalid store id');
     }
     const valid = (Array.isArray(files) ? files : []).filter((f) => f?.buffer);
     if (valid.length === 0) throw new ValidationError('At least one image file is required');
 
     const doc = await FoodRestaurant.findById(restaurantId).select('galleryImages').lean();
-    if (!doc) throw new ValidationError('Restaurant not found');
+    if (!doc) throw new ValidationError('Store not found');
 
     const existing = (Array.isArray(doc.galleryImages) ? doc.galleryImages : []).map(toUrl).filter(Boolean);
     const room = MAX_GALLERY - existing.length;
@@ -113,13 +113,13 @@ export const uploadRestaurantGalleryImages = async (restaurantId, files = []) =>
 /** Remove one gallery photo by exact URL. */
 export const deleteRestaurantGalleryImage = async (restaurantId, imageUrl) => {
     if (!restaurantId || !mongoose.Types.ObjectId.isValid(String(restaurantId))) {
-        throw new ValidationError('Invalid restaurant id');
+        throw new ValidationError('Invalid store id');
     }
     const url = String(imageUrl || '').trim();
     if (!url) throw new ValidationError('imageUrl is required');
 
     const doc = await FoodRestaurant.findById(restaurantId).select('galleryImages').lean();
-    if (!doc) throw new ValidationError('Restaurant not found');
+    if (!doc) throw new ValidationError('Store not found');
 
     const existing = (Array.isArray(doc.galleryImages) ? doc.galleryImages : []).map(toUrl).filter(Boolean);
     if (!existing.includes(url)) throw new ValidationError('Image not found in this gallery');
@@ -180,7 +180,7 @@ export const deleteRestaurantBanner = async (restaurantId, bannerUrl) => {
     if (!url) throw new ValidationError('bannerUrl is required');
 
     const existing = readBanners(doc);
-    if (!existing.includes(url)) throw new ValidationError('Banner not found on this restaurant');
+    if (!existing.includes(url)) throw new ValidationError('Banner not found on this store');
 
     const banners = existing.filter((b) => b !== url);
     await FoodRestaurant.findByIdAndUpdate(restaurantId, { $set: { coverImages: banners } });
@@ -202,7 +202,7 @@ export const reorderRestaurantBanners = async (restaurantId, orderedUrls) => {
     if (next.length === 0) throw new ValidationError('banners must be a non-empty array of URLs');
 
     const unknown = next.find((u) => !existing.includes(u));
-    if (unknown) throw new ValidationError('Cannot reorder: one or more banners do not belong to this restaurant');
+    if (unknown) throw new ValidationError('Cannot reorder: one or more banners do not belong to this store');
     if (new Set(next).size !== next.length) throw new ValidationError('Duplicate banners in the order');
     if (next.length !== existing.length) {
         throw new ValidationError(`Send all ${existing.length} banners in the desired order`);

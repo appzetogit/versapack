@@ -722,7 +722,7 @@ export const registerRestaurant = async (payload, files) => {
     } = payload;
 
     if (!ownerPhone) {
-        throw new ValidationError('Owner phone is required to register a restaurant');
+        throw new ValidationError('Owner phone is required to register a store');
     }
 
     const { digits: ownerPhoneDigits, last10: ownerPhoneLast10 } = normalizePhone(ownerPhone);
@@ -732,7 +732,7 @@ export const registerRestaurant = async (payload, files) => {
 
     const restaurantNameNormalized = normalizeName(restaurantName);
     if (!restaurantNameNormalized) {
-        throw new ValidationError('Restaurant name is required to register a restaurant');
+        throw new ValidationError('Store name is required to register a store');
     }
 
     /**
@@ -1017,7 +1017,7 @@ export const registerRestaurant = async (payload, files) => {
     } catch (err) {
         // Handle uniqueness conflicts deterministically (race-safe).
         if (err && (err.code === 11000 || err?.name === 'MongoServerError')) {
-            throw new ValidationError('Restaurant with this name and owner phone already exists');
+            throw new ValidationError('Store with this name and owner phone already exists');
         }
         throw err;
     }
@@ -1114,7 +1114,7 @@ const enrichRestaurantProfileWithAvailability = async (profile, doc) => {
 
 export const updateRestaurantAcceptingOrders = async (restaurantId, isAcceptingOrders) => {
     if (!restaurantId) {
-        throw new ValidationError('Invalid restaurant id');
+        throw new ValidationError('Invalid store id');
     }
     const value = Boolean(isAcceptingOrders);
     // Offline = manual force-offline. Online = clear override and follow outlet timings.
@@ -1172,7 +1172,7 @@ export const updateRestaurantAcceptingOrders = async (restaurantId, isAcceptingO
 
 export const updateCurrentRestaurantDiningSettings = async (restaurantId, body = {}) => {
     if (!restaurantId) {
-        throw new ValidationError('Invalid restaurant id');
+        throw new ValidationError('Invalid store id');
     }
 
     const currentRestaurant = await FoodRestaurant.findById(restaurantId)
@@ -1180,7 +1180,7 @@ export const updateCurrentRestaurantDiningSettings = async (restaurantId, body =
         .lean();
 
     if (!currentRestaurant) {
-        throw new ValidationError('Restaurant not found');
+        throw new ValidationError('Store not found');
     }
 
     const currentDiningSettings =
@@ -1298,7 +1298,7 @@ export const updateCurrentRestaurantDiningSettings = async (restaurantId, body =
 
 export const updateRestaurantProfile = async (restaurantId, body = {}) => {
     if (!restaurantId) {
-        throw new ValidationError('Invalid restaurant id');
+        throw new ValidationError('Invalid store id');
     }
 
     const currentRestaurant = await FoodRestaurant.findById(restaurantId)
@@ -1308,7 +1308,7 @@ export const updateRestaurantProfile = async (restaurantId, body = {}) => {
         .lean();
 
     if (!currentRestaurant) {
-        throw new ValidationError('Restaurant not found');
+        throw new ValidationError('Store not found');
     }
 
     const update = {};
@@ -1432,7 +1432,7 @@ export const updateRestaurantProfile = async (restaurantId, body = {}) => {
         const raw = body.name !== undefined ? body.name : body.restaurantName;
         const name = String(raw || '').trim();
         if (!name) {
-            throw new ValidationError('Restaurant name cannot be empty');
+            throw new ValidationError('Store name cannot be empty');
         }
         const normalizedName = normalizeName(name) || undefined;
         const currentName = String(currentRestaurant.restaurantName || '').trim();
@@ -1747,20 +1747,20 @@ export const updateRestaurantProfile = async (restaurantId, body = {}) => {
         return toRestaurantProfile(doc);
     } catch (err) {
         if (err && err.code === 11000) {
-            throw new ValidationError('A restaurant with this name and phone already exists');
+            throw new ValidationError('A store with this name and phone already exists');
         }
         throw err;
     }
 };
 
 export const uploadRestaurantProfileImage = async (restaurantId, file) => {
-    if (!restaurantId) throw new ValidationError('Invalid restaurant id');
+    if (!restaurantId) throw new ValidationError('Invalid store id');
     if (!file?.buffer) throw new ValidationError('Image file is required');
 
     const currentRestaurant = await FoodRestaurant.findById(restaurantId)
         .select('restaurantName status')
         .lean();
-    if (!currentRestaurant) throw new ValidationError('Restaurant not found');
+    if (!currentRestaurant) throw new ValidationError('Store not found');
 
     const url = await uploadImageBuffer(file.buffer, 'food/restaurants/profile');
     const doc = await FoodRestaurant.findByIdAndUpdate(
@@ -1779,7 +1779,7 @@ export const uploadRestaurantProfileImage = async (restaurantId, file) => {
         { new: true, projection: 'profileImage coverImages restaurantName cuisines location menuImages addressLine1 addressLine2 area city state pincode landmark ownerName ownerEmail ownerPhone primaryContactNumber pureVegRestaurant openingTime closingTime openDays status createdAt updatedAt' }
     ).lean();
 
-    if (!doc) throw new ValidationError('Restaurant not found');
+    if (!doc) throw new ValidationError('Store not found');
 
     if (currentRestaurant.status !== 'pending') {
         void notifyAdminsAboutRestaurantProfileReview(restaurantId, currentRestaurant.restaurantName || doc.restaurantName);
@@ -1795,7 +1795,7 @@ export const uploadRestaurantMenuImage = async (file) => {
 };
 
 export const uploadRestaurantCoverImages = async (restaurantId, files = []) => {
-    if (!restaurantId) throw new ValidationError('Invalid restaurant id');
+    if (!restaurantId) throw new ValidationError('Invalid store id');
     if (!Array.isArray(files) || files.length === 0) {
         throw new ValidationError('At least one image file is required');
     }
@@ -1808,7 +1808,7 @@ export const uploadRestaurantCoverImages = async (restaurantId, files = []) => {
     const currentRestaurant = await FoodRestaurant.findById(restaurantId)
         .select('restaurantName status profileImage coverImages')
         .lean();
-    if (!currentRestaurant) throw new ValidationError('Restaurant not found');
+    if (!currentRestaurant) throw new ValidationError('Store not found');
 
     const uploadedUrls = await Promise.all(
         validFiles.slice(0, 20).map((file) => uploadImageBuffer(file.buffer, 'food/restaurants/cover'))
@@ -1855,7 +1855,7 @@ export const uploadRestaurantCoverImages = async (restaurantId, files = []) => {
 };
 
 export const uploadRestaurantMenuImages = async (restaurantId, files = []) => {
-    if (!restaurantId) throw new ValidationError('Invalid restaurant id');
+    if (!restaurantId) throw new ValidationError('Invalid store id');
     if (!Array.isArray(files) || files.length === 0) {
         throw new ValidationError('At least one image file is required');
     }
@@ -1868,7 +1868,7 @@ export const uploadRestaurantMenuImages = async (restaurantId, files = []) => {
     const currentRestaurant = await FoodRestaurant.findById(restaurantId)
         .select('restaurantName status menuImages')
         .lean();
-    if (!currentRestaurant) throw new ValidationError('Restaurant not found');
+    if (!currentRestaurant) throw new ValidationError('Store not found');
 
     const uploadedUrls = await Promise.all(
         validFiles.slice(0, 20).map((file) => uploadImageBuffer(file.buffer, 'food/restaurants/menu'))
@@ -2522,7 +2522,7 @@ export const deleteCurrentRestaurantAccount = async (restaurantId) => {
     const { FoodAddon } = await import('../models/foodAddon.model.js');
 
     const restaurant = await FoodRestaurant.findById(restaurantId);
-    if (!restaurant) throw new NotFoundError('Restaurant not found');
+    if (!restaurant) throw new NotFoundError('Store not found');
 
     // Remove all associated documents
     await FoodRestaurantMenu.findOneAndDelete({ restaurantId });

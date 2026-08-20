@@ -4,7 +4,7 @@ import * as svc from '../services/restaurantAppBanner.service.js';
 // ── Admin ──
 export async function listBannersAdminController(_req, res, next) {
     try {
-        return sendResponse(res, 200, 'Restaurant app banners fetched', await svc.listBannersAdmin());
+        return sendResponse(res, 200, 'Store app banners fetched', await svc.listBannersAdmin());
     } catch (e) { next(e); }
 }
 

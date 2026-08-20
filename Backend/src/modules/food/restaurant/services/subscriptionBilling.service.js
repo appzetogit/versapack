@@ -392,7 +392,7 @@ export async function applyWalletDeduction(invoiceId, amount, admin, remarks, { 
   }
   if (maxDeductible != null && deductAmount > round2(maxDeductible)) {
     throw new ValidationError(
-      `Deduction ₹${deductAmount} exceeds the restaurant's wallet balance of ₹${round2(maxDeductible)}`,
+      `Deduction ₹${deductAmount} exceeds the store's wallet balance of ₹${round2(maxDeductible)}`,
     );
   }
 

@@ -36,7 +36,7 @@ export const registerRestaurantController = async (req, res, next) => {
     try {
         const validated = validateRestaurantRegisterDto(req.body);
         const restaurant = await registerRestaurant(validated, req.files);
-        return sendResponse(res, 201, 'Restaurant registered successfully', restaurant);
+        return sendResponse(res, 201, 'Store registered successfully', restaurant);
     } catch (error) {
         next(error);
     }
@@ -55,7 +55,7 @@ export const createOnboardingFeeOrderController = async (req, res, next) => {
 export const listApprovedRestaurantsController = async (req, res, next) => {
     try {
         const data = await listApprovedRestaurants(req.query);
-        return sendResponse(res, 200, 'Restaurants fetched successfully', data);
+        return sendResponse(res, 200, 'Stores fetched successfully', data);
     } catch (error) {
         next(error);
     }
@@ -67,7 +67,7 @@ export const getApprovedRestaurantController = async (req, res, next) => {
         if (!restaurant) {
             return res.status(404).json({ success: false, message: 'Restaurant not found' });
         }
-        return sendResponse(res, 200, 'Restaurant fetched successfully', { restaurant });
+        return sendResponse(res, 200, 'Store fetched successfully', { restaurant });
     } catch (error) {
         next(error);
     }
@@ -77,7 +77,7 @@ export const getCurrentRestaurantController = async (req, res, next) => {
     try {
         const restaurantId = req.user?.userId;
         const restaurant = await getCurrentRestaurantProfile(restaurantId);
-        return sendResponse(res, 200, 'Restaurant fetched successfully', { restaurant });
+        return sendResponse(res, 200, 'Store fetched successfully', { restaurant });
     } catch (error) {
         next(error);
     }
@@ -87,7 +87,7 @@ export const updateRestaurantProfileController = async (req, res, next) => {
     try {
         const restaurantId = req.user?.userId;
         const restaurant = await updateRestaurantProfile(restaurantId, req.body || {});
-        return sendResponse(res, 200, 'Restaurant updated successfully', { restaurant });
+        return sendResponse(res, 200, 'Store updated successfully', { restaurant });
     } catch (error) {
         next(error);
     }
@@ -97,7 +97,7 @@ export const updateRestaurantAcceptingOrdersController = async (req, res, next) 
     try {
         const restaurantId = req.user?.userId;
         const restaurant = await updateRestaurantAcceptingOrders(restaurantId, req.body?.isAcceptingOrders);
-        return sendResponse(res, 200, 'Restaurant availability updated successfully', { restaurant });
+        return sendResponse(res, 200, 'Store availability updated successfully', { restaurant });
     } catch (error) {
         next(error);
     }
@@ -136,7 +136,7 @@ export const uploadRestaurantCoverImagesController = async (req, res, next) => {
     try {
         const restaurantId = req.user?.userId;
         const result = await uploadRestaurantCoverImages(restaurantId, req.files || []);
-        return sendResponse(res, 200, 'Restaurant photos uploaded successfully', result);
+        return sendResponse(res, 200, 'Store photos uploaded successfully', result);
     } catch (error) {
         next(error);
     }
@@ -175,7 +175,7 @@ export const deleteCurrentRestaurantAccountController = async (req, res, next) =
     try {
         const restaurantId = req.user?.userId;
         const result = await deleteCurrentRestaurantAccount(restaurantId);
-        return sendResponse(res, 200, 'Restaurant account deleted successfully', result);
+        return sendResponse(res, 200, 'Store account deleted successfully', result);
     } catch (error) {
         next(error);
     }
@@ -204,7 +204,7 @@ export const registerUnregisteredRestaurantController = async (req, res, next) =
             emailId,
             location
         });
-        return sendResponse(res, 201, 'Restaurant details submitted successfully', newUnregistered);
+        return sendResponse(res, 201, 'Store details submitted successfully', newUnregistered);
     } catch (error) {
         next(error);
     }

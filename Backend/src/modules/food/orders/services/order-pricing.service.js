@@ -52,7 +52,7 @@ const applyDeliveryModePricing = (pricing, deliveryMode, quickSurcharge = 0) => 
 
 export async function loadRestaurantForOrdering(restaurantId) {
   if (!restaurantId || !mongoose.Types.ObjectId.isValid(String(restaurantId))) {
-    throw new ValidationError('Restaurant not found');
+    throw new ValidationError('Store not found');
   }
 
   const doc = await FoodRestaurant.findById(restaurantId)
@@ -64,8 +64,8 @@ export async function loadRestaurantForOrdering(restaurantId) {
     )
     .lean();
 
-  if (!doc) throw new ValidationError('Restaurant not found');
-  if (doc.status !== 'approved') throw new ValidationError('Restaurant not available');
+  if (!doc) throw new ValidationError('Store not found');
+  if (doc.status !== 'approved') throw new ValidationError('Store not available');
 
   const [withTimings] = await attachOutletTimingsToRestaurants([doc], {
     useDefaults: false,
@@ -81,10 +81,10 @@ export function assertRestaurantOpenForOrdering(restaurant, at = new Date()) {
   if (availability.isOpen) return availability;
 
   if (availability.reason === 'not-accepting-orders') {
-    throw new ValidationError('Restaurant is currently offline. Please try again later.');
+    throw new ValidationError('Store is currently offline. Please try again later.');
   }
 
-  throw new ValidationError('Restaurant is currently closed. Please try again later.');
+  throw new ValidationError('Store is currently closed. Please try again later.');
 }
 
 /**

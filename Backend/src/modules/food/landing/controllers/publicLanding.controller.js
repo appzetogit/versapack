@@ -94,7 +94,7 @@ export const getPublicGourmetController = async (req, res, next) => {
                 _id: d.restaurant?._id || d.restaurantId,
                 priority: d.priority
             }));
-        return sendResponse(res, 200, 'Gourmet restaurants fetched', { restaurants });
+        return sendResponse(res, 200, 'Gourmet stores fetched', { restaurants });
     } catch (error) {
         next(error);
     }

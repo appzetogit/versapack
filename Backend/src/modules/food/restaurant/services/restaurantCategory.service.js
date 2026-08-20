@@ -19,14 +19,14 @@ const APPROVED_CATEGORY_FILTER = [
 
 const getRestaurantContext = async (restaurantId) => {
     if (!restaurantId || !mongoose.Types.ObjectId.isValid(String(restaurantId))) {
-        throw new ValidationError('Invalid restaurant id');
+        throw new ValidationError('Invalid store id');
     }
 
     const restaurant = await FoodRestaurant.findById(restaurantId)
         .select('zoneId pureVegRestaurant')
         .lean();
     if (!restaurant?._id) {
-        throw new ValidationError('Restaurant not found');
+        throw new ValidationError('Store not found');
     }
 
     return {
@@ -220,7 +220,7 @@ export async function createRestaurantCategory(restaurantId, body = {}) {
         throw new ValidationError('Invalid category diet type');
     }
     if (context.pureVegRestaurant && foodTypeScope !== 'Veg') {
-        throw new ValidationError('Pure veg restaurants can only create veg categories');
+        throw new ValidationError('Pure veg stores can only create veg categories');
     }
 
     const doc = new FoodCategory({
@@ -260,7 +260,7 @@ export async function updateRestaurantCategory(restaurantId, id, body = {}) {
         throw new ValidationError('Invalid category diet type');
     }
     if (context.pureVegRestaurant && nextFoodTypeScope !== 'Veg') {
-        throw new ValidationError('Pure veg restaurants can only keep veg categories');
+        throw new ValidationError('Pure veg stores can only keep veg categories');
     }
 
     if (body.name !== undefined) {

@@ -55,7 +55,7 @@ export const validateCreateOfferDto = (body) => {
             ...(result.data.restaurantId ? [result.data.restaurantId] : [])
         ];
         if (restaurantIds.length === 0 || restaurantIds.some((id) => !mongoose.Types.ObjectId.isValid(id))) {
-            throw new ValidationError('At least one valid restaurant is required for selected restaurant scope');
+            throw new ValidationError('At least one valid store is required for selected store scope');
         }
     }
 
@@ -93,7 +93,7 @@ export const validateCreateOfferDto = (body) => {
     const adminBearPercentage = result.data.adminBearPercentage ?? 100;
     const restaurantBearPercentage = result.data.restaurantBearPercentage ?? 0;
     if (Math.round((adminBearPercentage + restaurantBearPercentage) * 100) / 100 !== 100) {
-        throw new ValidationError('Admin bear and restaurant bear must total 100%');
+        throw new ValidationError('Admin bear and store bear must total 100%');
     }
 
     return {

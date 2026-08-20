@@ -1406,7 +1406,7 @@ export async function getTaxReport(query = {}) {
 
 export async function getTaxReportDetail(restaurantId, query = {}) {
     if (!restaurantId || !mongoose.Types.ObjectId.isValid(restaurantId)) {
-        throw new ValidationError('Invalid restaurant ID');
+        throw new ValidationError('Invalid store ID');
     }
 
     const { fromDate, toDate, taxRate, calculateTax } = query;
@@ -2056,7 +2056,7 @@ export async function getRestaurantCommissionById(id) {
 export async function createRestaurantCommission(body) {
     const exists = await FoodRestaurantCommission.findOne({ restaurantId: body.restaurantId }).lean();
     if (exists) {
-        throw new ValidationError('Commission already exists for this restaurant');
+        throw new ValidationError('Commission already exists for this store');
     }
     const created = await FoodRestaurantCommission.create({
         restaurantId: body.restaurantId,
@@ -3022,7 +3022,7 @@ export async function getUnregisteredRestaurants() {
 }
 
 export async function deleteUnregisteredRestaurant(id) {
-    if (!id || !mongoose.Types.ObjectId.isValid(id)) throw new ValidationError('Invalid unregistered restaurant id');
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) throw new ValidationError('Invalid unregistered store id');
     const deleted = await FoodUnregisteredRestaurant.findByIdAndDelete(id).lean();
     return deleted;
 }
@@ -3040,7 +3040,7 @@ export async function updateRestaurantById(id, body = {}) {
 
     if (body.name !== undefined || body.restaurantName !== undefined) {
         const name = toStr(body.name !== undefined ? body.name : body.restaurantName);
-        if (!name) throw new ValidationError('Restaurant name cannot be empty');
+        if (!name) throw new ValidationError('Store name cannot be empty');
         doc.restaurantName = name;
     }
 
@@ -3446,7 +3446,7 @@ export async function rejectCategory(id, reason) {
     const doc = await FoodCategory.findById(id);
     if (!doc) return null;
     if (!doc.restaurantId && !doc.createdByRestaurantId) {
-        throw new ValidationError('Only restaurant-created categories can be rejected');
+        throw new ValidationError('Only store-created categories can be rejected');
     }
 
     if (!doc.createdByRestaurantId && doc.restaurantId) {
@@ -3875,7 +3875,7 @@ const resolveAdminFoodCategory = async ({ categoryId, categoryName, foodType, pu
 
     if (categoryDoc?.foodTypeScope) {
         if (pureVegRestaurant && String(categoryDoc.foodTypeScope || '') !== 'Veg') {
-            throw new ValidationError('Pure veg restaurants can only use veg categories');
+            throw new ValidationError('Pure veg stores can only use veg categories');
         }
         if (!categoryAllowsFoodType(categoryDoc.foodTypeScope, foodType)) {
             throw new ValidationError(`This ${categoryDoc.foodTypeScope} category cannot accept ${foodType} food`);
@@ -3966,13 +3966,13 @@ export async function createFood(body) {
         .select('pureVegRestaurant')
         .lean();
     if (!restaurant?._id) {
-        throw new ValidationError('Restaurant not found');
+        throw new ValidationError('Store not found');
     }
     const name = typeof body.name === 'string' ? body.name.trim() : '';
     if (!name) throw new ValidationError('Food name is required');
     const foodType = body.foodType === 'Veg' ? 'Veg' : 'Non-Veg';
     if (restaurant.pureVegRestaurant === true && foodType !== 'Veg') {
-        throw new ValidationError('Pure veg restaurants can only use veg foods');
+        throw new ValidationError('Pure veg stores can only use veg foods');
     }
     const { price, otherPrice, variants } = getAdminFoodCreatePricing(body);
 
@@ -4042,13 +4042,13 @@ export async function updateFood(id, body) {
         .select('pureVegRestaurant')
         .lean();
     if (!restaurant?._id) {
-        throw new ValidationError('Restaurant not found');
+        throw new ValidationError('Store not found');
     }
     if (body.name !== undefined) doc.name = String(body.name || '').trim();
     if (body.description !== undefined) doc.description = String(body.description || '').trim();
     const targetFoodType = body.foodType !== undefined ? (body.foodType === 'Veg' ? 'Veg' : 'Non-Veg') : (doc.foodType === 'Veg' ? 'Veg' : 'Non-Veg');
     if (restaurant.pureVegRestaurant === true && targetFoodType !== 'Veg') {
-        throw new ValidationError('Pure veg restaurants can only use veg foods');
+        throw new ValidationError('Pure veg stores can only use veg foods');
     }
     const pricingUpdate = getAdminFoodUpdatedPricing(doc.toObject(), body);
     if (pricingUpdate.price !== undefined) doc.price = pricingUpdate.price;
@@ -4106,7 +4106,7 @@ export async function bulkDeleteFoods({ restaurantId, foodIds = [], selectAll = 
 
     const restaurant = await FoodRestaurant.findById(restaurantId).select('_id').lean();
     if (!restaurant?._id) {
-        throw new ValidationError('Restaurant not found');
+        throw new ValidationError('Store not found');
     }
 
     const filter = { restaurantId: new mongoose.Types.ObjectId(restaurantId) };
@@ -4243,7 +4243,7 @@ export async function createRestaurantByAdmin(body) {
     }
 
     if (!doc.restaurantName || !doc.ownerName) {
-        throw new ValidationError('Restaurant name and owner name are required');
+        throw new ValidationError('Store name and owner name are required');
     }
     if (!doc.ownerPhone && !doc.primaryContactNumber) {
         throw new ValidationError('Owner phone or primary contact number is required');
@@ -4277,7 +4277,7 @@ export async function createRestaurantByAdmin(body) {
             .lean();
 
         if (duplicateRestaurant?._id) {
-            throw new ValidationError('A restaurant with this phone number already exists');
+            throw new ValidationError('A store with this phone number already exists');
         }
 
         const duplicateRestaurantUser = await FoodUser.findOne({
@@ -4288,7 +4288,7 @@ export async function createRestaurantByAdmin(body) {
             .lean();
 
         if (duplicateRestaurantUser?._id) {
-            throw new ValidationError('A restaurant account with this phone number already exists');
+            throw new ValidationError('A store account with this phone number already exists');
         }
     }
 
@@ -6356,7 +6356,7 @@ export async function bulkApproveFoodItems(restaurantId) {
 
 export async function deleteRestaurant(id) {
     if (!id || !mongoose.Types.ObjectId.isValid(id)) {
-        throw new ValidationError('Invalid restaurant ID');
+        throw new ValidationError('Invalid store ID');
     }
 
     const restaurant = await FoodRestaurant.findById(id).lean();

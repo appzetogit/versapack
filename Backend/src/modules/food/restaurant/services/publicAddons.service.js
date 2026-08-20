@@ -55,7 +55,7 @@ export function buildAddonGroups(addons = []) {
 
 export async function getPublicApprovedRestaurantAddons(restaurantIdOrSlug, { foodId } = {}) {
     const value = String(restaurantIdOrSlug || '').trim();
-    if (!value) throw new ValidationError('Restaurant id is required');
+    if (!value) throw new ValidationError('Store id is required');
 
     let restaurant = null;
     if (/^[0-9a-fA-F]{24}$/.test(value)) {

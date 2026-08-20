@@ -408,11 +408,11 @@ export const verifyRestaurantOtpAndLogin = async (phone, otp, fcmToken, platform
 
       // New onboarding requests (no approval + no orders) must stay blocked.
       if (!hasHistoricalApproval && !hasOperationalHistory) {
-        throw new AuthError("Your restaurant registration is pending approval.");
+        throw new AuthError("Your store registration is pending approval.");
       }
     } else {
       throw new AuthError(
-        "Your restaurant registration has been rejected. Please contact support.",
+        "Your store registration has been rejected. Please contact support.",
       );
     }
   }

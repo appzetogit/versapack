@@ -58,7 +58,7 @@ export const getRestaurantWalletController = async (req, res, next) => {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 20;
         const data = await getWalletWithTransactions('restaurant', restaurantId, { page, limit });
-        return sendResponse(res, 200, 'Restaurant wallet fetched', data);
+        return sendResponse(res, 200, 'Store wallet fetched', data);
     } catch (err) {
         next(err);
     }

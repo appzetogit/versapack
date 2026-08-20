@@ -1199,7 +1199,7 @@ export async function getDropOtpUser(orderId, userId) {
 
   if (!isEligible) {
     throw new ValidationError(
-      "Rider is still at the restaurant. Wait for them to pick up your order to see the OTP."
+      "Rider is still at the store. Wait for them to pick up your order to see the OTP."
     );
   }
 

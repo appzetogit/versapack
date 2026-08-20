@@ -124,7 +124,7 @@ const buildMenuFromFoods = async (foods = []) => {
 
 export async function getRestaurantMenu(restaurantId) {
     if (!restaurantId || !mongoose.Types.ObjectId.isValid(String(restaurantId))) {
-        throw new ValidationError('Invalid restaurant id');
+        throw new ValidationError('Invalid store id');
     }
     await restoreExpiredFoodAvailability({ restaurantId });
     const foods = await FoodItem.find({ restaurantId })
@@ -142,7 +142,7 @@ export async function updateRestaurantMenu(restaurantId, body = {}) {
 
 export async function getPublicApprovedRestaurantMenu(restaurantIdOrSlug) {
     const value = String(restaurantIdOrSlug || '').trim();
-    if (!value) throw new ValidationError('Restaurant id is required');
+    if (!value) throw new ValidationError('Store id is required');
 
     let restaurant = null;
     if (/^[0-9a-fA-F]{24}$/.test(value)) {

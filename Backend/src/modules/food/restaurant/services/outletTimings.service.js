@@ -54,7 +54,7 @@ const toClientShape = (doc) => {
 
 export async function getOutletTimingsForRestaurant(restaurantId) {
     if (!restaurantId || !mongoose.Types.ObjectId.isValid(String(restaurantId))) {
-        throw new ValidationError('Invalid restaurant id');
+        throw new ValidationError('Invalid store id');
     }
     const doc = await FoodRestaurantOutletTimings.findOne({ restaurantId }).select('timings updatedAt').lean();
     if (!doc) return { outletTimings: toClientShape({ timings: defaultTimings() }) };
@@ -63,7 +63,7 @@ export async function getOutletTimingsForRestaurant(restaurantId) {
 
 export async function upsertOutletTimingsForRestaurant(restaurantId, outletTimings) {
     if (!restaurantId || !mongoose.Types.ObjectId.isValid(String(restaurantId))) {
-        throw new ValidationError('Invalid restaurant id');
+        throw new ValidationError('Invalid store id');
     }
     if (!outletTimings || typeof outletTimings !== 'object' || Array.isArray(outletTimings)) {
         throw new ValidationError('outletTimings must be an object keyed by day name');

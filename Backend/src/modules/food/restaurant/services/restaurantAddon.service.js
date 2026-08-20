@@ -44,7 +44,7 @@ async function sanitizeFoodIds(restaurantId, foodIds) {
         .lean();
 
     if (owned.length !== ids.length) {
-        throw new ValidationError('One or more selected menu items do not belong to this restaurant');
+        throw new ValidationError('One or more selected menu items do not belong to this store');
     }
     return owned.map((doc) => doc._id);
 }
@@ -99,7 +99,7 @@ const normalizeAddonDoc = (doc) => {
 
 export async function listRestaurantAddons(restaurantId, query = {}) {
     if (!restaurantId || !mongoose.Types.ObjectId.isValid(String(restaurantId))) {
-        throw new ValidationError('Invalid restaurant id');
+        throw new ValidationError('Invalid store id');
     }
     const limit = Math.min(Math.max(parseInt(query.limit, 10) || 100, 1), 100);
     const page = Math.max(parseInt(query.page, 10) || 1, 1);
@@ -139,7 +139,7 @@ export async function listRestaurantAddons(restaurantId, query = {}) {
 
 export async function createRestaurantAddon(restaurantId, body) {
     if (!restaurantId || !mongoose.Types.ObjectId.isValid(String(restaurantId))) {
-        throw new ValidationError('Invalid restaurant id');
+        throw new ValidationError('Invalid store id');
     }
     const rid = new mongoose.Types.ObjectId(String(restaurantId));
     const name = String(body?.name || '').trim();
@@ -207,7 +207,7 @@ export async function createRestaurantAddon(restaurantId, body) {
 
 export async function updateRestaurantAddon(restaurantId, addonId, updateDto) {
     if (!restaurantId || !mongoose.Types.ObjectId.isValid(String(restaurantId))) {
-        throw new ValidationError('Invalid restaurant id');
+        throw new ValidationError('Invalid store id');
     }
     if (!addonId || !mongoose.Types.ObjectId.isValid(String(addonId))) {
         throw new ValidationError('Invalid add-on id');
@@ -300,7 +300,7 @@ export async function updateRestaurantAddon(restaurantId, addonId, updateDto) {
 
 export async function deleteRestaurantAddon(restaurantId, addonId) {
     if (!restaurantId || !mongoose.Types.ObjectId.isValid(String(restaurantId))) {
-        throw new ValidationError('Invalid restaurant id');
+        throw new ValidationError('Invalid store id');
     }
     if (!addonId || !mongoose.Types.ObjectId.isValid(String(addonId))) {
         throw new ValidationError('Invalid add-on id');

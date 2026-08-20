@@ -373,7 +373,7 @@ export async function getSubscriptionBillingSummaryAdmin(query = {}) {
  */
 export async function getRestaurantSubscriptionOverviewAdmin(restaurantId) {
     const rid = toObjectId(restaurantId);
-    if (!rid) throw new ValidationError('Invalid restaurant id');
+    if (!rid) throw new ValidationError('Invalid store id');
 
     const currentMonth = formatBillingMonth(new Date());
     const { start } = getMonthWindow(currentMonth);

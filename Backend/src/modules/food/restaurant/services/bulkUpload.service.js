@@ -181,7 +181,7 @@ export async function processBulkMenuUpload(restaurantId, fileBuffer, options = 
     }
 
     const restaurant = await FoodRestaurant.findById(restaurantId).lean();
-    if (!restaurant) throw new ValidationError('Restaurant not found');
+    if (!restaurant) throw new ValidationError('Store not found');
 
     const items = [];
     const parsingErrors = [];

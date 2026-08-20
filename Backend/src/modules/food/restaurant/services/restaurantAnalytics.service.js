@@ -59,7 +59,7 @@ function parseBoundary(value, fallback, { endOfDay = false } = {}) {
 
 export async function getRestaurantAnalytics(restaurantId, query = {}) {
     if (!restaurantId || !mongoose.Types.ObjectId.isValid(String(restaurantId))) {
-        throw new ValidationError('Invalid restaurant id');
+        throw new ValidationError('Invalid store id');
     }
     const rId = new mongoose.Types.ObjectId(String(restaurantId));
 
