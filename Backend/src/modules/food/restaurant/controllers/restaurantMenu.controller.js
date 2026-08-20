@@ -29,7 +29,7 @@ export const getPublicRestaurantMenuController = async (req, res, next) => {
     try {
         const menu = await getPublicApprovedRestaurantMenu(req.params.id);
         if (!menu) {
-            return res.status(404).json({ success: false, message: 'Restaurant not found' });
+            return res.status(404).json({ success: false, message: 'Store not found' });
         }
         return sendResponse(res, 200, 'Menu fetched successfully', { menu });
     } catch (error) {

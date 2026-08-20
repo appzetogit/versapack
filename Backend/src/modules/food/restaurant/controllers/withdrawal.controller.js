@@ -7,7 +7,7 @@ export const createWithdrawalRequestController = async (req, res, next) => {
         const restaurantId = req.user?.userId;
         const { amount, bankDetails } = req.body;
 
-        if (!restaurantId) return sendError(res, 401, 'Restaurant authentication required');
+        if (!restaurantId) return sendError(res, 401, 'Store authentication required');
         if (!amount || amount <= 0) return sendError(res, 400, 'Invalid withdrawal amount');
 
         // Check if restaurant has enough balance
@@ -47,7 +47,7 @@ export const createWithdrawalRequestController = async (req, res, next) => {
 export const listMyWithdrawalsController = async (req, res, next) => {
     try {
         const restaurantId = req.user?.userId;
-        if (!restaurantId) return sendError(res, 401, 'Restaurant authentication required');
+        if (!restaurantId) return sendError(res, 401, 'Store authentication required');
 
         const withdrawals = await FoodRestaurantWithdrawal.find({ restaurantId })
             .sort({ createdAt: -1 })

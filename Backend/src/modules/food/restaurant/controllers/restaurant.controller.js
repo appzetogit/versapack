@@ -65,7 +65,7 @@ export const getApprovedRestaurantController = async (req, res, next) => {
     try {
         const restaurant = await getApprovedRestaurantByIdOrSlug(req.params.id);
         if (!restaurant) {
-            return res.status(404).json({ success: false, message: 'Restaurant not found' });
+            return res.status(404).json({ success: false, message: 'Store not found' });
         }
         return sendResponse(res, 200, 'Store fetched successfully', { restaurant });
     } catch (error) {

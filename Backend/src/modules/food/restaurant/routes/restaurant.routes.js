@@ -95,7 +95,7 @@ const router = express.Router();
 
 const requireRestaurant = (req, res, next) => {
     if (req.user?.role !== 'RESTAURANT') {
-        return sendError(res, 403, 'Restaurant access required');
+        return sendError(res, 403, 'Store access required');
     }
     next();
 };

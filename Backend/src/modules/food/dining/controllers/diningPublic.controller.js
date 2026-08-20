@@ -12,7 +12,7 @@ export async function getPublicDiningCategories(req, res, next) {
 export async function getPublicDiningRestaurants(req, res, next) {
     try {
         const restaurants = await diningService.listDiningRestaurantsPublic(req.query || {});
-        res.status(200).json({ success: true, message: 'Dining restaurants fetched successfully', data: restaurants });
+        res.status(200).json({ success: true, message: 'Dining stores fetched successfully', data: restaurants });
     } catch (error) {
         next(error);
     }

@@ -6,7 +6,7 @@ export async function getRestaurantAddons(req, res, next) {
     try {
         const query = validateAddonAdminListQuery(req.query || {});
         const data = await adminService.getRestaurantAddonsAdmin(query);
-        res.status(200).json({ success: true, message: 'Restaurant add-ons fetched successfully', data });
+        res.status(200).json({ success: true, message: 'Store add-ons fetched successfully', data });
     } catch (error) {
         next(error);
     }

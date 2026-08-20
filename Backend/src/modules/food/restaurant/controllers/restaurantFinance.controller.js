@@ -4,7 +4,7 @@ import { getRestaurantFinance } from '../services/restaurantFinance.service.js';
 export const getRestaurantFinanceController = async (req, res, next) => {
     try {
         const restaurantId = req.user?.userId;
-        if (!restaurantId) return sendError(res, 401, 'Restaurant authentication required');
+        if (!restaurantId) return sendError(res, 401, 'Store authentication required');
 
         const data = await getRestaurantFinance(restaurantId, req.query || {});
         // `sendResponse` already uses `data` as the top-level payload key.

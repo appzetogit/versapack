@@ -31,7 +31,7 @@ export const listGourmetAdmin = async (req, res, next) => {
         });
         res.status(200).json({
             success: true,
-            message: 'Gourmet restaurants fetched',
+            message: 'Gourmet stores fetched',
             data: { restaurants: list }
         });
     } catch (error) {
@@ -48,7 +48,7 @@ export const createGourmetAdmin = async (req, res, next) => {
         }
         const existing = await FoodGourmetRestaurant.findOne({ restaurantId });
         if (existing) {
-            return res.status(400).json({ success: false, message: 'Restaurant already in Gourmet' });
+            return res.status(400).json({ success: false, message: 'Store already in Gourmet' });
         }
         const count = await FoodGourmetRestaurant.countDocuments();
         const doc = await FoodGourmetRestaurant.create({ restaurantId, priority: count });
@@ -70,7 +70,7 @@ export const createGourmetAdmin = async (req, res, next) => {
         })).filter((r) => r && r._id);
         res.status(201).json({
             success: true,
-            message: 'Restaurant added to Gourmet',
+            message: 'Store added to Gourmet',
             data: { restaurants, item: doc.toObject() }
         });
     } catch (error) {
@@ -86,7 +86,7 @@ export const deleteGourmetAdmin = async (req, res, next) => {
         if (!doc) {
             return res.status(404).json({ success: false, message: 'Gourmet entry not found' });
         }
-        res.status(200).json({ success: true, message: 'Restaurant removed from Gourmet', data: { id } });
+        res.status(200).json({ success: true, message: 'Store removed from Gourmet', data: { id } });
     } catch (error) {
         next(error);
     }

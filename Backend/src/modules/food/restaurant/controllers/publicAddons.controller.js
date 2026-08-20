@@ -9,7 +9,7 @@ export const getPublicRestaurantAddonsController = async (req, res, next) => {
             foodId: req.query?.foodId,
         });
         if (!result) {
-            return res.status(404).json({ success: false, message: 'Restaurant not found' });
+            return res.status(404).json({ success: false, message: 'Store not found' });
         }
         // `addons` keeps its original flat shape for existing clients; `groups` is
         // the grouped, rule-carrying shape the item sheet renders.

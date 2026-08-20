@@ -21,7 +21,7 @@ import { buildPlanCatalog, resolveEligiblePlanByGmv, GST_RATE } from '../service
 export const getSubscriptionOverviewController = async (req, res, next) => {
     try {
         const restaurantId = req.user?.userId;
-        if (!restaurantId) return sendError(res, 401, 'Restaurant authentication required');
+        if (!restaurantId) return sendError(res, 401, 'Store authentication required');
 
         const featureEnabled = await isFeatureEnabled(FEATURE_KEYS.RESTAURANT_SUBSCRIPTION, true);
 
@@ -78,7 +78,7 @@ export const getSubscriptionOverviewController = async (req, res, next) => {
 export const listSubscriptionInvoicesController = async (req, res, next) => {
     try {
         const restaurantId = req.user?.userId;
-        if (!restaurantId) return sendError(res, 401, 'Restaurant authentication required');
+        if (!restaurantId) return sendError(res, 401, 'Store authentication required');
 
         const page = Math.max(1, parseInt(req.query.page, 10) || 1);
         const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), 100);
@@ -110,7 +110,7 @@ export const listSubscriptionInvoicesController = async (req, res, next) => {
 export const getSubscriptionInvoiceController = async (req, res, next) => {
     try {
         const restaurantId = req.user?.userId;
-        if (!restaurantId) return sendError(res, 401, 'Restaurant authentication required');
+        if (!restaurantId) return sendError(res, 401, 'Store authentication required');
         const { invoiceId } = req.params;
         if (!mongoose.Types.ObjectId.isValid(String(invoiceId))) {
             return sendError(res, 400, 'Invalid invoice id');
@@ -141,7 +141,7 @@ export const getSubscriptionInvoiceController = async (req, res, next) => {
 export const listSubscriptionTransactionsController = async (req, res, next) => {
     try {
         const restaurantId = req.user?.userId;
-        if (!restaurantId) return sendError(res, 401, 'Restaurant authentication required');
+        if (!restaurantId) return sendError(res, 401, 'Store authentication required');
 
         const page = Math.max(1, parseInt(req.query.page, 10) || 1);
         const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), 100);

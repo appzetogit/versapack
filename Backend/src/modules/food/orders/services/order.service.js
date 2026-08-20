@@ -388,7 +388,7 @@ async function expireUnacceptedOrders(filter = {}) {
           orderId: updated._id.toString(),
           orderStatus: updated.orderStatus,
           note: "Not accepted by restaurant",
-          message: "Order was not accepted by restaurant in time.",
+          message: "Order was not accepted by store in time.",
         };
         io.to(rooms.user(updated.userId)).emit("order_status_update", payload);
         io.to(rooms.restaurant(updated.restaurantId)).emit("order_status_update", payload);

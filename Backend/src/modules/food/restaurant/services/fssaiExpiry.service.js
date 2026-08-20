@@ -59,7 +59,7 @@ const buildAdminSummary = (restaurant) => {
         fssaiExpiry: expiryDate ? expiryDate.toISOString() : null,
         expiryLabel,
         title: 'FSSAI License Expired',
-        message: `${restaurant?.restaurantName || 'Restaurant'} FSSAI expired on ${expiryLabel}. Owner: ${restaurant?.ownerName || 'N/A'}.`,
+        message: `${store?.restaurantName || 'Store'} FSSAI expired on ${expiryLabel}. Owner: ${store?.ownerName || 'N/A'}.`,
         createdAt: expiryDate ? expiryDate.toISOString() : restaurant?.updatedAt || restaurant?.createdAt || new Date().toISOString(),
         path: '/admin/food/restaurants'
     };
