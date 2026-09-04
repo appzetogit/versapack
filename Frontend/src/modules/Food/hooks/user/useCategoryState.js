@@ -6,7 +6,6 @@ export const useCategoryState = (initialCategory) => {
   const [activeFilters, setActiveFilters] = useState(new Set());
   const [favorites, setFavorites] = useState(new Set());
   const [sortBy, setSortBy] = useState(null);
-  const [selectedCuisine, setSelectedCuisine] = useState(null);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [activeFilterTab, setActiveFilterTab] = useState('sort');
   const [activeScrollSection, setActiveScrollSection] = useState('sort');
@@ -36,7 +35,6 @@ export const useCategoryState = (initialCategory) => {
     activeFilters, setActiveFilters, toggleFilter,
     favorites, setFavorites, toggleFavorite,
     sortBy, setSortBy,
-    selectedCuisine, setSelectedCuisine,
     isFilterOpen, setIsFilterOpen,
     activeFilterTab, setActiveFilterTab,
     activeScrollSection, setActiveScrollSection,
