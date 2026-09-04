@@ -750,7 +750,7 @@ Order again from this restaurant in the ${companyName} app.`
           <Search className="w-5 h-5 text-[#EB590E]" />
           <input
             type="text"
-            placeholder="Search by seller or dish"
+            placeholder="Search by seller or product"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="flex-1 ml-3 outline-none text-gray-600 dark:text-gray-200 bg-transparent placeholder-gray-400"

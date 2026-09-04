@@ -1143,9 +1143,9 @@ export default function AddRestaurant() {
   const renderStep2 = () => (
     <div className="space-y-6">
       <section className="bg-white p-4 sm:p-6 rounded-md space-y-5">
-        <h2 className="text-lg font-semibold text-black">Menu & photos</h2>
+        <h2 className="text-lg font-semibold text-black">Products & photos</h2>
         <div className="space-y-2">
-          <Label className="text-xs font-medium text-gray-700">Menu images*</Label>
+          <Label className="text-xs font-medium text-gray-700">Product images*</Label>
           <div className="mt-1 border border-dashed border-gray-300 rounded-md bg-gray-50/70 px-4 py-3">
             <label htmlFor="menuImagesInput" className="inline-flex justify-center items-center gap-1.5 px-3 py-1.5 rounded-sm bg-white text-black border-black text-xs font-medium cursor-pointer w-full items-center">
               <Upload className="w-4.5 h-4.5" />

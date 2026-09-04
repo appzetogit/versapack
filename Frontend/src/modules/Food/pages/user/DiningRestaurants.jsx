@@ -264,7 +264,7 @@ export default function DiningRestaurants() {
                     setHeroSearch("")
                   }
                 }}
-                placeholder="Search for sellers, cuisines, dishes..."
+                placeholder="Search for sellers, cuisines, products..."
                 className="w-full h-12 sm:h-14 md:h-16 pl-12 sm:pl-14 pr-12 sm:pr-14 rounded-xl border-2 border-gray-200 focus:border-[#EB590E] bg-white shadow-sm text-base sm:text-lg md:text-xl"
               />
               <Search className="absolute left-4 sm:left-5 md:left-6 top-1/2 -translate-y-1/2 h-5 w-5 sm:h-6 sm:w-6 md:h-7 md:w-7 text-gray-400" />
@@ -639,7 +639,7 @@ export default function DiningRestaurants() {
                 {/* Price Tab */}
                 {activeFilterTab === 'price' && (
                   <div className="space-y-4 mb-8">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Dish Price</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Product Price</h3>
                     <div className="flex flex-col gap-3">
                       <button
                         onClick={() => toggleFilter('price-under-200')}

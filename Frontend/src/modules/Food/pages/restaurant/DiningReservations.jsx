@@ -507,8 +507,8 @@ export default function DiningReservations() {
                             className="w-full bg-white rounded-2xl border border-slate-200 px-5 py-4 flex items-center justify-between hover:bg-slate-50 transition-colors"
                         >
                             <div>
-                                <h2 className="text-left text-base font-bold text-slate-900">Photos & Menu Manager</h2>
-                                <p className="text-left text-sm text-slate-500">Upload seller and menu images only when needed.</p>
+                                <h2 className="text-left text-base font-bold text-slate-900">Photos & Product Manager</h2>
+                                <p className="text-left text-sm text-slate-500">Upload seller and product images only when needed.</p>
                             </div>
                             {showMediaPanel ? <ChevronUp className="w-5 h-5 text-slate-500" /> : <ChevronDown className="w-5 h-5 text-slate-500" />}
                         </button>
@@ -596,8 +596,8 @@ export default function DiningReservations() {
                         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
                             <div className="flex items-start justify-between gap-4">
                                 <div>
-                                    <h2 className="text-lg font-bold text-slate-900">Menu Photos</h2>
-                                    <p className="text-sm text-slate-500 mt-1">Add menu photos and view previously uploaded photos.</p>
+                                    <h2 className="text-lg font-bold text-slate-900">Product Photos</h2>
+                                    <p className="text-sm text-slate-500 mt-1">Add product photos and view previously uploaded photos.</p>
                                 </div>
                                 <label className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold cursor-pointer hover:bg-blue-700 transition-colors">
                                     <UploadCloud className="w-4 h-4" />
@@ -632,7 +632,7 @@ export default function DiningReservations() {
                             ) : (
                                 <div className="mt-4 h-28 rounded-xl border border-dashed border-slate-300 bg-slate-50 flex flex-col items-center justify-center text-slate-400">
                                     <ImagePlus className="w-7 h-7 mb-2" />
-                                    <p className="text-sm font-medium">No menu photos added yet</p>
+                                    <p className="text-sm font-medium">No product photos added yet</p>
                                 </div>
                             )}
                         </div>

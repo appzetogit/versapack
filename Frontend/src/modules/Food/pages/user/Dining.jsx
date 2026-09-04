@@ -1433,7 +1433,7 @@ export default function Dining() {
                 {/* Price Tab */}
                 {activeFilterTab === 'price' && (
                   <div className="space-y-4 mb-8">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Dish Price</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Product Price</h3>
                     <div className="flex flex-col gap-3">
                       <button
                         onClick={() => toggleFilter('price-under-200')}

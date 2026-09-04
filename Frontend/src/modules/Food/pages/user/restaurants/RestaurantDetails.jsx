@@ -1392,7 +1392,7 @@ function RestaurantDetailsContent() {
 
     const dishId = item.id || item._id
     if (!dishId) {
-      toast.error("Dish information is missing")
+      toast.error("Product information is missing")
       return
     }
 
@@ -1401,7 +1401,7 @@ function RestaurantDetailsContent() {
     if (isFavorite) {
       // If already bookmarked, remove it
       removeDishFavorite(dishId, restaurantId)
-      toast.success("Dish removed from favorites")
+      toast.success("Product removed from favorites")
     } else {
       // Add to favorites
       const dishData = {
@@ -1419,7 +1419,7 @@ function RestaurantDetailsContent() {
         customisable: item.customisable,
       }
       addDishFavorite(dishData)
-      toast.success("Dish added to favorites")
+      toast.success("Product added to favorites")
     }
   }
 
@@ -1518,7 +1518,7 @@ function RestaurantDetailsContent() {
 
     const shared = await tryNativeShare(payload)
     if (shared) {
-      toast.success("Dish shared successfully")
+      toast.success("Product shared successfully")
       return
     }
 
@@ -2008,7 +2008,7 @@ function RestaurantDetailsContent() {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <input
                     type="text"
-                    placeholder="Search dishes..."
+                    placeholder="Search products..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full pl-9 pr-9 py-2 sm:py-2.5 rounded-full border border-white/50 dark:border-white/15 shadow-sm bg-white/50 dark:bg-black/30 backdrop-blur-md text-sm dark:text-white focus:outline-none focus:ring-2 focus:ring-[#EB590E] focus:border-transparent"
@@ -2330,7 +2330,7 @@ function RestaurantDetailsContent() {
             {filteredSections.length === 0 && hasActiveMenuFilters && (
               <div className="rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 bg-white dark:bg-[#1a1a1a] px-5 py-8 text-center">
                 <p className="text-sm md:text-base font-medium text-gray-700 dark:text-gray-300">
-                  No dishes match the selected filters.
+                  No products match the selected filters.
                 </p>
                 <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400 mt-2">
                   Clear filters or try a different combination.
@@ -2339,7 +2339,7 @@ function RestaurantDetailsContent() {
             )}
             {filteredSections.length === 0 && (
               <div className="rounded-3xl border border-dashed border-gray-300 bg-white px-6 py-10 text-center text-sm text-gray-500">
-                No dishes match the current filters.
+                No products match the current filters.
               </div>
             )}
 
@@ -2425,7 +2425,7 @@ function RestaurantDetailsContent() {
                   {isExpanded && isRecommended && !loadingMenuItems && sectionItems.length === 0 && (
                     <div className="text-center py-8">
                       <p className="text-gray-500 dark:text-gray-400 text-sm md:text-base">
-                        No dish recommended
+                        No product recommended
                       </p>
                     </div>
                   )}

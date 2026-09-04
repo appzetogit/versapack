@@ -3703,7 +3703,7 @@ export default function Home() {
                       data-section-id="price"
                       className="space-y-4 mb-8">
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                        Dish Price
+                        Product Price
                       </h3>
                       <div className="flex flex-col gap-3">
                         <button
@@ -3882,7 +3882,7 @@ export default function Home() {
 
                 {/* Title */}
                 <h3 className="text-base font-bold text-gray-900 dark:text-white mb-3">
-                  See veg dishes from
+                  See veg products from
                 </h3>
 
                 {/* Radio Options */}
@@ -4018,7 +4018,7 @@ export default function Home() {
                   {/* Description */}
                   <p className="text-gray-600 text-center mb-6 text-sm">
                     You'll see all sellers, including those serving non-veg
-                    dishes
+                    products
                   </p>
 
                   {/* Buttons */}

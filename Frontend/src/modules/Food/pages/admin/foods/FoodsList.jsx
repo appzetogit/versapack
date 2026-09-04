@@ -1512,7 +1512,7 @@ export default function FoodsList() {
       }}>
         <DialogContent className="max-w-xl p-0 overflow-hidden">
           <DialogHeader className="px-6 py-4 border-b border-slate-200 bg-slate-50">
-            <DialogTitle className="text-lg font-semibold text-slate-900">Bulk Menu Upload</DialogTitle>
+            <DialogTitle className="text-lg font-semibold text-slate-900">Bulk Product Upload</DialogTitle>
           </DialogHeader>
           <div className="p-6 space-y-6 max-h-[75vh] overflow-y-auto">
             {!bulkUploadResults ? (
@@ -1523,7 +1523,7 @@ export default function FoodsList() {
                   </div>
                   <div className="flex-1">
                     <p className="text-sm font-semibold text-slate-900">Step 1: Download Template</p>
-                    <p className="text-xs text-slate-600 mt-1">Use the Excel template to add menu items in bulk.</p>
+                    <p className="text-xs text-slate-600 mt-1">Use the Excel template to add products in bulk.</p>
                     <button
                       type="button"
                       onClick={handleDownloadBulkTemplate}

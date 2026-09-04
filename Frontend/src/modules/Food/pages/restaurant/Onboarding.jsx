@@ -2530,7 +2530,7 @@ export default function RestaurantOnboarding() {
     <div className="space-y-6">
       {/* Images section */}
       <section className={ONBOARDING_SECTION_FULL}>
-        <h2 className={ONBOARDING_SECTION_TITLE}>Menu & photos</h2>
+        <h2 className={ONBOARDING_SECTION_TITLE}>Products & photos</h2>
         <p className={ONBOARDING_SECTION_DESC}>
           Add clear photos of your printed menu and a primary profile image. This helps customers
           understand what you serve.
@@ -2538,14 +2538,14 @@ export default function RestaurantOnboarding() {
 
         {/* Menu images */}
         <div className="space-y-2">
-          <Label className={ONBOARDING_LABEL}>Menu images</Label>
+          <Label className={ONBOARDING_LABEL}>Product images</Label>
           <div className={`${ONBOARDING_UPLOAD_BOX} flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center`}>
             <div className="flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
                 <ImageIcon className="w-5 h-5 text-gray-700" />
               </div>
               <div className="flex flex-col">
-                <span className="text-sm font-medium text-gray-900">Upload menu images</span>
+                <span className="text-sm font-medium text-gray-900">Upload product images</span>
                 <span className="text-[11px] text-gray-500">
                   JPG, PNG, WebP ? You can select multiple files
                 </span>

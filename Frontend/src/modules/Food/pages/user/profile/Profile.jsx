@@ -920,7 +920,7 @@ export default function Profile() {
               Veg Mode
             </DialogTitle>
             <DialogDescription className="text-sm text-gray-500">
-              Filter sellers and dishes based on your dietary preferences
+              Filter sellers and products based on your dietary preferences
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2 px-5 pb-5">

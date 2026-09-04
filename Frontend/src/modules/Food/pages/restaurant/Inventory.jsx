@@ -1894,8 +1894,8 @@ export default function Inventory() {
       <div className="hidden md:block border-b border-slate-200 bg-white shrink-0">
         <div className="px-6 py-5 flex items-start justify-between gap-6">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">Menu inventory</h1>
-            <p className="text-sm text-slate-500 mt-1">Manage dishes, stock, and add-ons</p>
+            <h1 className="text-2xl font-bold text-slate-900">Inventory</h1>
+            <p className="text-sm text-slate-500 mt-1">Manage products, stock, and add-ons</p>
           </div>
           <div className="flex items-center gap-6 text-sm">
             <div className="text-right">
@@ -3243,7 +3243,7 @@ export default function Inventory() {
                   </div>
                   <div className="text-left">
                     <span className="block text-base font-bold text-gray-900">Add Item</span>
-                    <span className="block text-sm text-gray-500 font-medium">Create a single menu item manually</span>
+                    <span className="block text-sm text-gray-500 font-medium">Create a single product manually</span>
                   </div>
                 </button>
 

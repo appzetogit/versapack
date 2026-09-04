@@ -264,7 +264,7 @@ export default function SearchOverlay({ isOpen, onClose, searchValue, onSearchCh
               {loadingFoods ? (
                 <>
                   <Loader2 className="h-12 w-12 sm:h-16 sm:w-16 text-gray-300 dark:text-gray-600 mx-auto mb-4 animate-spin" />
-                  <p className="text-gray-600 dark:text-gray-400 text-base sm:text-lg font-semibold">Loading dishes from database...</p>
+                  <p className="text-gray-600 dark:text-gray-400 text-base sm:text-lg font-semibold">Loading products from database...</p>
                 </>
               ) : (
                 <>
@@ -311,7 +311,7 @@ export default function SearchOverlay({ isOpen, onClose, searchValue, onSearchCh
 
           <div className="mt-24 text-center">
             <h2 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">Speak Now</h2>
-            <p className="mt-3 text-gray-500 dark:text-gray-400 font-medium">I'm listening for dishes or sellers...</p>
+            <p className="mt-3 text-gray-500 dark:text-gray-400 font-medium">I'm listening for products or sellers...</p>
           </div>
 
           <Button

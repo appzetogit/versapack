@@ -844,7 +844,7 @@ export default function ItemDetailsPage() {
               <p className="text-sm font-semibold text-red-700">Approval rejected</p>
               <p className="mt-1 text-sm leading-5 text-red-600">Reason: {currentRejectionReason}</p>
               <p className="mt-2 text-xs font-medium uppercase tracking-[0.18em] text-red-500">
-                Update the dish and save to send it for approval again
+                Update the product and save to send it for approval again
               </p>
             </div>
           </div>

@@ -786,7 +786,7 @@ export default function PointOfSale() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <div className="flex justify-between items-center py-3 border-b border-[#e3e6ef]">
-                    <span className="text-sm text-[#8a94aa]">Subtotal (Dish Price)</span>
+                    <span className="text-sm text-[#8a94aa]">Subtotal (Product Price)</span>
                     <span className="text-base font-semibold text-[#334257]">{formatCurrency(paymentSummary?.subtotal || 0)}</span>
                   </div>
                   <div className="flex justify-between items-center py-3 border-b border-[#e3e6ef]">
@@ -845,7 +845,7 @@ export default function PointOfSale() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-3">
                   <div className="flex justify-between items-center py-2 border-b border-[#e3e6ef]">
-                    <span className="text-sm text-[#8a94aa]">Subtotal (Dish Price)</span>
+                    <span className="text-sm text-[#8a94aa]">Subtotal (Product Price)</span>
                     <span className="text-sm font-semibold text-[#334257]">{formatCurrency(paymentSummary?.subtotal || 0)}</span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-[#e3e6ef]">

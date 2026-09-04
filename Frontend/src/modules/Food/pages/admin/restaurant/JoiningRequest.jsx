@@ -1081,7 +1081,7 @@ export default function JoiningRequest() {
                   {/* Menu Images */}
                   {menuImgList.length > 0 && (
                     <div className="pt-6 border-t border-slate-200">
-                      <h4 className="text-lg font-semibold text-slate-900 mb-4">Menu Images</h4>
+                      <h4 className="text-lg font-semibold text-slate-900 mb-4">Product Images</h4>
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                         {menuImgList.map((menuImg, idx) => {
                           const imgUrl = typeof menuImg === "string" ? menuImg : (menuImg?.url || menuImg)
