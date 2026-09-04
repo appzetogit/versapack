@@ -20,6 +20,14 @@ const stub = () =>
 export const searchAPI = {
   unifiedSearch: (params = {}) =>
     apiClient.get("/food/search/unified", { params }),
+  /**
+   * Product search — returns items, not the sellers that stock them.
+   * Params: q, zoneId, categoryId, isVeg, inStockOnly, page, limit.
+   * Unlike unifiedSearch this never widens to other zones: a cart built from
+   * sellers who cannot reach the address is one checkout will refuse.
+   */
+  searchProducts: (params = {}) =>
+    apiClient.get("/food/search/products", { params }),
   getAdminCategories: (params = {}) =>
     apiClient.get("/food/search/categories/admin", { params }),
 };

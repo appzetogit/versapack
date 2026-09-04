@@ -11,6 +11,10 @@ import { Input } from "@food/components/ui/input"
 import { useLocation as useGeoLocation } from "@food/hooks/useLocation"
 import { useZone } from "@food/hooks/useZone"
 import { adminAPI, searchAPI } from "@/services/api"
+import { resolveMediaUrl } from "@/shared/utils/mediaUrl"
+import { isOutOfStock } from "@food/utils/productStock"
+import ProductMeta from "@food/components/user/ProductMeta"
+import FoodPriceDisplay from "@food/components/user/FoodPriceDisplay"
 import { motion, AnimatePresence } from "framer-motion"
 
 // Helper to resolve media URLs consistently
@@ -48,6 +52,7 @@ export default function ProfessionalSearch() {
   const debouncedQuery = useDebounce(query, 500)
   
   const [results, setResults] = useState({ restaurants: [], dishes: [] })
+  const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(false)
   const [isListening, setIsListening] = useState(false)
   const [categories, setCategories] = useState([])
@@ -104,21 +109,33 @@ export default function ProfessionalSearch() {
 
   const performSearch = useCallback(async (searchTerm, catId) => {
     if (!searchTerm && !catId) {
-      setResults({ restaurants: [], dishes: [] })
+      setResults({ restaurants: [], dishes: [], products: [] })
       return
     }
-    
+
     setLoading(true)
     try {
-      const res = await searchAPI.unifiedSearch({
-        q: searchTerm,
-        categoryId: catId,
-        lat: userCoords?.latitude,
-        lng: userCoords?.longitude,
-        zoneId,
-        strictZone: catId ? "true" : "false",
-      })
-      
+      // Products lead the results and sellers follow. The two endpoints answer
+      // different questions — what can I buy, and who sells near me — so they
+      // run together rather than one being derived from the other.
+      const [res, productRes] = await Promise.all([
+        searchAPI.unifiedSearch({
+          q: searchTerm,
+          categoryId: catId,
+          lat: userCoords?.latitude,
+          lng: userCoords?.longitude,
+          zoneId,
+          strictZone: catId ? "true" : "false",
+        }),
+        searchAPI
+          .searchProducts({ q: searchTerm, categoryId: catId, zoneId, limit: 20 })
+          .catch(() => null),
+      ])
+
+      // Out-of-stock products arrive last rather than filtered out: telling a
+      // shopper we carry something but cannot sell it today beats an empty grid.
+      setProducts(productRes?.data?.data?.products || [])
+
       if (res.data?.success) {
         // Grouping results into Restaurants and potential Dishes
         const all = (res.data.data.restaurants || []).filter((row) => {
@@ -172,6 +189,7 @@ export default function ProfessionalSearch() {
     setSelectedCategoryId(null)
     setSearchParams({}, { replace: true })
     setResults({ restaurants: [], dishes: [] })
+    setProducts([])
   }
 
   const handleCategoryClick = (id) => {
@@ -286,7 +304,54 @@ export default function ProfessionalSearch() {
         {/* Search Results */}
         {!loading && (query || selectedCategoryId) && (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
-            
+
+            {/* Products — the primary result for a shop */}
+            {products.length > 0 && (
+              <section>
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="w-1 h-5 bg-orange-500 rounded-full" />
+                  <h2 className="text-lg font-bold dark:text-white">Products</h2>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {products.map((product) => {
+                    const outOfStock = isOutOfStock(product)
+                    return (
+                      <Link
+                        to={`/user/restaurants/${product.seller?._id || product.restaurantId}`}
+                        key={product._id}
+                        className={`bg-white dark:bg-zinc-900 rounded-2xl border border-slate-100 dark:border-zinc-800 overflow-hidden hover:shadow-md transition-shadow ${outOfStock ? "opacity-60" : ""}`}
+                      >
+                        <div className="aspect-square bg-slate-100 dark:bg-zinc-800 overflow-hidden">
+                          {product.image ? (
+                            <img
+                              src={resolveMediaUrl(product.image)}
+                              alt={product.name}
+                              className="w-full h-full object-cover"
+                              loading="lazy"
+                            />
+                          ) : null}
+                        </div>
+                        <div className="p-2.5">
+                          <p className="text-sm font-semibold dark:text-white line-clamp-2 leading-tight">
+                            {product.name}
+                          </p>
+                          <ProductMeta item={product} className="mt-1" />
+                          <div className="mt-1.5">
+                            <FoodPriceDisplay item={product} />
+                          </div>
+                          {product.seller?.name ? (
+                            <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                              {product.seller.name}
+                            </p>
+                          ) : null}
+                        </div>
+                      </Link>
+                    )
+                  })}
+                </div>
+              </section>
+            )}
+
             {/* Dish Results Section */}
             {results.dishes.length > 0 && (
               <section>
@@ -385,7 +450,7 @@ export default function ProfessionalSearch() {
             )}
 
             {/* Empty State */}
-            {!loading && results.restaurants.length === 0 && results.dishes.length === 0 && (
+            {!loading && results.restaurants.length === 0 && results.dishes.length === 0 && products.length === 0 && (
               <div className="flex flex-col items-center justify-center py-20 text-center">
                  <div className="w-20 h-20 bg-slate-100 dark:bg-zinc-900 rounded-full flex items-center justify-center mb-4">
                     <Search className="w-8 h-8 text-slate-300" />
