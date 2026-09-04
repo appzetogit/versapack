@@ -52,7 +52,7 @@ import { logoutUserSession } from "@food/utils/moduleLogout";
 import { toast } from "sonner";
 const debugLog = (...args) => { };
 const debugError = (...args) => { };
-const USER_SESSION_PREFERENCE_KEYS = ["userVegMode", "food-under-250-filters"];
+const USER_SESSION_PREFERENCE_KEYS = ["userVegMode"];
 
 import { registerWebPushForCurrentModule } from "@food/utils/firebaseMessaging";
 import DeleteAccountModal from "@food/components/DeleteAccountModal";

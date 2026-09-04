@@ -108,7 +108,6 @@ function RestaurantDetailsContent() {
     } catch (_) {}
   }, [])
   const [searchParams] = useSearchParams()
-  const showOnlyUnder250 = searchParams.get('under250') === 'true'
   const targetDishId = useMemo(() => String(searchParams.get('dish') || '').trim(), [searchParams])
   const { addToCart, updateQuantity, removeFromCart, getCartItem, cart, itemCount } = useCart()
   const { vegMode, addDishFavorite, removeDishFavorite, isDishFavorite, getDishFavorites, getFavorites, addFavorite, removeFavorite, isFavorite } = useProfile()
@@ -1647,12 +1646,6 @@ function RestaurantDetailsContent() {
     if (!items) return items
 
     return items.filter((item) => {
-      // Under 250 filter (when coming from Under 250 page)
-      if (showOnlyUnder250) {
-        const finalPrice = getFinalPrice(item);
-        if (finalPrice > 250) return false;
-      }
-
       // Search filter
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase().trim()
@@ -1722,37 +1715,6 @@ function RestaurantDetailsContent() {
     return null
   }
 
-  // Helper function to check if a section has any items under Rs 250
-  const sectionHasItemsUnder250 = (section) => {
-    if (!showOnlyUnder250) return true; // If not filtering, show all sections
-
-    // Check direct items
-    if (section.items && section.items.length > 0) {
-      const hasUnder250Items = section.items.some(item => {
-        if (item.isAvailable === false) return false;
-        const finalPrice = getFinalPrice(item);
-        return finalPrice <= 250;
-      });
-      if (hasUnder250Items) return true;
-    }
-
-    // Check subsection items
-    if (section.subsections && section.subsections.length > 0) {
-      for (const subsection of section.subsections) {
-        if (subsection.items && subsection.items.length > 0) {
-          const hasUnder250Items = subsection.items.some(item => {
-            if (item.isAvailable === false) return false;
-            const finalPrice = getFinalPrice(item);
-            return finalPrice <= 250;
-          });
-          if (hasUnder250Items) return true;
-        }
-      }
-    }
-
-    return false;
-  }
-
   // Build renderable sections from the current filter state so section/subsection visibility
   // stays in sync with the actual filtered items shown on screen.
   const getFilteredSections = () => {
@@ -1819,7 +1781,6 @@ function RestaurantDetailsContent() {
   }
 
   const hasActiveMenuFilters = Boolean(
-    showOnlyUnder250 ||
     searchQuery.trim() ||
     vegMode === true ||
     filters.sortBy ||
@@ -1830,7 +1791,7 @@ function RestaurantDetailsContent() {
 
   const filteredSections = useMemo(
     () => getFilteredSections(),
-    [restaurant?.menuSections, showOnlyUnder250, searchQuery, vegMode, filters, selectedMenuCategory]
+    [restaurant?.menuSections, searchQuery, vegMode, filters, selectedMenuCategory]
   )
 
   useEffect(() => {

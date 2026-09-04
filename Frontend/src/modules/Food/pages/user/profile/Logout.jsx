@@ -7,7 +7,7 @@ import { useState } from "react"
 import { clearModuleAuth } from "@food/utils/auth"
 import { logoutUserSession } from "@food/utils/moduleLogout"
 
-const USER_SESSION_PREFERENCE_KEYS = ["userVegMode", "food-under-250-filters"]
+const USER_SESSION_PREFERENCE_KEYS = ["userVegMode"]
 
 
 export default function Logout() {

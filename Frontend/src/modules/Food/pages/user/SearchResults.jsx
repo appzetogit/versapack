@@ -21,7 +21,6 @@ const filterOptions = [
   { id: 'under-30-mins', label: 'Under 30 mins' },
   { id: 'price-match', label: 'Price Match', hasIcon: true },
   { id: 'flat-50-off', label: 'Flat 50% OFF', hasIcon: true },
-  { id: 'under-250', label: 'Switch 99' },
   { id: 'rating-4-plus', label: 'Rating 4.0+' },
 ]
 const SEARCH_HISTORY_KEY = "user_recent_searches_v1"
@@ -660,14 +659,6 @@ export default function SearchResults() {
       filtered = filtered.filter(r => r.offer && r.offer.includes('50%'))
     }
 
-    // Switch 99 filter - exclude closed restaurants
-    if (activeFilters.has('under-250')) {
-      filtered = filtered.filter(r => {
-        const availability = getRestaurantAvailabilityStatus(r, new Date(availabilityTick));
-        return r.featuredPrice && r.featuredPrice <= 99 && availability.isOpen;
-      })
-    }
-
     return uniqueRestaurants(filtered)
   }, [deferredQuery, selectedCategory, activeFilters, restaurantsData, categoryKeywords, loadingCategories, availabilityTick])
 
@@ -768,13 +759,6 @@ export default function SearchResults() {
     }
     if (activeFilters.has('rating-4-plus')) {
       filtered = filtered.filter(r => r.rating && r.rating >= 4.0)
-    }
-    // Switch 99 filter - exclude closed restaurants (already handled above but ensuring consistency if logic differs)
-    if (activeFilters.has('under-250')) {
-      filtered = filtered.filter(r => {
-        const availability = getRestaurantAvailabilityStatus(r, new Date(availabilityTick));
-        return r.featuredPrice && r.featuredPrice <= 99 && availability.isOpen;
-      })
     }
     if (activeFilters.has('flat-50-off')) {
       filtered = filtered.filter(r => r.offer && r.offer.includes('50%'))
