@@ -1521,9 +1521,24 @@ export default function Cart() {
   const selectedPaymentLabel =
     selectedPaymentMethod === "wallet" ? "Wallet" : "Online Payment"
 
-  const headerDeliveryTime = deliveryMode === "quick" ? "20-25 mins" : (restaurantData?.estimatedDeliveryTime || "35-40 mins")
-  const basicDeliveryTime = restaurantData?.estimatedDeliveryTime || "35-40 mins"
-  const quickDeliveryTime = "20-25 mins"
+  /**
+   * The server now quotes a real wait — packing plus the ride, from the actual
+   * distance — instead of the fixed band this screen used to guess with. It
+   * comes from the same constants as the live ETA, so checkout and tracking
+   * cannot disagree. The old bands stay as the fallback for a basket the
+   * pricing call has not answered for yet.
+   */
+  const promisedMinutes = Number(pricing?.deliveryPromiseMinutes)
+  const serverPromise =
+    Number.isFinite(promisedMinutes) && promisedMinutes > 0
+      ? `${Math.round(promisedMinutes)} mins`
+      : null
+
+  const headerDeliveryTime =
+    serverPromise ||
+    (deliveryMode === "quick" ? "20-25 mins" : (restaurantData?.estimatedDeliveryTime || "35-40 mins"))
+  const basicDeliveryTime = serverPromise || restaurantData?.estimatedDeliveryTime || "35-40 mins"
+  const quickDeliveryTime = serverPromise || "20-25 mins"
   const headerAddressLabel = defaultAddress ? getDisplayAddressLabel(defaultAddress.label) : "Select address"
   const headerAddressText = defaultAddress
     ? (formatFullAddress(defaultAddress) || defaultAddress?.formattedAddress || defaultAddress?.address || "Add delivery address")

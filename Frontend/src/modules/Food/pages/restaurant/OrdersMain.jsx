@@ -60,7 +60,7 @@ const matchesOrderSearch = (order, searchQuery) => {
 const filterTabs = [
   { id: "new", label: "New Orders" },
   { id: "all", label: "All" },
-  { id: "preparing", label: "Preparing" },
+  { id: "preparing", label: "Packing" },
   { id: "ready", label: "Ready" },
   { id: "out-for-delivery", label: "Out for delivery" },
   { id: "completed", label: "Completed" },

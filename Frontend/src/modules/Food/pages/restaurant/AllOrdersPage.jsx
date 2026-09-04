@@ -85,7 +85,7 @@ const filterCategories = [
 
 const filterOptions = {
   "Order status": [
-    { id: "preparing", label: "Preparing", key: "orderStatus" },
+    { id: "preparing", label: "Packing", key: "orderStatus" },
     { id: "ready", label: "Ready", key: "orderStatus" },
     { id: "out-for-delivery", label: "Out for delivery", key: "orderStatus" },
     { id: "delivered", label: "Delivered", key: "orderStatus" },

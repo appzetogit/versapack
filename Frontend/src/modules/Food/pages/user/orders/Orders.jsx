@@ -62,8 +62,11 @@ export default function Orders() {
     const now = new Date()
     const elapsedMinutes = Math.floor((now - createdAt) / (1000 * 60))
 
-    // Get max ETA (use eta.max if available, otherwise estimatedDeliveryTime)
-    const maxETA = order.eta?.max || order.estimatedDeliveryTime || 30
+    // promiseMinutes is what the customer is actually waiting for — packing plus
+    // both rides, with the first two overlapping. eta.max tracks only the rider's
+    // current leg, which reads late from the moment the order is placed.
+    const maxETA =
+      order.eta?.promiseMinutes || order.eta?.max || order.estimatedDeliveryTime || 30
     const remainingMinutes = Math.max(0, maxETA - elapsedMinutes)
 
     return remainingMinutes > 0 ? remainingMinutes : null
@@ -1072,7 +1075,7 @@ Order again from this restaurant in the ${companyName} app.`
                     </div>
                   ) : (
                     <div>
-                      <p className="text-xs text-gray-500">{order.status === 'preparing' ? 'Preparing' : order.status === 'outForDelivery' ? 'Out for delivery' : order.status === 'confirmed' ? 'Order confirmed' : ''}</p>
+                      <p className="text-xs text-gray-500">{order.status === 'preparing' ? 'Packing' : order.status === 'outForDelivery' ? 'Out for delivery' : order.status === 'confirmed' ? 'Order confirmed' : ''}</p>
                       {/* Countdown Timer */}
                       {countdowns[order.id] && countdowns[order.id] > 0 && (
                         <div className="flex items-center gap-1 mt-1 text-xs text-[#EB590E] font-medium">
