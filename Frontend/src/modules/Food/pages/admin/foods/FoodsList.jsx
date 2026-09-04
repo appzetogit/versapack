@@ -32,6 +32,13 @@ const createFoodForm = () => ({
   name: "",
   price: "",
   otherPrice: "",
+  // Grocery catalogue fields. `mrp` is the printed retail price shown struck
+  // through — separate from otherPrice, which compares against other platforms.
+  // `gstRate` blank falls back to the order-wide rate in fee settings.
+  brand: "",
+  packSize: "",
+  mrp: "",
+  gstRate: "",
   variants: [],
   description: "",
   image: "",
@@ -374,6 +381,12 @@ export default function FoodsList() {
       name: String(food.name || ""),
       price: String(food.price || ""),
       otherPrice: String(food.otherPrice || ""),
+      brand: String(food.brand || ""),
+      packSize: String(food.packSize || ""),
+      // null means unset and must stay blank, not become "0" — 0 is a real GST
+      // slab and a real (illegal) price.
+      mrp: food.mrp == null ? "" : String(food.mrp),
+      gstRate: food.gstRate == null ? "" : String(food.gstRate),
       variants: getFoodVariants(food).map(createVariantDraft),
       description: String(food.description || ""),
       image: String(food.image || ""),
@@ -549,6 +562,12 @@ export default function FoodsList() {
           price: variant.price,
           otherPrice: variant.otherPrice > 0 ? variant.otherPrice : 0,
         })),
+        brand: String(foodForm.brand || "").trim(),
+        packSize: String(foodForm.packSize || "").trim(),
+        // Blank stays null rather than 0: an unset MRP is not a ₹0 MRP, and an
+        // unset GST rate must fall through to the order-wide rate, not charge 0%.
+        mrp: String(foodForm.mrp || "").trim() === "" ? null : Number(foodForm.mrp),
+        gstRate: String(foodForm.gstRate || "").trim() === "" ? null : Number(foodForm.gstRate),
         description: foodForm.description.trim(),
         image: imageUrl,
         images: imageUrls,
@@ -1241,6 +1260,53 @@ export default function FoodsList() {
                   className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm bg-white disabled:bg-slate-100 disabled:text-slate-400"
                 />
                 <p className="mt-1 text-xs text-slate-500">Shown with strikethrough when higher than selling price.</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">MRP</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={foodForm.mrp}
+                  onChange={(e) => setFoodForm((prev) => ({ ...prev, mrp: e.target.value }))}
+                  placeholder="Optional"
+                  className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm bg-white"
+                />
+                <p className="mt-1 text-xs text-slate-500">Printed maximum retail price. Selling above it is refused.</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Brand</label>
+                <input
+                  type="text"
+                  value={foodForm.brand}
+                  onChange={(e) => setFoodForm((prev) => ({ ...prev, brand: e.target.value }))}
+                  placeholder="e.g. Amul"
+                  className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm bg-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Pack Size</label>
+                <input
+                  type="text"
+                  value={foodForm.packSize}
+                  onChange={(e) => setFoodForm((prev) => ({ ...prev, packSize: e.target.value }))}
+                  placeholder='e.g. 500 g, 1 L, pack of 6'
+                  className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm bg-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">GST Rate (%)</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                  value={foodForm.gstRate}
+                  onChange={(e) => setFoodForm((prev) => ({ ...prev, gstRate: e.target.value }))}
+                  placeholder="Uses default"
+                  className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm bg-white"
+                />
+                <p className="mt-1 text-xs text-slate-500">Leave blank to use the order-wide rate from fee settings.</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Food Type</label>
