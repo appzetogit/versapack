@@ -63,10 +63,6 @@ const RestaurantDishCard = ({
         <h3 className="text-lg font-black text-gray-900 dark:text-gray-100 mb-1 line-clamp-1 group-hover:text-primary-orange transition-colors">
           {restaurant.name}
         </h3>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mb-4 line-clamp-1 italic">
-          {restaurant.cuisine || "Cuisines not listed"}
-        </p>
-
         {restaurant.featuredDish && (
           <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-100 dark:border-gray-800/50 group/dish relative">
             <div className="flex justify-between items-center">

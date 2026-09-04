@@ -44,7 +44,6 @@ export const useHomeData = (location, zoneId) => {
       const params = {
         _ts: Date.now(),
         ...(filters.sortBy && { sortBy: filters.sortBy }),
-        ...(filters.cuisine && { cuisine: filters.cuisine }),
         ...(zoneId && { zoneId })
       };
       const res = await restaurantAPI.getRestaurants(params);
