@@ -9,7 +9,6 @@ export const useHomeState = () => {
   // Filter selections
   const [activeFilters, setActiveFilters] = useState(new Set());
   const [sortBy, setSortBy] = useState(null);
-  const [selectedCuisine, setSelectedCuisine] = useState(null);
 
   // UI state
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
@@ -39,7 +38,6 @@ export const useHomeState = () => {
     isAllCategoriesOpen, setIsAllCategoriesOpen,
     activeFilters, setActiveFilters, toggleFilter,
     sortBy, setSortBy,
-    selectedCuisine, setSelectedCuisine,
     currentBannerIndex, setCurrentBannerIndex,
     searchPlaceholder, setSearchPlaceholder,
     vegMode, setVegMode,
