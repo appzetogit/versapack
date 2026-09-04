@@ -1516,6 +1516,23 @@ export const restaurantAPI = {
     apiClient.patch(`/food/restaurant/foods/${String(id)}`, body ?? {}, {
       contextModule: "restaurant",
     }),
+  /**
+   * Stock-take. Accepts up to 500 entries of
+   * `{ itemId, stockQty?, lowStockThreshold?, maxQtyPerOrder?, isAvailable? }`
+   * and answers per item, so one bad id does not discard the rest of a count.
+   */
+  updateFoodStock: (items) =>
+    apiClient.patch(
+      "/food/restaurant/foods/stock",
+      { items: Array.isArray(items) ? items : [items] },
+      { contextModule: "restaurant" },
+    ),
+  /** Products at or below their own threshold, lowest first. */
+  getLowStockFoods: (config = {}) =>
+    apiClient.get("/food/restaurant/foods/low-stock", {
+      ...config,
+      contextModule: "restaurant",
+    }),
   bulkUploadTemplate: () =>
     apiClient.get("/food/restaurant/bulk-upload/template", {
       responseType: 'blob',
