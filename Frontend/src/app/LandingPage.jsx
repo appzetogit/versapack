@@ -254,7 +254,7 @@ export default function LandingPage() {
 
             <div className="overflow-hidden mt-4 lg:mt-6 max-w-xl">
               <motion.p custom={3} initial="hidden" animate="visible" variants={textReveal} className="text-base lg:text-lg text-slate-600 font-light leading-relaxed">
-                VersaPack is a next-generation food delivery platform built with a mission to create fairness and transparency in the food ecosystem. Unlike traditional platforms, we operate on a lifetime 0% commission model, ensuring that seller partners keep every hard-earned penny of their revenue.
+                VersaPack is a next-generation quick commerce platform built with a mission to create fairness and transparency in the retail ecosystem. Unlike traditional platforms, we operate on a lifetime 0% commission model, ensuring that seller partners keep every hard-earned penny of their revenue.
               </motion.p>
             </div>
 
@@ -410,7 +410,7 @@ export default function LandingPage() {
               Flawless <br />from tap to table.
             </h3>
             <p className="text-lg md:text-xl text-slate-600 font-light leading-relaxed max-w-lg">
-              Live tracking that actually updates. Beautifully designed interface. Zero friction. Download the app to experience food delivery designed for the modern era.
+              Live tracking that actually updates. Beautifully designed interface. Zero friction. Download the app to experience quick commerce designed for the modern era.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
               <a
@@ -652,7 +652,7 @@ export default function LandingPage() {
             </h2>
           </div>
           <p className="text-base md:text-lg text-slate-600 font-light max-w-sm leading-relaxed pb-1">
-            Beyond just food delivery. We are engineering a new standard for dining at home.
+            Beyond just delivery. We are engineering a new standard for everyday essentials.
           </p>
         </div>
 
@@ -997,7 +997,7 @@ export default function LandingPage() {
                 {APP_CONFIG?.NAME || "BRAND"}<span className="text-[#FA0272]">.</span>
               </h2>
               <p className="text-slate-500 text-lg font-light leading-relaxed max-w-sm mb-8">
-                Elevating the dining experience. Premium food delivery for those who expect more.
+                Elevating the everyday shop. Premium quick commerce for those who expect more.
               </p>
               <div className="flex gap-4">
                 {[
@@ -1128,7 +1128,7 @@ export default function LandingPage() {
                 <div className="absolute top-[-50%] right-[-10%] w-[350px] h-[350px] bg-[#FA0272]/20 rounded-full blur-[90px] pointer-events-none" />
                 <div className="relative z-10 space-y-6">
                   <p className="text-2xl md:text-3xl lg:text-4xl font-light leading-relaxed italic text-slate-100 max-w-4xl">
-                    "VersaPack isn’t just a food delivery app—it’s a movement towards fair business, trust, and transparency."
+                    "VersaPack isn’t just a quick commerce app—it’s a movement towards fair business, trust, and transparency."
                   </p>
                   <div className="w-16 h-1 bg-[#FA0272] rounded-full" />
                   <p className="text-xs uppercase tracking-widest font-bold text-slate-400">Our Core Philosophy</p>
@@ -1197,7 +1197,7 @@ export default function LandingPage() {
                     </div>
                     <h3 className="text-2xl font-black text-slate-900 mb-3 tracking-tight">Founded by Visionaries</h3>
                     <p className="text-slate-600 font-light leading-relaxed">
-                      VersaPack was founded by two passionate 23-year-old entrepreneurs driven by a vision to revolutionize the food delivery industry and create a more balanced, fair, and growth-oriented platform for all stakeholders.
+                      VersaPack was founded by two passionate 23-year-old entrepreneurs driven by a vision to revolutionize the quick commerce industry and create a more balanced, fair, and growth-oriented platform for all stakeholders.
                     </p>
                   </div>
                   <div className="mt-8 pt-6 border-t border-slate-100 flex items-center gap-3">
@@ -1375,7 +1375,7 @@ export default function LandingPage() {
                   </div>
                   <div className="mt-8 pt-6 border-t border-slate-200/50 flex items-center gap-3">
                     <Zap className="w-4 h-4 text-[#FA0272]" />
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Empowering Culinary Businesses</span>
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Empowering Local Businesses</span>
                   </div>
                 </div>
 
