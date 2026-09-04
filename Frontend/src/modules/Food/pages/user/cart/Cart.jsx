@@ -16,6 +16,7 @@ import { orderAPI, restaurantAPI, adminAPI, userAPI, API_ENDPOINTS } from "@food
 import { API_BASE_URL } from "@food/api/config"
 import { initRazorpayPayment } from "@food/utils/razorpay"
 import { toast } from "sonner"
+import { matchStockError, findCartLineForStockError } from "@food/utils/productStock"
 import { getCompanyNameAsync } from "@food/utils/businessSettings"
 import { getCachedFeeSettings, loadCorePublicAppConfig } from "@food/services/publicAppConfig"
 import { useCompanyName } from "@food/hooks/useCompanyName"
@@ -344,6 +345,14 @@ export default function Cart() {
 
   const [sendCutlery, setSendCutlery] = useState(true)
   const [isPlacingOrder, setIsPlacingOrder] = useState(false)
+  /** Which cart line checkout refused on stock, so it can be called out in place. */
+  const [stockIssue, setStockIssue] = useState(null)
+
+  // The complaint is about a basket that no longer exists once the shopper
+  // edits it, so clear it rather than leaving a stale line marked in red.
+  useEffect(() => {
+    setStockIssue(null)
+  }, [cart])
   const [showBillDetails, setShowBillDetails] = useState(true)
   const [showPlacingOrder, setShowPlacingOrder] = useState(false)
   const [isScheduled, setIsScheduled] = useState(false)
@@ -2434,6 +2443,17 @@ export default function Cart() {
         errorMessage = error.message
       }
 
+      // Checkout names the product it refused, so point at that line instead of
+      // an alert the shopper has to reconcile against the list themselves.
+      const stockError = matchStockError(errorMessage)
+      if (stockError) {
+        const line = findCartLineForStockError(cart, stockError.productName)
+        setStockIssue({ itemId: line?.id || null, message: stockError.message })
+        toast.error(stockError.message)
+        setIsPlacingOrder(false)
+        return
+      }
+
       alert(errorMessage)
       setIsPlacingOrder(false)
     }
@@ -2575,7 +2595,14 @@ export default function Cart() {
               <div className="bg-white dark:bg-[#1a1a1a] px-4 md:px-6 py-4 md:py-5 rounded-2xl md:rounded-3xl shadow-sm border border-slate-100 dark:border-gray-800">
                 <div className="space-y-3 md:space-y-4">
                   {cart.map((item) => (
-                    <div key={item.id} className="flex items-start gap-3 md:gap-4">
+                    <div
+                      key={item.id}
+                      className={`flex items-start gap-3 md:gap-4 ${
+                        stockIssue?.itemId === item.id
+                          ? "-mx-2 rounded-lg border border-red-300 bg-red-50 px-2 py-2 dark:border-red-800 dark:bg-red-900/20"
+                          : ""
+                      }`}
+                    >
                       {/* Veg/Non-veg indicator */}
                       <div
                         className="w-4 h-4 md:w-5 md:h-5 border-2 flex items-center justify-center mt-1 flex-shrink-0"
@@ -2591,6 +2618,11 @@ export default function Cart() {
                         <p className="text-sm md:text-base font-medium text-gray-800 dark:text-gray-200 leading-tight">{item.name}</p>
                         {item.variantName ? (
                           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{item.variantName}</p>
+                        ) : null}
+                        {stockIssue?.itemId === item.id ? (
+                          <p className="mt-1 text-xs font-medium text-red-600 dark:text-red-400">
+                            {stockIssue.message}
+                          </p>
                         ) : null}
                       </div>
 

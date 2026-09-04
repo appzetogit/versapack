@@ -47,6 +47,7 @@ import { useProfile } from "@food/context/ProfileContext"
 import AddToCartAnimation from "@food/components/user/AddToCartAnimation"
 import VariantSelector from "@food/components/user/VariantSelector"
 import FoodPriceDisplay from "@food/components/user/FoodPriceDisplay"
+import ProductMeta from "@food/components/user/ProductMeta"
 import { getCompanyNameAsync } from "@food/utils/businessSettings"
 import { isModuleAuthenticated } from "@food/utils/auth"
 import { getRestaurantAvailabilityStatus } from "@food/utils/restaurantAvailability"
@@ -2565,6 +2566,8 @@ function RestaurantDetailsContent() {
                                 )}
                               </div>
 
+                              <ProductMeta item={item} className="mt-1" />
+
                               {/* Description - Show if available */}
                               {item.description && (
                                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">{item.description}</p>
@@ -2791,6 +2794,8 @@ function RestaurantDetailsContent() {
                                             </div>
                                           )}
                                         </div>
+
+                                        <ProductMeta item={item} className="mt-1" />
 
                                         {/* Description - Show if available */}
                                         {item.description && (

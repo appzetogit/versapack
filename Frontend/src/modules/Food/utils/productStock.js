@@ -137,6 +137,45 @@ export const getProductSubtitle = (product) => {
 }
 
 /**
+ * Checkout rejects an over-order with a message that names the product, on
+ * purpose — the cart is a list and "out of stock" alone does not say which
+ * line to fix. These patterns pull that name back out so the offending row can
+ * be highlighted instead of the whole screen showing a generic failure.
+ *
+ * The wording is the backend's (see QUICK_COMMERCE_CHANGES.md); if it changes
+ * there, the cart quietly falls back to showing the message as-is rather than
+ * highlighting nothing, so a drift is cosmetic and not a broken checkout.
+ */
+const STOCK_ERROR_PATTERNS = [
+  { kind: "stock_limit", re: /^Only\s+(\d+)\s+left of\s+(.+?)\.\s*Please reduce/i, nameGroup: 2 },
+  { kind: "out_of_stock", re: /^(.+?)\s+just went out of stock/i, nameGroup: 1 },
+  { kind: "max_per_order", re: /^You can order at most\s+(\d+)\s+of\s+(.+?)\.?$/i, nameGroup: 2 },
+]
+
+export const matchStockError = (message) => {
+  const text = String(message || "").trim()
+  if (!text) return null
+
+  for (const { kind, re, nameGroup } of STOCK_ERROR_PATTERNS) {
+    const match = text.match(re)
+    if (match) {
+      return { kind, productName: match[nameGroup].trim(), message: text }
+    }
+  }
+
+  return null
+}
+
+/** The cart line a stock rejection refers to, matched on the name it quoted. */
+export const findCartLineForStockError = (cart, productName) => {
+  if (!Array.isArray(cart) || !productName) return null
+  const wanted = productName.trim().toLowerCase()
+  return (
+    cart.find((line) => String(line?.name || "").trim().toLowerCase() === wanted) || null
+  )
+}
+
+/**
  * MRP is shown struck through next to the selling price, but only when it is
  * genuinely higher — an MRP equal to (or below) the price is not a saving and
  * printing it as one is misleading.

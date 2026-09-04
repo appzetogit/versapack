@@ -21,6 +21,8 @@ import {
   getProductSubtitle,
   getMrpDisplay,
   isOrderable,
+  matchStockError,
+  findCartLineForStockError,
 } from "./productStock.js"
 
 // --- null is not 0 -----------------------------------------------------------
@@ -109,5 +111,31 @@ assert.equal(getMrpDisplay({ price: 120, mrp: 100 }), null, "MRP below price is 
 const saving = getMrpDisplay({ price: 80, mrp: 100 })
 assert.equal(saving.mrp, 100)
 assert.equal(saving.discountPercent, 20)
+
+// --- checkout stock errors ---------------------------------------------------
+
+const only = matchStockError("Only 2 left of Amul Gold Milk 500 ml. Please reduce the quantity.")
+assert.equal(only.kind, "stock_limit")
+assert.equal(only.productName, "Amul Gold Milk 500 ml", "product name drives the highlight")
+
+const gone = matchStockError("Tata Salt 1 kg just went out of stock")
+assert.equal(gone.kind, "out_of_stock")
+assert.equal(gone.productName, "Tata Salt 1 kg")
+
+const capped2 = matchStockError("You can order at most 3 of Maggi Noodles")
+assert.equal(capped2.kind, "max_per_order")
+assert.equal(capped2.productName, "Maggi Noodles")
+
+assert.equal(matchStockError("Payment failed"), null, "unrelated errors must not match")
+assert.equal(matchStockError(""), null)
+assert.equal(matchStockError(null), null)
+
+const cartLines = [
+  { id: "a", name: "Tata Salt 1 kg" },
+  { id: "b", name: "Amul Gold Milk 500 ml" },
+]
+assert.equal(findCartLineForStockError(cartLines, "amul gold milk 500 ml").id, "b", "match is case-insensitive")
+assert.equal(findCartLineForStockError(cartLines, "Nothing Here"), null)
+assert.equal(findCartLineForStockError(null, "x"), null)
 
 console.log("productStock selfcheck: all assertions passed")
