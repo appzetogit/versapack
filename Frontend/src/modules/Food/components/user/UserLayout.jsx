@@ -195,8 +195,6 @@ export default function UserLayout() {
 
   const showBottomNav = normalizedPath === "/" ||
     normalizedPath === "/user" ||
-    normalizedPath === "/dining" ||
-    normalizedPath === "/user/dining" ||
     normalizedPath === "/under-250" ||
     normalizedPath === "/user/under-250" ||
     isProfileRoot ||
