@@ -254,7 +254,7 @@ export default function NotificationBroadcast() {
                 <input
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Search users, restaurants, or delivery partners"
+                  placeholder="Search users, sellers, or delivery partners"
                   className="w-full text-sm bg-transparent outline-none"
                 />
               </div>

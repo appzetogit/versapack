@@ -522,7 +522,7 @@ export default function AdminHome() {
                           return <CheckCircle className="h-4 w-4 text-emerald-600" />
                         case "order_cancelled":
                           return <XCircle className="h-4 w-4 text-red-600" />
-                        case "restaurant":
+                        case "seller":
                           return <Store className="h-4 w-4 text-blue-600" />
                         case "delivery":
                           return <Truck className="h-4 w-4 text-purple-600" />

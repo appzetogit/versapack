@@ -307,7 +307,7 @@ export default function MenuCategoriesPage() {
         </select>
         {isPureVegRestaurant && (
           <p className="mt-1 text-xs text-emerald-700">
-            Pure veg restaurant: category scope is locked to Veg.
+            Pure veg seller: category scope is locked to Veg.
           </p>
         )}
       </div>
@@ -396,7 +396,7 @@ export default function MenuCategoriesPage() {
           </button>
           <div className="flex-1 md:flex md:items-center md:justify-between md:gap-4">
             <div>
-              <h1 className="text-xl font-bold text-slate-900 md:text-2xl">Menu Categories</h1>
+              <h1 className="text-xl font-bold text-slate-900 md:text-2xl">Product Categories</h1>
               <p className="text-xs text-slate-500 md:text-sm md:mt-1">
                 Create categories, track approvals, and resubmit edits safely.
               </p>
@@ -447,9 +447,9 @@ export default function MenuCategoriesPage() {
           </div>
         ) : ownCategories.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center md:py-16">
-            <p className="text-lg font-semibold text-slate-900">No restaurant categories yet</p>
+            <p className="text-lg font-semibold text-slate-900">No seller categories yet</p>
             <p className="mt-2 text-sm text-slate-500">
-              Start with a category and choose diet scope for dishes.
+              Start with a category and choose diet scope for products.
             </p>
           </div>
         ) : (

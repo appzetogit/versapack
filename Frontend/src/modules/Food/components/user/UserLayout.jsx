@@ -182,7 +182,7 @@ export default function UserLayout() {
   // Note: Authentication checks and redirects are handled by ProtectedRoute components
   // UserLayout should not interfere with authentication redirects
 
-  // Show bottom navigation only on home page, dining page, under-250 page, and profile page
+  // Show bottom navigation only on the home and profile pages
   const path = location.pathname.startsWith("/food")
     ? location.pathname.substring(5) || "/"
     : location.pathname
@@ -195,14 +195,8 @@ export default function UserLayout() {
 
   const showBottomNav = normalizedPath === "/" ||
     normalizedPath === "/user" ||
-    normalizedPath === "/dining" ||
-    normalizedPath === "/user/dining" ||
-    normalizedPath === "/under-250" ||
-    normalizedPath === "/user/under-250" ||
     isProfileRoot ||
     normalizedPath === "" // Handle empty string case for root relative to /food
-
-  const isUnder250 = normalizedPath === "/under-250" || normalizedPath === "/user/under-250"
 
   return (
     <div className="min-h-screen bg-[#f5f5f5] dark:bg-[#0a0a0a] transition-colors duration-200">
@@ -216,7 +210,7 @@ export default function UserLayout() {
                 {/* <Navbar /> */}
                 {/* Desktop Navbar - Hidden on mobile, visible on medium+ screens */}
                 <div className="hidden md:block">
-                  {showBottomNav && <DesktopNavbar showLogo={!isUnder250} />}
+                  {showBottomNav && <DesktopNavbar showLogo />}
                 </div>
                 {/* <LocationPrompt /> */}
                 <main className={showBottomNav ? "md:pt-40" : ""}>

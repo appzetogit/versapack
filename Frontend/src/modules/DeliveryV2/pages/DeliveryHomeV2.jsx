@@ -413,7 +413,7 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
         if (tripStatus === 'PICKING_UP') {
           lastAutoArrivalRef.current[tripStatus] = true;
           reachPickup().catch(() => { lastAutoArrivalRef.current[tripStatus] = false; });
-          // toast.success('Auto-arrived at Restaurant');
+          // toast.success('Auto-arrived at Seller');
         } else if (tripStatus === 'PICKED_UP') {
           lastAutoArrivalRef.current[tripStatus] = true;
           reachDrop().catch(() => { lastAutoArrivalRef.current[tripStatus] = false; });

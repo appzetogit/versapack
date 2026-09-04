@@ -30,7 +30,7 @@ import { getRestaurantCookingNote } from "@food/utils/orderCookingNote";
 import BottomNavOrders from "@food/components/restaurant/BottomNavOrders";
 import RestaurantNavbar from "@food/components/restaurant/RestaurantNavbar";
 import NewOrderAcceptCard from "@food/components/restaurant/NewOrderAcceptCard";
-import { restaurantAPI, diningAPI } from "@food/api";
+import { restaurantAPI } from "@food/api";
 import { useRestaurantNotifications } from "@food/hooks/useRestaurantNotifications";
 import ResendNotificationButton from "@food/components/restaurant/ResendNotificationButton";
 import {
@@ -60,7 +60,7 @@ const matchesOrderSearch = (order, searchQuery) => {
 const filterTabs = [
   { id: "new", label: "New Orders" },
   { id: "all", label: "All" },
-  { id: "preparing", label: "Preparing" },
+  { id: "preparing", label: "Packing" },
   { id: "ready", label: "Ready" },
   { id: "out-for-delivery", label: "Out for delivery" },
   { id: "completed", label: "Completed" },
@@ -602,177 +602,6 @@ function CancelledOrders({ onSelectOrder, refreshToken = 0, searchQuery = "" }) 
   );
 }
 
-// Table Bookings List Component
-function TableBookings() {
-  const [bookings, setBookings] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let isMounted = true;
-    let restaurantEntity = null;
-
-    const resolveRestaurantEntity = async () => {
-      if (restaurantEntity) return restaurantEntity;
-      const res = await restaurantAPI.getCurrentRestaurant();
-      restaurantEntity =
-        res.data?.data?.restaurant || res.data?.restaurant || res.data?.data || null;
-      return restaurantEntity;
-    };
-
-    const fetchBookings = async () => {
-      try {
-        const restaurant = await resolveRestaurantEntity();
-        const restaurantId = restaurant?._id || restaurant?.id;
-
-        if (restaurantId) {
-          const response = await diningAPI.getRestaurantBookings(restaurant);
-          if (isMounted && response.data.success) {
-            setBookings(response.data.data);
-          }
-        }
-      } catch (error) {
-        debugError("Error fetching table bookings:", error);
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    };
-
-    fetchBookings();
-    const interval = setInterval(() => {
-      if (typeof document !== "undefined" && document.hidden) return;
-      fetchBookings();
-    }, 10000);
-    const handleVisibilityChange = () => {
-      if (typeof document !== "undefined" && !document.hidden) {
-        fetchBookings();
-      }
-    };
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => {
-      isMounted = false;
-      clearInterval(interval);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, []);
-
-  const handleStatusUpdate = async (bookingId, status) => {
-    try {
-      const response = await diningAPI.updateBookingStatusRestaurant(bookingId, status);
-      if (response.data.success) {
-        toast.success(`Booking ${status === "confirmed" ? "confirmed" : "rejected"} successfully`);
-        // Force refresh
-        setBookings((prev) =>
-          prev.map((b) =>
-            b._id === bookingId ? { ...b, status: status === "confirmed" ? "confirmed" : "cancelled" } : b
-          )
-        );
-      }
-    } catch (error) {
-      debugError("Error updating booking status:", error);
-      toast.error("Failed to update booking status");
-    }
-  };
-
-  if (loading)
-    return (
-      <div className="text-center py-10 text-gray-400">Loading bookings...</div>
-    );
-
-  return (
-    <div className="pt-4 pb-6 px-1">
-      <div className="flex items-baseline justify-between mb-4 px-1">
-        <h2 className="text-base font-semibold text-black">Table Bookings</h2>
-        <span className="text-xs text-gray-500">{bookings.length} total</span>
-      </div>
-
-      {bookings.length === 0 ? (
-        <div className="text-center py-12 bg-white rounded-2xl border border-gray-200">
-          <p className="text-gray-400 text-sm">No table bookings yet</p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {bookings.map((booking) => (
-            <div
-              key={booking._id}
-              className="bg-white rounded-2xl p-4 border border-gray-200 shadow-sm transition-all hover:border-gray-300">
-              <div className="flex justify-between items-start mb-3">
-                <div className="flex-1">
-                  <h3 className="text-sm font-bold text-gray-900">
-                    {booking.user?.name}
-                  </h3>
-                  <p className="text-[11px] text-gray-500">
-                    {booking.user?.phone || "No phone"}
-                  </p>
-                </div>
-                <span
-                  className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
-                    (booking.status === "confirmed" || booking.status === "accepted")
-                      ? "bg-green-100 text-green-700"
-                      : booking.status === "pending"
-                        ? "bg-amber-100 text-amber-700"
-                        : booking.status === "checked-in"
-                          ? "bg-orange-100 text-orange-700"
-                          : booking.status === "completed"
-                            ? "bg-blue-100 text-blue-700"
-                            : "bg-gray-100 text-gray-600"
-                    }`}>
-                  {booking.status === "pending" ? "Request" : (booking.status === "accepted" ? "confirmed" : booking.status)}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-4 text-[11px] text-gray-600 bg-gray-50 p-2.5 rounded-xl border border-gray-100">
-                <div className="flex items-center gap-1">
-                  <Calendar className="w-3.5 h-3.5 text-gray-400" />
-                  <span>
-                    {new Date(booking.date).toLocaleDateString("en-GB", {
-                      day: "2-digit",
-                      month: "short",
-                    })}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Clock className="w-3.5 h-3.5 text-gray-400" />
-                  <span>{booking.timeSlot}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Users className="w-3.5 h-3.5 text-gray-400" />
-                  <span>{booking.guests} Guests</span>
-                </div>
-              </div>
-
-              {booking.specialRequest && (
-                <div className="mt-3 p-2 bg-blue-50/50 rounded-lg border border-blue-100/50">
-                  <p className="text-[10px] text-blue-700 italic flex items-start gap-1">
-                    <MessageSquare className="w-3 h-3 mt-0.5 shrink-0" />
-                    <span className="line-clamp-2">
-                      {booking.specialRequest}
-                    </span>
-                  </p>
-                </div>
-              )}
-
-              {booking.status === "pending" && (
-                <div className="mt-4 flex gap-2">
-                  <button
-                    onClick={() => handleStatusUpdate(booking._id, "confirmed")}
-                    className="flex-1 bg-green-600 text-white py-2 rounded-xl text-xs font-bold hover:bg-green-700 transition-colors">
-                    Accept
-                  </button>
-                  <button
-                    onClick={() => handleStatusUpdate(booking._id, "cancelled")}
-                    className="flex-1 bg-white border border-red-200 text-red-600 py-2 rounded-xl text-xs font-bold hover:bg-red-50 transition-colors">
-                    Reject
-                  </button>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 function AllOrders({ onSelectOrder, onCancel, searchQuery = "" }) {
   const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
@@ -1244,7 +1073,7 @@ export default function OrdersMain() {
       window.dispatchEvent(new Event("restaurantProfileRefresh"));
 
       alert(
-        "Restaurant reverified successfully! Verification will be done in 24 hours.",
+        "Seller reverified successfully! Verification will be done in 24 hours.",
       );
     } catch (error) {
       // Don't log network/timeout errors (backend might be down)

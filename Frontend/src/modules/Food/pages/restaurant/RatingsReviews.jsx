@@ -139,7 +139,7 @@ export default function RatingsReviews() {
       {/* Your Restaurant's Rating Section */}
       <div className="px-4 py-4 bg-white">
         <div className="flex items-center justify-between mb-2">
-          <h2 className="text-base font-semibold text-gray-900">Your restaurant's rating</h2>
+          <h2 className="text-base font-semibold text-gray-900">Your seller's rating</h2>
           <div className="bg-green-600 px-3 py-1.5 rounded-lg flex items-center gap-1">
             <span className="text-white text-sm font-bold">4.0</span>
             <Star className="w-4 h-4 text-white fill-white" />

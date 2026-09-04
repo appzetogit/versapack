@@ -448,7 +448,7 @@ export default function RegularOrderReport() {
                 onChange={(e) => handleFilterChange("restaurant", e.target.value)}
                 className="w-full px-2.5 py-1.5 pr-5 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs appearance-none cursor-pointer"
               >
-                <option value="All restaurants">All restaurants</option>
+                <option value="All restaurants">All sellers</option>
                 {restaurants.map((restaurant) => (
                   <option key={restaurant._id} value={restaurant._id}>
                     {restaurant.restaurantName || restaurant.name}
@@ -620,7 +620,7 @@ export default function RegularOrderReport() {
                     Order Id
                   </th>
                   <th className="px-1.5 py-1 text-left text-[8px] font-bold text-slate-700 uppercase tracking-wider" style={{ width: "12%" }}>
-                    Restaurant
+                    Seller
                   </th>
                   <th className="px-1.5 py-1 text-left text-[8px] font-bold text-slate-700 uppercase tracking-wider" style={{ width: "12%" }}>
                     Customer Name

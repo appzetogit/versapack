@@ -35,7 +35,7 @@ const AllCategoriesModal = ({
             <div className="p-6 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
               <div>
                 <h2 className="text-2xl font-black text-gray-900 dark:text-white">What's on your mind?</h2>
-                <p className="text-gray-500 text-sm">Explore cuisines and dishes</p>
+                <p className="text-gray-500 text-sm">Explore cuisines and products</p>
               </div>
               <button 
                 onClick={onClose}

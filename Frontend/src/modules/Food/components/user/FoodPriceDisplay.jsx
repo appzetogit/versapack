@@ -5,6 +5,7 @@ import {
   hasFoodStrikePrice,
   hasFoodVariants,
 } from "@food/utils/foodVariants"
+import { getMrpDisplay } from "@food/utils/productStock"
 
 const RUPEE = "₹"
 
@@ -81,13 +82,29 @@ export default function FoodPriceDisplay({
   const price = Math.round(
     priceProp != null ? Number(priceProp) || 0 : getFoodDisplayPrice(item),
   )
+  const showStarting =
+    startingFrom != null ? Boolean(startingFrom) : hasFoodVariants(item || {})
+
+  /**
+   * Groceries strike through MRP — the printed maximum retail price — which the
+   * catalog stores separately from `otherPrice` (a compare-against-other-
+   * platforms number). Only one can occupy the strike slot, and MRP is the one
+   * shoppers recognise and the one that is legally meaningful, so it wins when
+   * present.
+   *
+   * Not applied to items priced "Starting from", where the shown price is the
+   * cheapest variant: striking a single product-level MRP against it would
+   * advertise a saving that the cheapest variant does not actually offer.
+   */
+  const mrpStrike = showStarting ? null : getMrpDisplay({ ...item, price })
+
   const otherPrice = Math.round(
     otherPriceProp != null
       ? Number(otherPriceProp) || 0
-      : getFoodDisplayOtherPrice(item),
+      : mrpStrike
+        ? mrpStrike.mrp
+        : getFoodDisplayOtherPrice(item),
   )
-  const showStarting =
-    startingFrom != null ? Boolean(startingFrom) : hasFoodVariants(item || {})
   const showStrike = hasFoodStrikePrice(item, price, otherPrice)
   const discountPercent = showStrike
     ? getFoodDiscountPercent(item, price, otherPrice)

@@ -191,7 +191,7 @@ export default function NewRefundRequests() {
                   <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase">Order ID</th>
                   <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase">Order Date</th>
                   <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase">Customer</th>
-                  <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase">Restaurant</th>
+                  <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase">Seller</th>
                   <th className="px-6 py-4 text-right text-[10px] font-bold text-slate-700 uppercase">Total Amount</th>
                   <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase">Cancellation Reason</th>
                   <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase">Refund Status</th>

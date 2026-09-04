@@ -213,7 +213,7 @@ export default function LandingPage() {
             className="group flex items-center gap-2 px-3 py-2 md:px-4 md:py-2 rounded-full text-xs font-bold text-slate-700 hover:text-[#FA0272] hover:bg-white/80 transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
           >
             <Store className="w-4 h-4 md:w-3.5 md:h-3.5 text-slate-500 group-hover:text-[#FA0272] transition-colors" />
-            <span className="hidden md:inline">Restaurant Partner</span>
+            <span className="hidden md:inline">Seller Partner</span>
           </button>
           <button
             onClick={() => setIsDeliveryOpen(true)}
@@ -254,7 +254,7 @@ export default function LandingPage() {
 
             <div className="overflow-hidden mt-4 lg:mt-6 max-w-xl">
               <motion.p custom={3} initial="hidden" animate="visible" variants={textReveal} className="text-base lg:text-lg text-slate-600 font-light leading-relaxed">
-                VersaPack is a next-generation food delivery platform built with a mission to create fairness and transparency in the food ecosystem. Unlike traditional platforms, we operate on a lifetime 0% commission model, ensuring that restaurant partners keep every hard-earned penny of their revenue.
+                VersaPack is a next-generation quick commerce platform built with a mission to create fairness and transparency in the retail ecosystem. Unlike traditional platforms, we operate on a lifetime 0% commission model, ensuring that seller partners keep every hard-earned penny of their revenue.
               </motion.p>
             </div>
 
@@ -323,7 +323,7 @@ export default function LandingPage() {
               Empowering partners, <br /><span className="italic text-slate-500 font-light">restoring trust.</span>
             </h3>
             <p className="text-lg md:text-xl text-slate-600 leading-relaxed font-light max-w-lg">
-              Unlike traditional delivery apps that squeeze restaurant margins, VersaPack works on a lifetime 0% commission model. We believe in creating a balanced, fair, and growth-oriented food ecosystem.
+              Unlike traditional delivery apps that squeeze seller margins, VersaPack works on a lifetime 0% commission model. We believe in creating a balanced, fair, and growth-oriented food ecosystem.
             </p>
             <div className="pt-2">
               <button
@@ -410,7 +410,7 @@ export default function LandingPage() {
               Flawless <br />from tap to table.
             </h3>
             <p className="text-lg md:text-xl text-slate-600 font-light leading-relaxed max-w-lg">
-              Live tracking that actually updates. Beautifully designed interface. Zero friction. Download the app to experience food delivery designed for the modern era.
+              Live tracking that actually updates. Beautifully designed interface. Zero friction. Download the app to experience quick commerce designed for the modern era.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
               <a
@@ -652,7 +652,7 @@ export default function LandingPage() {
             </h2>
           </div>
           <p className="text-base md:text-lg text-slate-600 font-light max-w-sm leading-relaxed pb-1">
-            Beyond just food delivery. We are engineering a new standard for dining at home.
+            Beyond just delivery. We are engineering a new standard for everyday essentials.
           </p>
         </div>
 
@@ -776,7 +776,7 @@ export default function LandingPage() {
                 <div>
                   <h4 className="font-bold text-slate-900 mb-1">Telangana Launchpad (Active)</h4>
                   <p className="text-sm text-slate-500 font-light">
-                    Our central headquarters and active delivery operations. Reclaiming restaurant revenues with 0% lifetime commission.
+                    Our central headquarters and active delivery operations. Reclaiming seller revenues with 0% lifetime commission.
                   </p>
                 </div>
               </div>
@@ -997,7 +997,7 @@ export default function LandingPage() {
                 {APP_CONFIG?.NAME || "BRAND"}<span className="text-[#FA0272]">.</span>
               </h2>
               <p className="text-slate-500 text-lg font-light leading-relaxed max-w-sm mb-8">
-                Elevating the dining experience. Premium food delivery for those who expect more.
+                Elevating the everyday shop. Premium quick commerce for those who expect more.
               </p>
               <div className="flex gap-4">
                 {[
@@ -1128,7 +1128,7 @@ export default function LandingPage() {
                 <div className="absolute top-[-50%] right-[-10%] w-[350px] h-[350px] bg-[#FA0272]/20 rounded-full blur-[90px] pointer-events-none" />
                 <div className="relative z-10 space-y-6">
                   <p className="text-2xl md:text-3xl lg:text-4xl font-light leading-relaxed italic text-slate-100 max-w-4xl">
-                    "VersaPack isn’t just a food delivery app—it’s a movement towards fair business, trust, and transparency."
+                    "VersaPack isn’t just a quick commerce app—it’s a movement towards fair business, trust, and transparency."
                   </p>
                   <div className="w-16 h-1 bg-[#FA0272] rounded-full" />
                   <p className="text-xs uppercase tracking-widest font-bold text-slate-400">Our Core Philosophy</p>
@@ -1146,7 +1146,7 @@ export default function LandingPage() {
                     </div>
                     <h3 className="text-2xl font-black text-slate-900 mb-3 tracking-tight">Lifetime 0% Commission</h3>
                     <p className="text-slate-600 font-light leading-relaxed">
-                      We operate on a lifetime 0% commission model. This ensures that our restaurant partners keep every hard-earned penny of their revenue, giving them the financial breathing room to grow, sustain jobs, and thrive in a digital economy.
+                      We operate on a lifetime 0% commission model. This ensures that our seller partners keep every hard-earned penny of their revenue, giving them the financial breathing room to grow, sustain jobs, and thrive in a digital economy.
                     </p>
                   </div>
                   <div className="mt-8 pt-6 border-t border-slate-100 flex items-center gap-3">
@@ -1163,7 +1163,7 @@ export default function LandingPage() {
                     </div>
                     <h3 className="text-2xl font-black text-slate-900 mb-3 tracking-tight">Trust & Transparent Pricing</h3>
                     <p className="text-slate-600 font-light leading-relaxed">
-                      By offering transparent pricing, VersaPack ensures customers pay genuine prices without hidden markups. We are building long-term relationships of trust with both restaurants and consumers.
+                      By offering transparent pricing, VersaPack ensures customers pay genuine prices without hidden markups. We are building long-term relationships of trust with both sellers and consumers.
                     </p>
                   </div>
                   <div className="mt-8 pt-6 border-t border-slate-100 flex items-center gap-3">
@@ -1197,7 +1197,7 @@ export default function LandingPage() {
                     </div>
                     <h3 className="text-2xl font-black text-slate-900 mb-3 tracking-tight">Founded by Visionaries</h3>
                     <p className="text-slate-600 font-light leading-relaxed">
-                      VersaPack was founded by two passionate 23-year-old entrepreneurs driven by a vision to revolutionize the food delivery industry and create a more balanced, fair, and growth-oriented platform for all stakeholders.
+                      VersaPack was founded by two passionate 23-year-old entrepreneurs driven by a vision to revolutionize the quick commerce industry and create a more balanced, fair, and growth-oriented platform for all stakeholders.
                     </p>
                   </div>
                   <div className="mt-8 pt-6 border-t border-slate-100 flex items-center gap-3">
@@ -1212,7 +1212,7 @@ export default function LandingPage() {
               <div className="text-center py-12 md:py-20 border-t border-slate-200/60 flex flex-col items-center gap-6 shrink-0">
                 <h3 className="text-3xl md:text-4xl font-black text-slate-900">Be Part of the Movement</h3>
                 <p className="text-slate-500 max-w-lg font-light">
-                  Support your local neighborhood restaurants. Join VersaPack today as a customer or partner and help us create a fair ecosystem.
+                  Support your local neighborhood sellers. Join VersaPack today as a customer or partner and help us create a fair ecosystem.
                 </p>
                 <div className="flex gap-4 mt-2">
                   <button
@@ -1278,14 +1278,14 @@ export default function LandingPage() {
               {/* Cinematic Page Title - Centered Elegant Culinary Accent */}
               <div className="max-w-4xl space-y-6 text-center mx-auto mb-4">
                 <span className="inline-flex items-center gap-2 text-[#FA0272] font-black tracking-widest uppercase text-xs bg-[#FA0272]/10 border border-[#FA0272]/20 px-4 py-2 rounded-full">
-                  <Store className="w-4 h-4 text-[#FA0272]" /> Restaurant Empowerment Initiative
+                  <Store className="w-4 h-4 text-[#FA0272]" /> Seller Empowerment Initiative
                 </span>
                 <h1 className="text-5xl md:text-7xl font-black leading-[1.05] tracking-tight text-slate-900">
                   Earn Commission-Free. <br />
                   <span className="text-transparent bg-clip-text bg-gradient-to-br from-[#FA0272] to-[#E02477] font-extrabold italic font-light">Reclaim 100% of Your Revenue.</span>
                 </h1>
                 <p className="text-xl text-slate-700 font-light leading-relaxed max-w-3xl mx-auto">
-                  Say goodbye to standard 25%-30% commissions that wipe out restaurant profit margins. With VersaPack, you gain access to a powerful digital ordering system on a <strong>lifetime 0% commission model</strong>.
+                  Say goodbye to standard 25%-30% commissions that wipe out seller profit margins. With VersaPack, you gain access to a powerful digital ordering system on a <strong>lifetime 0% commission model</strong>.
                 </p>
               </div>
 
@@ -1375,7 +1375,7 @@ export default function LandingPage() {
                   </div>
                   <div className="mt-8 pt-6 border-t border-slate-200/50 flex items-center gap-3">
                     <Zap className="w-4 h-4 text-[#FA0272]" />
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Empowering Culinary Businesses</span>
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Empowering Local Businesses</span>
                   </div>
                 </div>
 
@@ -1435,9 +1435,9 @@ export default function LandingPage() {
               {/* Bottom Call to Action and Lead Form */}
               <div id="partner-lead-form" className="py-12 md:py-20 border-t border-slate-200/40 shrink-0 max-w-3xl mx-auto w-full">
                 <div className="text-center mb-10">
-                  <h3 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">Become a Restaurant Partner</h3>
+                  <h3 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">Become a Seller Partner</h3>
                   <p className="text-slate-600 max-w-lg font-light text-sm md:text-base mx-auto mt-3">
-                    Fill out the form below to register your interest, and our onboarding team will contact you to set up your restaurant on VersaPack.
+                    Fill out the form below to register your interest, and our onboarding team will contact you to set up your seller on VersaPack.
                   </p>
                 </div>
 
@@ -1476,7 +1476,7 @@ export default function LandingPage() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">Restaurant Name</label>
+                        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">Seller Name</label>
                         <input
                           type="text"
                           required
@@ -1774,7 +1774,7 @@ export default function LandingPage() {
               <div className="text-center py-12 md:py-20 border-t border-slate-800/80 flex flex-col items-center gap-6 shrink-0">
                 <h3 className="text-3xl md:text-4xl font-black text-white">Start Earning with VersaPack</h3>
                 <p className="text-slate-400 max-w-lg font-light text-sm md:text-base">
-                  Get on the road and empower the local neighborhood restaurant ecosystem while securing premium distance-based earnings.
+                  Get on the road and empower the local neighborhood seller ecosystem while securing premium distance-based earnings.
                 </p>
                 <div className="flex gap-4 mt-2">
                   <button

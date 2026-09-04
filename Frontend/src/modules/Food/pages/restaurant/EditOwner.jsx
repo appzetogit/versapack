@@ -435,7 +435,7 @@ export default function EditOwner() {
                 You are about to delete your Zomato account
               </DialogTitle>
               <DialogHeader className="mt-2 text-sm text-gray-600">
-                All information associated with your account will be deleted, and you will lose access to your restaurant permanently.
+                All information associated with your account will be deleted, and you will lose access to your seller permanently.
                 This information cannot be recovered once the account is deleted. Are you sure you want to proceed?
               </DialogHeader>
             </DialogHeader>

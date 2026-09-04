@@ -282,7 +282,7 @@ function ContentPageSkeleton({ className, hero = true }) {
 
 function RestaurantDetailSkeleton({ className }) {
   return (
-    <LoadingSkeletonRegion label="Loading restaurant details" className={cn("min-h-screen bg-white dark:bg-[#0a0a0a]", className)}>
+    <LoadingSkeletonRegion label="Loading seller details" className={cn("min-h-screen bg-white dark:bg-[#0a0a0a]", className)}>
       <div className="mx-auto max-w-6xl px-4 pb-10 pt-3">
         <div className="flex items-center justify-between">
           <Skeleton className="h-11 w-11 rounded-full" />

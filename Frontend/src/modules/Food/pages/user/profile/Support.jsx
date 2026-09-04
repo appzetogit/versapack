@@ -59,7 +59,7 @@ export default function Support() {
       const list = res?.data?.data?.restaurants || res?.data?.restaurants || []
       setRestaurants(list)
     } catch {
-      toast.error("Failed to load restaurants")
+      toast.error("Failed to load sellers")
     }
   }
 
@@ -240,7 +240,7 @@ export default function Support() {
                     <Building2 className="h-5 w-5 text-slate-700 dark:text-slate-200" />
                     <ChevronRight className="h-4 w-4 text-slate-400" />
                   </div>
-                  <p className="mt-3 font-semibold text-slate-900 dark:text-white">Restaurant Issue</p>
+                  <p className="mt-3 font-semibold text-slate-900 dark:text-white">Seller Issue</p>
                   <p className="text-xs text-slate-500 mt-1">Service, listing info, behavior report</p>
                 </button>
 
@@ -302,7 +302,7 @@ export default function Support() {
 
             {step === "choose_restaurant" && (
               <div className="space-y-3">
-                <h3 className="font-semibold text-slate-900 dark:text-white">Select a restaurant</h3>
+                <h3 className="font-semibold text-slate-900 dark:text-white">Select a seller</h3>
                 {restaurants.length > 0 ? (
                   <div className="space-y-2">
                     <Input
@@ -318,10 +318,10 @@ export default function Support() {
                         </option>
                       ))}
                     </datalist>
-                    {filteredRestaurants.length === 0 ? <p className="text-sm text-slate-500">No matching restaurants found</p> : null}
+                    {filteredRestaurants.length === 0 ? <p className="text-sm text-slate-500">No matching sellers found</p> : null}
                   </div>
                 ) : (
-                  <p className="text-sm text-slate-500">No restaurants found</p>
+                  <p className="text-sm text-slate-500">No sellers found</p>
                 )}
                 <Button variant="outline" onClick={() => setStep("pick")}>Back</Button>
               </div>

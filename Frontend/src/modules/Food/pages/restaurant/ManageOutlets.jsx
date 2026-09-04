@@ -65,7 +65,7 @@ export default function ManageOutlets() {
         >
           <ArrowLeft className="w-5 h-5 text-gray-900" />
         </button>
-        <h1 className="text-lg font-bold text-gray-900">Restaurant</h1>
+        <h1 className="text-lg font-bold text-gray-900">Seller</h1>
       </div>
 
       {/* Main Content */}
@@ -118,7 +118,7 @@ export default function ManageOutlets() {
                 <Info className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
                 <div className="flex-1 space-y-2">
                   <p className="text-sm font-semibold text-gray-900">
-                    You can not modify the delivery areas of your restaurant
+                    You can not modify the delivery areas of your seller
                   </p>
                   <p className="text-xs text-gray-600 leading-relaxed">
                     Delivery area is defined by the appropriate distance our delivery partners can travel to deliver your orders in time. This can vary basis the time of the day or external conditions like rain etc.

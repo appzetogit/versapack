@@ -21,7 +21,6 @@ const filterOptions = [
   { id: 'under-30-mins', label: 'Under 30 mins' },
   { id: 'price-match', label: 'Price Match', hasIcon: true },
   { id: 'flat-50-off', label: 'Flat 50% OFF', hasIcon: true },
-  { id: 'under-250', label: 'Switch 99' },
   { id: 'rating-4-plus', label: 'Rating 4.0+' },
 ]
 const SEARCH_HISTORY_KEY = "user_recent_searches_v1"
@@ -660,14 +659,6 @@ export default function SearchResults() {
       filtered = filtered.filter(r => r.offer && r.offer.includes('50%'))
     }
 
-    // Switch 99 filter - exclude closed restaurants
-    if (activeFilters.has('under-250')) {
-      filtered = filtered.filter(r => {
-        const availability = getRestaurantAvailabilityStatus(r, new Date(availabilityTick));
-        return r.featuredPrice && r.featuredPrice <= 99 && availability.isOpen;
-      })
-    }
-
     return uniqueRestaurants(filtered)
   }, [deferredQuery, selectedCategory, activeFilters, restaurantsData, categoryKeywords, loadingCategories, availabilityTick])
 
@@ -769,13 +760,6 @@ export default function SearchResults() {
     if (activeFilters.has('rating-4-plus')) {
       filtered = filtered.filter(r => r.rating && r.rating >= 4.0)
     }
-    // Switch 99 filter - exclude closed restaurants (already handled above but ensuring consistency if logic differs)
-    if (activeFilters.has('under-250')) {
-      filtered = filtered.filter(r => {
-        const availability = getRestaurantAvailabilityStatus(r, new Date(availabilityTick));
-        return r.featuredPrice && r.featuredPrice <= 99 && availability.isOpen;
-      })
-    }
     if (activeFilters.has('flat-50-off')) {
       filtered = filtered.filter(r => r.offer && r.offer.includes('50%'))
     }
@@ -812,7 +796,7 @@ export default function SearchResults() {
             <form onSubmit={handleSearch} className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 dark:text-gray-400" />
               <Input
-                placeholder="Restaurant name or a dish..."
+                placeholder="Seller name or a product..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 pr-10 h-11 rounded-lg border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-[#1a1a1a] focus:bg-white dark:focus:bg-[#2a2a2a] focus:border-gray-500 dark:focus:border-gray-600 text-sm dark:text-white placeholder:text-gray-600 dark:placeholder:text-gray-400"

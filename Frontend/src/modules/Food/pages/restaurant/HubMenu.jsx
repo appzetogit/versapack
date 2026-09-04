@@ -1140,7 +1140,7 @@ export default function HubMenu() {
       return
     }
     
-    toast.message('Finish category setup on Menu Categories so you can choose veg, non-veg, or both before admin approval.')
+    toast.message('Finish category setup on Product Categories so you can choose veg, non-veg, or both before admin approval.')
     navigate('/restaurant/menu-categories', {
       state: {
         draftCategoryName: newCategoryName.trim(),
@@ -1161,7 +1161,7 @@ export default function HubMenu() {
     try {
       // Menu editing is disabled on the backend. The menu is generated from food_items.
       // Category deletion must be done via the Menu Categories page and can only happen when it has no items.
-      toast.error('Delete categories from Menu Categories (and only when empty).')
+      toast.error('Delete categories from Product Categories (and only when empty).')
       navigate('/restaurant/menu-categories')
     } catch (error) {
       debugError('Error deleting category:', error)
@@ -2592,7 +2592,7 @@ export default function HubMenu() {
               className="relative w-full max-w-lg bg-white sm:rounded-2xl shadow-2xl overflow-hidden"
             >
               <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-white">
-                <h3 className="text-xl font-bold text-gray-900">Bulk Menu Upload</h3>
+                <h3 className="text-xl font-bold text-gray-900">Bulk Product Upload</h3>
                 <button
                   onClick={() => {
                     if (!isUploading) {

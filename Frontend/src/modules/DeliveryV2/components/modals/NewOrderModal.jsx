@@ -201,7 +201,7 @@ export const NewOrderModal = ({ order, onAccept, onReject, onMinimize, swapGuard
 
                 <div className="flex-1 space-y-4">
                   <div>
-                    <h4 className="text-[10px] font-black uppercase tracking-[0.15em] text-emerald-600 mb-0.5">Restaurant Pickup</h4>
+                    <h4 className="text-[10px] font-black uppercase tracking-[0.15em] text-emerald-600 mb-0.5">Seller Pickup</h4>
                     <h3 className="text-gray-950 font-black text-lg leading-tight mb-0.5 line-clamp-1">{restaurantName}</h3>
                     <p className="text-gray-500 text-[11px] font-bold line-clamp-1">{restaurantAddress}</p>
                   </div>

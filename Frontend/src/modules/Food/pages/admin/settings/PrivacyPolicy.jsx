@@ -121,7 +121,7 @@ export default function PrivacyPolicy() {
               className="bg-white border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 outline-none"
             >
               <option value="USER">User App</option>
-              <option value="RESTAURANT">Restaurant App</option>
+              <option value="RESTAURANT">Seller App</option>
               <option value="DELIVERY">Delivery App</option>
               <option value="ALL">All Modules (Default)</option>
             </select>

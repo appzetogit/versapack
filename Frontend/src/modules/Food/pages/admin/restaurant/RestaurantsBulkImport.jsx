@@ -35,7 +35,7 @@ export default function RestaurantsBulkImport() {
           <div>
             <h1 className="text-2xl font-bold text-slate-900">Bulk Import</h1>
             <p className="text-sm text-slate-500 mt-1">
-              Import restaurants in bulk using Excel files
+              Import sellers in bulk using Excel files
             </p>
           </div>
         </div>
@@ -77,7 +77,7 @@ export default function RestaurantsBulkImport() {
               <p>• Fill up the data according to the format</p>
               <p>• By default status will be 1 please input the right ids</p>
               <p>• Make sure to provide valid zone, cuisine, and business model IDs</p>
-              <p>• Restaurant owner information must be complete and accurate</p>
+              <p>• Seller owner information must be complete and accurate</p>
               <p>• Address and contact details are mandatory fields</p>
             </div>
             <div className="ml-14">
@@ -118,7 +118,7 @@ export default function RestaurantsBulkImport() {
               <p>• In the Excel file upload section first select the upload option.</p>
               <p>• Upload your file in .xls .xlsx format.</p>
               <p>• Finally click the upload button.</p>
-              <p>• You can upload your restaurant images in restaurant folder from gallery and copy image's path.</p>
+              <p>• You can upload your seller images in seller folder from gallery and copy image's path.</p>
             </div>
           </div>
           <div className="p-6 bg-orange-50 rounded-lg">

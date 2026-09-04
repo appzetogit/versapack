@@ -32,6 +32,13 @@ const createFoodForm = () => ({
   name: "",
   price: "",
   otherPrice: "",
+  // Grocery catalogue fields. `mrp` is the printed retail price shown struck
+  // through — separate from otherPrice, which compares against other platforms.
+  // `gstRate` blank falls back to the order-wide rate in fee settings.
+  brand: "",
+  packSize: "",
+  mrp: "",
+  gstRate: "",
   variants: [],
   description: "",
   image: "",
@@ -374,6 +381,12 @@ export default function FoodsList() {
       name: String(food.name || ""),
       price: String(food.price || ""),
       otherPrice: String(food.otherPrice || ""),
+      brand: String(food.brand || ""),
+      packSize: String(food.packSize || ""),
+      // null means unset and must stay blank, not become "0" — 0 is a real GST
+      // slab and a real (illegal) price.
+      mrp: food.mrp == null ? "" : String(food.mrp),
+      gstRate: food.gstRate == null ? "" : String(food.gstRate),
       variants: getFoodVariants(food).map(createVariantDraft),
       description: String(food.description || ""),
       image: String(food.image || ""),
@@ -460,7 +473,7 @@ export default function FoodsList() {
   const handleFoodFormSubmit = async () => {
     if (!ensureActionAccess(foodFormMode === "edit" ? "edit" : "create")) return
     if (!foodForm.restaurantId) {
-      toast.error("Please select a restaurant")
+      toast.error("Please select a seller")
       return
     }
     if (!String(foodForm.categoryName || "").trim()) {
@@ -549,6 +562,12 @@ export default function FoodsList() {
           price: variant.price,
           otherPrice: variant.otherPrice > 0 ? variant.otherPrice : 0,
         })),
+        brand: String(foodForm.brand || "").trim(),
+        packSize: String(foodForm.packSize || "").trim(),
+        // Blank stays null rather than 0: an unset MRP is not a ₹0 MRP, and an
+        // unset GST rate must fall through to the order-wide rate, not charge 0%.
+        mrp: String(foodForm.mrp || "").trim() === "" ? null : Number(foodForm.mrp),
+        gstRate: String(foodForm.gstRate || "").trim() === "" ? null : Number(foodForm.gstRate),
         description: foodForm.description.trim(),
         image: imageUrl,
         images: imageUrls,
@@ -628,7 +647,7 @@ export default function FoodsList() {
 
   const handleBulkUpload = async () => {
     if (!bulkUploadRestaurantId) {
-      toast.error("Please select a restaurant first")
+      toast.error("Please select a seller first")
       return
     }
     if (!bulkUploadFile) {
@@ -703,7 +722,7 @@ export default function FoodsList() {
   const handleBulkDelete = async () => {
     if (!ensureActionAccess("delete")) return
     if (!isRestaurantSelected) {
-      toast.error("Select a restaurant to bulk delete items")
+      toast.error("Select a seller to bulk delete items")
       return
     }
     if (selectedDeleteCount === 0) {
@@ -814,7 +833,7 @@ export default function FoodsList() {
             <div className="flex flex-col gap-2 min-w-[240px]">
               <input
                 type="text"
-                placeholder="Search restaurant..."
+                placeholder="Search seller..."
                 value={restaurantFilterSearch}
                 onChange={(e) => setRestaurantFilterSearch(e.target.value)}
                 className="px-3 py-2 text-sm rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400"
@@ -824,7 +843,7 @@ export default function FoodsList() {
                 onChange={(e) => setSelectedRestaurant(e.target.value)}
                 className="px-4 py-2.5 min-w-[240px] text-sm rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400"
               >
-                <option value="all">All Restaurants</option>
+                <option value="all">All Sellers</option>
                 {filteredRestaurantOptions.map((restaurant) => (
                   <option key={restaurant.id} value={restaurant.id}>
                     {restaurant.name}
@@ -894,7 +913,7 @@ export default function FoodsList() {
                   Title
                 </th>
                 <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase tracking-wider">
-                  Restaurant
+                  Seller
                 </th>
                 <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase tracking-wider">
                   Category
@@ -919,7 +938,7 @@ export default function FoodsList() {
                   <td colSpan={isRestaurantSelected ? 7 : 6} className="px-6 py-20 text-center">
                     <div className="flex flex-col items-center justify-center">
                       <p className="text-lg font-semibold text-slate-700 mb-1">No Data Found</p>
-                      <p className="text-sm text-slate-500">No food items match your search or restaurant filter</p>
+                      <p className="text-sm text-slate-500">No food items match your search or seller filter</p>
                     </div>
                   </td>
                 </tr>
@@ -1083,7 +1102,7 @@ export default function FoodsList() {
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4 text-sm bg-slate-50 border border-slate-200 rounded-lg p-4">
-                <p><span className="font-semibold text-slate-700">Restaurant:</span> <span className="text-slate-900">{selectedFood.restaurantName || "-"}</span></p>
+                <p><span className="font-semibold text-slate-700">Seller:</span> <span className="text-slate-900">{selectedFood.restaurantName || "-"}</span></p>
                 <p><span className="font-semibold text-slate-700">Price:</span> <span className="text-slate-900">{selectedFood.variants?.length ? `Starting from \u20B9${selectedFood.price}` : `\u20B9${selectedFood.price}`}</span></p>
                 <p><span className="font-semibold text-slate-700">Category:</span> <span className="text-slate-900">{selectedFood.categoryName || "-"}</span></p>
                 <p><span className="font-semibold text-slate-700">Food Type:</span> <span className="text-slate-900">{selectedFood.foodType || "-"}</span></p>
@@ -1137,14 +1156,14 @@ export default function FoodsList() {
           <div className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Restaurant</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Seller</label>
                 <select
                   value={foodForm.restaurantId}
                   onChange={(e) => setFoodForm((prev) => ({ ...prev, restaurantId: e.target.value, categoryId: "", categoryName: "" }))}
                   disabled={foodFormMode === "edit"}
                   className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm bg-white disabled:bg-slate-100"
                 >
-                  <option value="">Select restaurant</option>
+                  <option value="">Select seller</option>
                   {restaurantOptions.map((restaurant) => (
                     <option key={restaurant.id} value={restaurant.id}>
                       {restaurant.name}
@@ -1241,6 +1260,53 @@ export default function FoodsList() {
                   className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm bg-white disabled:bg-slate-100 disabled:text-slate-400"
                 />
                 <p className="mt-1 text-xs text-slate-500">Shown with strikethrough when higher than selling price.</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">MRP</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={foodForm.mrp}
+                  onChange={(e) => setFoodForm((prev) => ({ ...prev, mrp: e.target.value }))}
+                  placeholder="Optional"
+                  className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm bg-white"
+                />
+                <p className="mt-1 text-xs text-slate-500">Printed maximum retail price. Selling above it is refused.</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Brand</label>
+                <input
+                  type="text"
+                  value={foodForm.brand}
+                  onChange={(e) => setFoodForm((prev) => ({ ...prev, brand: e.target.value }))}
+                  placeholder="e.g. Amul"
+                  className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm bg-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Pack Size</label>
+                <input
+                  type="text"
+                  value={foodForm.packSize}
+                  onChange={(e) => setFoodForm((prev) => ({ ...prev, packSize: e.target.value }))}
+                  placeholder='e.g. 500 g, 1 L, pack of 6'
+                  className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm bg-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">GST Rate (%)</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                  value={foodForm.gstRate}
+                  onChange={(e) => setFoodForm((prev) => ({ ...prev, gstRate: e.target.value }))}
+                  placeholder="Uses default"
+                  className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm bg-white"
+                />
+                <p className="mt-1 text-xs text-slate-500">Leave blank to use the order-wide rate from fee settings.</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Food Type</label>
@@ -1446,7 +1512,7 @@ export default function FoodsList() {
       }}>
         <DialogContent className="max-w-xl p-0 overflow-hidden">
           <DialogHeader className="px-6 py-4 border-b border-slate-200 bg-slate-50">
-            <DialogTitle className="text-lg font-semibold text-slate-900">Bulk Menu Upload</DialogTitle>
+            <DialogTitle className="text-lg font-semibold text-slate-900">Bulk Product Upload</DialogTitle>
           </DialogHeader>
           <div className="p-6 space-y-6 max-h-[75vh] overflow-y-auto">
             {!bulkUploadResults ? (
@@ -1457,7 +1523,7 @@ export default function FoodsList() {
                   </div>
                   <div className="flex-1">
                     <p className="text-sm font-semibold text-slate-900">Step 1: Download Template</p>
-                    <p className="text-xs text-slate-600 mt-1">Use the Excel template to add menu items in bulk.</p>
+                    <p className="text-xs text-slate-600 mt-1">Use the Excel template to add products in bulk.</p>
                     <button
                       type="button"
                       onClick={handleDownloadBulkTemplate}
@@ -1469,10 +1535,10 @@ export default function FoodsList() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-sm font-semibold text-slate-900">Step 2: Select Restaurant</label>
+                  <label className="block text-sm font-semibold text-slate-900">Step 2: Select Seller</label>
                   <input
                     type="text"
-                    placeholder="Search restaurant..."
+                    placeholder="Search seller..."
                     value={bulkUploadRestaurantSearch}
                     onChange={(e) => setBulkUploadRestaurantSearch(e.target.value)}
                     className="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-slate-400"
@@ -1482,7 +1548,7 @@ export default function FoodsList() {
                     onChange={(e) => setBulkUploadRestaurantId(e.target.value)}
                     className="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-slate-400"
                   >
-                    <option value="">Choose a restaurant</option>
+                    <option value="">Choose a seller</option>
                     {filteredBulkUploadRestaurants.map((restaurant) => (
                       <option key={restaurant.id} value={restaurant.id}>
                         {restaurant.name}

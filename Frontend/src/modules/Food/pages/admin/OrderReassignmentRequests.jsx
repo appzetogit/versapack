@@ -236,7 +236,7 @@ export default function OrderReassignmentRequests() {
                           <Store className="mt-0.5 h-5 w-5 text-orange-600" />
                           <div>
                             <p className="text-xs font-semibold uppercase text-slate-400">
-                              Restaurant
+                              Seller
                             </p>
                             <p className="text-sm font-semibold text-slate-900">
                               {request.restaurant?.restaurantName ||

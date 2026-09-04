@@ -431,7 +431,7 @@ const RestaurantImageCarousel = React.memo(
           <div
             className="absolute bottom-2 right-2 z-10 flex items-center gap-[3px] rounded-full border border-white/20 bg-black/55 px-[5px] py-[3px] shadow-[0_2px_8px_rgba(0,0,0,0.4)]"
             role="tablist"
-            aria-label="Restaurant image pages"
+            aria-label="Seller image pages"
           >
             {images.map((_, index) => {
               const isActive = index === safeIndex;
@@ -709,9 +709,6 @@ const RestaurantCard = React.memo(({
                 {/* Cuisine & Offers */}
                 <div className="mt-auto flex flex-col gap-1">
                   <div className="flex items-center gap-2 min-w-0">
-                    <p className="text-xs lg:text-sm text-gray-500 dark:text-gray-400 line-clamp-1 group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-colors duration-300 shrink min-w-0">
-                      {restaurant.cuisine}
-                    </p>
                     {currentOffer && (
                       <>
                         <span className="text-xs text-gray-300 dark:text-gray-600">|</span>
@@ -888,7 +885,6 @@ export default function Home() {
   const homeUiStateRef = useRef({
     activeFilters: [],
     sortBy: null,
-    selectedCuisine: null,
     restaurantsData: [],
   });
   const restaurantLoadMoreRef = useRef(null);
@@ -1117,7 +1113,6 @@ export default function Home() {
         filters: {
           activeFilters: ui.activeFilters,
           sortBy: ui.sortBy,
-          selectedCuisine: ui.selectedCuisine,
         },
         lock: false,
       });
@@ -1148,7 +1143,6 @@ export default function Home() {
       filters: {
         activeFilters: ui.activeFilters,
         sortBy: ui.sortBy,
-        selectedCuisine: ui.selectedCuisine,
       },
       lock: true,
     });
@@ -1566,16 +1560,12 @@ export default function Home() {
   const [sortBy, setSortBy] = useState(
     () => homeRestoreBootRef.current?.pending?.filters?.sortBy ?? null,
   ); // null, 'price-low', 'price-high', 'rating-high', 'rating-low'
-  const [selectedCuisine, setSelectedCuisine] = useState(
-    () => homeRestoreBootRef.current?.pending?.filters?.selectedCuisine ?? null,
-  );
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [appliedFilters, setAppliedFilters] = useState(() => {
     const f = homeRestoreBootRef.current?.pending?.filters;
     return {
       activeFilters: new Set(Array.isArray(f?.activeFilters) ? f.activeFilters : []),
       sortBy: f?.sortBy ?? null,
-      selectedCuisine: f?.selectedCuisine ?? null,
     };
   });
   const [isLoadingFilterResults, setIsLoadingFilterResults] = useState(false);
@@ -1585,10 +1575,9 @@ export default function Home() {
     homeUiStateRef.current = {
       activeFilters: Array.from(activeFilters),
       sortBy,
-      selectedCuisine,
       restaurantsData,
     };
-  }, [activeFilters, sortBy, selectedCuisine, restaurantsData]);
+  }, [activeFilters, sortBy, restaurantsData]);
   const categoryScrollRef = useRef(null);
   const gsapAnimationsRef = useRef([]);
   // Show skeletons immediately while loading — delayed toggles caused visible layout swap (CLS).
@@ -1853,10 +1842,6 @@ export default function Home() {
           params.sortBy = filters.sortBy;
         }
 
-        // Cuisine
-        if (filters.selectedCuisine) {
-          params.cuisine = filters.selectedCuisine;
-        }
 
         // Rating filters
         if (filters.activeFilters?.has("rating-45-plus")) {
@@ -2208,12 +2193,10 @@ export default function Home() {
     async (
       nextActiveFilters = activeFilters,
       nextSortBy = sortBy,
-      nextSelectedCuisine = selectedCuisine,
     ) => {
       const nextFilterState = {
         activeFilters: new Set(nextActiveFilters),
         sortBy: nextSortBy,
-        selectedCuisine: nextSelectedCuisine,
       };
 
       setAppliedFilters(nextFilterState);
@@ -2227,7 +2210,7 @@ export default function Home() {
         setIsLoadingFilterResults(false);
       }
     },
-    [activeFilters, sortBy, selectedCuisine, fetchRestaurants],
+    [activeFilters, sortBy, fetchRestaurants],
   );
 
   // Fetch restaurants when appliedFilters change
@@ -2545,8 +2528,8 @@ export default function Home() {
 
   const restaurantLazyLoadResetKey = useMemo(() => {
     const activeFilterKey = Array.from(activeFilters).sort().join("|");
-    return `${restaurantsData.length}:${activeFilterKey}:${selectedCuisine || ""}:${sortBy || ""}:${vegMode ? "1" : "0"}:${vegModeOption}`;
-  }, [activeFilters, restaurantsData.length, selectedCuisine, sortBy, vegMode, vegModeOption]);
+    return `${restaurantsData.length}:${activeFilterKey}:${sortBy || ""}:${vegMode ? "1" : "0"}:${vegModeOption}`;
+  }, [activeFilters, restaurantsData.length, sortBy, vegMode, vegModeOption]);
 
   const visibleRestaurants = useMemo(
     () => filteredRestaurants.slice(0, visibleRestaurantCount),
@@ -3331,7 +3314,7 @@ export default function Home() {
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.25 }}>
-                    <LoadingSkeletonRegion label="Loading restaurants" className="h-full p-1 sm:p-2">
+                    <LoadingSkeletonRegion label="Loading sellers" className="h-full p-1 sm:p-2">
                       <RestaurantGridSkeleton
                         count={3}
                         className="grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3"
@@ -3413,7 +3396,7 @@ export default function Home() {
                   variant="outline"
                   onClick={loadMoreRestaurants}
                   className="text-sm font-medium border-gray-300 hover:border-gray-400">
-                  Load more restaurants
+                  Load more sellers
                 </Button>
               )}
               <div
@@ -3461,7 +3444,6 @@ export default function Home() {
                     onClick={() => {
                       setActiveFilters(new Set());
                       setSortBy(null);
-                      setSelectedCuisine(null);
                     }}
                     className="text-[#EB590E] font-medium text-sm">
                     Clear all
@@ -3602,7 +3584,7 @@ export default function Home() {
                       data-section-id="rating"
                       className="space-y-4 mb-8">
                       <h3 className="text-lg font-semibold text-gray-900  dark:text-white mb-4">
-                        Restaurant Rating
+                        Seller Rating
                       </h3>
                       <div className="grid grid-cols-2 gap-3">
                         <button
@@ -3703,7 +3685,7 @@ export default function Home() {
                       data-section-id="price"
                       className="space-y-4 mb-8">
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                        Dish Price
+                        Product Price
                       </h3>
                       <div className="flex flex-col gap-3">
                         <button
@@ -3789,7 +3771,7 @@ export default function Home() {
                           }`}>
                           <span
                             className={`text-sm font-medium ${activeFilters.has("has-offers") ? "text-[#EB590E]" : "text-gray-700 dark:text-gray-300"}`}>
-                            Restaurants with offers
+                            Sellers with offers
                           </span>
                         </button>
                       </div>
@@ -3807,21 +3789,17 @@ export default function Home() {
                   <button
                     onClick={async () => {
                       setIsFilterOpen(false);
-                      await applyFiltersAndRefetch(
-                        activeFilters,
-                        sortBy,
-                        selectedCuisine,
-                      );
+                      await applyFiltersAndRefetch(activeFilters, sortBy);
                     }}
                     className={`flex-1 py-3 font-semibold rounded-xl transition-colors ${
-                      activeFilters.size > 0 || sortBy || selectedCuisine
+                      activeFilters.size > 0 || sortBy
                         ? "bg-[#EB590E] text-white hover:bg-[#D94F0C]"
                         : "bg-gray-200 text-gray-500"
                     }`}
                     disabled={isLoadingFilterResults}>
                     {isLoadingFilterResults
                       ? "Loading..."
-                      : activeFilters.size > 0 || sortBy || selectedCuisine
+                      : activeFilters.size > 0 || sortBy
                         ? `Show results`
                         : "Show results"}
                   </button>
@@ -3882,7 +3860,7 @@ export default function Home() {
 
                 {/* Title */}
                 <h3 className="text-base font-bold text-gray-900 dark:text-white mb-3">
-                  See veg dishes from
+                  See veg products from
                 </h3>
 
                 {/* Radio Options */}
@@ -3912,7 +3890,7 @@ export default function Home() {
                       </div>
                     </div>
                     <span className="text-sm font-medium text-gray-900 dark:text-white">
-                      All restaurants
+                      All sellers
                     </span>
                   </label>
 
@@ -3941,7 +3919,7 @@ export default function Home() {
                       </div>
                     </div>
                     <span className="text-sm font-medium text-gray-900 dark:text-white">
-                      Pure Veg restaurants only
+                      Pure Veg sellers only
                     </span>
                   </label>
                 </div>
@@ -4017,8 +3995,8 @@ export default function Home() {
 
                   {/* Description */}
                   <p className="text-gray-600 text-center mb-6 text-sm">
-                    You'll see all restaurants, including those serving non-veg
-                    dishes
+                    You'll see all sellers, including those serving non-veg
+                    products
                   </p>
 
                   {/* Buttons */}

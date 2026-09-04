@@ -847,7 +847,7 @@ export default function OutletInfo() {
     }
     // Business rule: allow Pure Veg -> Mixed, but restrict Mixed -> Pure Veg from edit info flow.
     if (!currentPureVeg && nextPureVeg) {
-      toast.error("Changing restaurant type from Mixed to Pure Veg is not allowed from Edit Info.")
+      toast.error("Changing seller type from Mixed to Pure Veg is not allowed from Edit Info.")
       return
     }
 
@@ -1079,7 +1079,7 @@ export default function OutletInfo() {
           <div className="w-24 h-24 rounded-2xl border-4 border-white bg-white shadow-lg overflow-hidden shrink-0">
             <img
               src={toDisplayImageUrl(thumbnailImage || mainImage)}
-              alt="Restaurant thumbnail"
+              alt="Seller thumbnail"
               className="w-full h-full object-cover"
             />
           </div>
@@ -1407,8 +1407,8 @@ export default function OutletInfo() {
 
       <Dialog open={showEditNameDialog} onOpenChange={setShowEditNameDialog}>
         <DialogContent className="sm:max-w-md p-0 overflow-hidden rounded-xl w-[90%]">
-          <DialogHeader className="p-4 border-b border-gray-100"><DialogTitle className="text-lg font-bold">Edit restaurant name</DialogTitle></DialogHeader>
-          <div className="p-4"><Input value={editNameValue} onChange={(e) => setEditNameValue(e.target.value)} placeholder="Enter restaurant name" className="w-full" /></div>
+          <DialogHeader className="p-4 border-b border-gray-100"><DialogTitle className="text-lg font-bold">Edit seller name</DialogTitle></DialogHeader>
+          <div className="p-4"><Input value={editNameValue} onChange={(e) => setEditNameValue(e.target.value)} placeholder="Enter seller name" className="w-full" /></div>
           <DialogFooter className="p-4 bg-gray-50 flex flex-row gap-3">
             <Button variant="outline" onClick={() => setShowEditNameDialog(false)}>Cancel</Button>
             <Button onClick={handleSaveName} disabled={!editNameValue.trim()} className="bg-blue-600 text-white">Save</Button>

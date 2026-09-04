@@ -44,7 +44,7 @@ export default function ViewZoneDialog({ isOpen, onOpenChange, zone }) {
                 <p className="text-sm font-medium text-slate-900">{zone.displayName}</p>
               </div>
               <div className="space-y-1">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Restaurants</p>
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Sellers</p>
                 <p className="text-sm font-medium text-slate-900">{zone.restaurants}</p>
               </div>
               <div className="space-y-1">

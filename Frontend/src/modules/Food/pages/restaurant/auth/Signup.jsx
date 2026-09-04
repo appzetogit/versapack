@@ -140,7 +140,7 @@ export default function RestaurantSignup() {
       <div className="hidden lg:flex lg:w-1/2 relative">
         <img
           src={loginBg}
-          alt="Restaurant background"
+          alt="Seller background"
           className="w-full h-full object-cover"
         />
         {/* Orange half-circle text block attached to the left with animation */}
@@ -155,7 +155,7 @@ export default function RestaurantSignup() {
               RESTAURANT PARTNER
             </h1>
             <p className="text-base xl:text-lg opacity-95 max-w-xl">
-              Register your restaurant and start serving customers.
+              Register your seller and start serving customers.
             </p>
           </div>
         </div>
@@ -177,7 +177,7 @@ export default function RestaurantSignup() {
                 {companyName}
               </span>
               <span className="text-xs font-medium text-gray-500">
-                Restaurant Panel
+                Seller Panel
               </span>
             </div>
           </div>
@@ -219,7 +219,7 @@ export default function RestaurantSignup() {
                   id="name"
                   name="name"
                   type="text"
-                  placeholder="Enter restaurant name"
+                  placeholder="Enter seller name"
                   value={formData.name}
                   onChange={handleChange}
                   className={`h-11 pl-9 border-gray-300 rounded-md shadow-sm focus-visible:ring-primary-orange focus-visible:ring-2 transition-colors placeholder:text-gray-400 ${errors.name ? "border-red-500" : ""}`}

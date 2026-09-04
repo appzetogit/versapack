@@ -1,6 +1,7 @@
 // src/context/cart-context.jsx
 import { createContext, useContext, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { buildCartLineId } from "@food/utils/foodVariants"
+import { getMaxOrderableQty } from "@food/utils/productStock"
 import { userAPI } from "@/services/api"
 import CartReplaceDialog from "@food/components/user/CartReplaceDialog"
 const debugLog = (...args) => {}
@@ -478,7 +479,17 @@ export function CartProvider({ children }) {
         // Clear after animation completes
         setTimeout(() => setLastRemoveEvent(null), 1500)
       }
-      return safePrev.map((i) => (i.id === resolvedItemId ? { ...i, quantity } : i))
+      return safePrev.map((i) => {
+        if (i.id !== resolvedItemId) return i
+
+        // Clamp against what the shelf and the per-order cap allow. Checkout
+        // claims stock atomically and is the real authority, but letting the
+        // count climb past the limit here only sets up a rejection later.
+        const max = getMaxOrderableQty(i)
+        const capped = max === null ? quantity : Math.min(quantity, max)
+
+        return { ...i, quantity: capped }
+      })
     })
   }
 

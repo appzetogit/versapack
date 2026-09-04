@@ -1177,7 +1177,7 @@ export default function Under250() {
         {/* Restaurant Menu Sections */}
         {loadingRestaurants ? (
           <div className="flex justify-center items-center py-12">
-            <div className="text-gray-500 dark:text-gray-400">Loading restaurants...</div>
+            <div className="text-gray-500 dark:text-gray-400">Loading sellers...</div>
           </div>
         ) : sortedAndFilteredRestaurants.length === 0 ? (
           <div className="flex justify-center items-center py-12">
@@ -1774,7 +1774,7 @@ export default function Under250() {
                 <div className="w-12 h-1 bg-gray-300 rounded-full" />
               </div>
               <div className="flex items-center justify-between pb-4">
-                <h3 className="text-base md:text-lg font-semibold text-gray-900 dark:text-white">Share dish</h3>
+                <h3 className="text-base md:text-lg font-semibold text-gray-900 dark:text-white">Share product</h3>
                 <button
                   onClick={() => setShowShareOptions(false)}
                   className="text-sm font-medium text-gray-500 dark:text-gray-400"

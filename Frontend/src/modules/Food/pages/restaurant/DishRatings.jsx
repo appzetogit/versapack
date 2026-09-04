@@ -18,9 +18,9 @@ export default function DishRatings() {
             <ArrowLeft className="w-6 h-6 text-gray-900" />
           </button>
           <div className="flex-1">
-            <h1 className="text-lg font-bold text-gray-900">Dish Ratings</h1>
+            <h1 className="text-lg font-bold text-gray-900">Product Ratings</h1>
             <div className="flex items-center gap-2 mt-0.5">
-              <span className="text-xs text-gray-500">Ratings will appear here when customers review dishes.</span>
+              <span className="text-xs text-gray-500">Ratings will appear here when customers review products.</span>
             </div>
           </div>
         </div>
@@ -29,7 +29,7 @@ export default function DishRatings() {
       <div className="flex-1 flex items-center justify-center px-4">
         <div className="text-center">
           <p className="text-sm text-gray-600">
-            You haven&apos;t received any dish rating yet
+            You haven&apos;t received any product rating yet
           </p>
         </div>
       </div>

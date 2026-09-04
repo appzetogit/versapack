@@ -73,7 +73,7 @@ export default function TableBookingConfirmation() {
                 null
 
             if (!restaurantId) {
-                toast.error("Unable to proceed. Restaurant ID is missing.")
+                toast.error("Unable to proceed. Seller ID is missing.")
                 return
             }
 
@@ -118,7 +118,7 @@ export default function TableBookingConfirmation() {
                     <button onClick={goBack} className="p-1 hover:bg-white/10 rounded-full transition-colors">
                         <ArrowLeft className="w-6 h-6" />
                     </button>
-                    <p className="font-semibold text-sm">Reach the restaurant 15 minutes before your booking time for a hassle-free experience</p>
+                    <p className="font-semibold text-sm">Reach the seller 15 minutes before your booking time for a hassle-free experience</p>
                 </div>
             </div>
 

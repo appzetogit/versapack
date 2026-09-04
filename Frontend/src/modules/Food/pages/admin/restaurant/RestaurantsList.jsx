@@ -803,7 +803,7 @@ export default function RestaurantsList() {
       }
 
       setIsEditingLocation(false)
-      alert("Restaurant location updated successfully")
+      alert("Seller location updated successfully")
     } catch (err) {
       debugError("Error saving restaurant location:", err)
       alert(err?.response?.data?.message || "Failed to update restaurant location")
@@ -1073,7 +1073,7 @@ export default function RestaurantsList() {
       setLocationSuggestions([])
       setShowLocationSuggestions(false)
       setIsSearchingLocation(false)
-      alert("Restaurant details updated successfully")
+      alert("Seller details updated successfully")
     } catch (err) {
       debugError("Error updating restaurant details:", err)
       alert(err?.response?.data?.message || "Failed to update restaurant details")
@@ -1197,7 +1197,7 @@ export default function RestaurantsList() {
 
     } catch (err) {
       debugError("Error deleting restaurant:", err)
-      alert("Failed to delete restaurant. Please try again.")
+      alert("Failed to delete seller. Please try again.")
     } finally {
       setDeleting(false)
     }
@@ -1225,7 +1225,7 @@ export default function RestaurantsList() {
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-slate-900">Restaurants List</h1>
+              <h1 className="text-2xl font-bold text-slate-900">Sellers List</h1>
             </div>
 
           </div>
@@ -1237,7 +1237,7 @@ export default function RestaurantsList() {
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-600 mb-1">Total restaurants</p>
+                <p className="text-sm font-medium text-slate-600 mb-1">Total sellers</p>
                 <p className="text-2xl font-bold text-slate-900">{restaurantStats.total || totalRestaurants}</p>
               </div>
               <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
@@ -1250,11 +1250,11 @@ export default function RestaurantsList() {
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-600 mb-1">Active restaurants</p>
+                <p className="text-sm font-medium text-slate-600 mb-1">Active sellers</p>
                 <p className="text-2xl font-bold text-slate-900">{activeRestaurants}</p>
               </div>
               <div className="w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center">
-                <img src={restaurantIcon} alt="Restaurant" className="w-8 h-8" />
+                <img src={restaurantIcon} alt="Seller" className="w-8 h-8" />
               </div>
             </div>
           </div>
@@ -1263,7 +1263,7 @@ export default function RestaurantsList() {
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-600 mb-1">Inactive restaurants</p>
+                <p className="text-sm font-medium text-slate-600 mb-1">Inactive sellers</p>
                 <p className="text-2xl font-bold text-slate-900">{inactiveRestaurants}</p>
               </div>
               <div className="w-12 h-12 rounded-lg bg-red-100 flex items-center justify-center">
@@ -1277,7 +1277,7 @@ export default function RestaurantsList() {
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
             <div className="flex items-center gap-2">
-              <h2 className="text-xl font-bold text-slate-900">Restaurants List</h2>
+              <h2 className="text-xl font-bold text-slate-900">Sellers List</h2>
               <span className="px-3 py-1 rounded-full text-sm font-semibold bg-slate-100 text-slate-700">
                 {totalRestaurants}
               </span>
@@ -1289,12 +1289,12 @@ export default function RestaurantsList() {
                 className="px-4 py-2.5 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2 transition-all"
               >
                 <Plus className="w-4 h-4" />
-                <span>Add Restaurant</span>
+                <span>Add Seller</span>
               </button>
               <div className="relative flex-1 sm:flex-initial min-w-[250px]">
                 <input
                   type="text"
-                  placeholder="Ex: search by Restaurant name, owner, or phone"
+                  placeholder="Ex: search by Seller name, owner, or phone"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10 pr-4 py-2.5 w-full text-sm rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -1345,7 +1345,7 @@ export default function RestaurantsList() {
             {loading ? (
               <div className="flex items-center justify-center py-20">
                 <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-                <span className="ml-3 text-slate-600">Loading restaurants...</span>
+                <span className="ml-3 text-slate-600">Loading sellers...</span>
               </div>
             ) : error ? (
               <div className="flex flex-col items-center justify-center py-20">
@@ -1377,7 +1377,7 @@ export default function RestaurantsList() {
                       onClick={() => handleSort('name')}
                     >
                       <div className="flex items-center gap-1">
-                        <span>Restaurant Info</span>
+                        <span>Seller Info</span>
                         <ArrowUpDown className={`w-3 h-3 ${sortConfig.key === 'name' ? 'text-blue-600' : 'text-slate-400'}`} />
                       </div>
                     </th>
@@ -1426,7 +1426,7 @@ export default function RestaurantsList() {
                       <td colSpan={7} className="px-6 py-20 text-center">
                         <div className="flex flex-col items-center justify-center">
                           <p className="text-lg font-semibold text-slate-700 mb-1">No Data Found</p>
-                          <p className="text-sm text-slate-500">No restaurants match your search</p>
+                          <p className="text-sm text-slate-500">No sellers match your search</p>
                         </div>
                       </td>
                     </tr>
@@ -1515,7 +1515,7 @@ export default function RestaurantsList() {
                             <button
                               onClick={() => handleDeleteRestaurant(restaurant)}
                               className="p-1.5 rounded text-red-600 hover:bg-red-50 transition-colors"
-                              title="Delete Restaurant"
+                              title="Delete Seller"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -1572,7 +1572,7 @@ export default function RestaurantsList() {
             {/* Modal Header */}
             <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between bg-white/80 backdrop-blur-md sticky top-0 z-10">
               <div>
-                <h2 className="text-2xl font-bold text-slate-900">Restaurant Details</h2>
+                <h2 className="text-2xl font-bold text-slate-900">Seller Details</h2>
                 <p className="text-sm text-slate-500 mt-1">Detailed overview and information</p>
               </div>
               <div className="flex items-center gap-2">
@@ -1619,7 +1619,7 @@ export default function RestaurantsList() {
                     <div className="w-12 h-12 rounded-full border-4 border-slate-100"></div>
                     <div className="absolute inset-0 w-12 h-12 rounded-full border-4 border-blue-600 border-t-transparent animate-spin"></div>
                   </div>
-                  <span className="mt-4 text-slate-500 font-medium tracking-wide">Fetching restaurant data...</span>
+                  <span className="mt-4 text-slate-500 font-medium tracking-wide">Fetching seller data...</span>
                 </div>
               )}
               {!loadingDetails && isEditingDetails && (
@@ -1654,7 +1654,7 @@ export default function RestaurantsList() {
                     </div>
 
                     <div>
-                      <label className="block text-xs text-slate-500 mb-1">Restaurant Name</label>
+                      <label className="block text-xs text-slate-500 mb-1">Seller Name</label>
                       <input type="text" value={detailsForm.name} onChange={(e) => setDetailsForm((prev) => ({ ...prev, name: e.target.value }))} className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" />
                     </div>
                     <div>
@@ -1685,7 +1685,7 @@ export default function RestaurantsList() {
                       </div>
                     </div>
                     <div>
-                      <label className="block text-xs text-slate-500 mb-1">Restaurant Email</label>
+                      <label className="block text-xs text-slate-500 mb-1">Seller Email</label>
                       <input type="email" value={detailsForm.email} onChange={(e) => setDetailsForm((prev) => ({ ...prev, email: e.target.value }))} className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" />
                     </div>
                     <div>
@@ -1724,7 +1724,7 @@ export default function RestaurantsList() {
                         <div>
                           <h4 className="text-base font-semibold text-slate-900">Location Editor</h4>
                           <p className="text-xs text-indigo-700 mt-1">
-                            Update restaurant location using dropdown suggestions and service zone selection.
+                            Update seller location using dropdown suggestions and service zone selection.
                           </p>
                         </div>
                         <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-indigo-200 bg-white text-indigo-700 text-xs font-semibold">
@@ -1765,7 +1765,7 @@ export default function RestaurantsList() {
                                 setTimeout(() => setShowLocationSuggestions(false), 150)
                               }}
                               className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-sm pr-10"
-                              placeholder="Start typing your restaurant address..."
+                              placeholder="Start typing your seller address..."
                             />
                             {isSearchingLocation && (
                               <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -2080,7 +2080,7 @@ export default function RestaurantsList() {
                           <div className="flex items-center gap-3">
                             <Mail className="w-5 h-5 text-slate-400" />
                             <div>
-                              <p className="text-xs text-slate-500">Restaurant Email</p>
+                              <p className="text-xs text-slate-500">Seller Email</p>
                               <p className="text-sm font-medium text-slate-900">{r.email}</p>
                             </div>
                           </div>
@@ -2163,7 +2163,7 @@ export default function RestaurantsList() {
                         )}
                         {coverImages.length > 0 && (
                           <div>
-                            <p className="text-xs text-slate-500 mb-2">Restaurant Photos</p>
+                            <p className="text-xs text-slate-500 mb-2">Seller Photos</p>
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                               {coverImages.map((url, idx) => (
                                 <a
@@ -2172,7 +2172,7 @@ export default function RestaurantsList() {
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="relative aspect-4/5 rounded-lg overflow-hidden border border-slate-200 bg-slate-50 hover:border-slate-300"
-                                  title="Open restaurant photo"
+                                  title="Open seller photo"
                                 >
                                   <img
                                     src={url}
@@ -2219,7 +2219,7 @@ export default function RestaurantsList() {
                         )}
                         {menuImages.length > 0 && (
                           <div>
-                            <p className="text-xs text-slate-500 mb-2">Menu Images</p>
+                            <p className="text-xs text-slate-500 mb-2">Product Images</p>
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                               {menuImages.map((url, idx) => (
                                 <a
@@ -2289,7 +2289,7 @@ export default function RestaurantsList() {
                         )}
                         {r.restaurantId && (
                           <div>
-                            <p className="text-xs text-slate-500 mb-1">Restaurant ID</p>
+                            <p className="text-xs text-slate-500 mb-1">Seller ID</p>
                             <p className="font-medium text-slate-900">{formatRestaurantId(r.restaurantId)}</p>
                           </div>
                         )}
@@ -2492,7 +2492,7 @@ export default function RestaurantsList() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                         {r.onboarding.step1.restaurantName && (
                           <div>
-                            <p className="text-xs text-slate-500 mb-1">Restaurant Name (at registration)</p>
+                            <p className="text-xs text-slate-500 mb-1">Seller Name (at registration)</p>
                             <p className="font-medium text-slate-900">{r.onboarding.step1.restaurantName}</p>
                           </div>
                         )}
@@ -2620,7 +2620,7 @@ export default function RestaurantsList() {
                         )}
                         {r.onboarding.step4.featuredDish && (
                           <div>
-                            <p className="text-xs text-slate-500 mb-1">Featured Dish (at registration)</p>
+                            <p className="text-xs text-slate-500 mb-1">Featured Product (at registration)</p>
                             <p className="font-medium text-slate-900">{r.onboarding.step4.featuredDish}</p>
                           </div>
                         )}
@@ -2647,7 +2647,7 @@ export default function RestaurantsList() {
                         )}
                         {r?.restaurantId && (
                           <div>
-                            <p className="text-xs text-slate-500 mb-1">Restaurant ID</p>
+                            <p className="text-xs text-slate-500 mb-1">Seller ID</p>
                             <p className="font-medium text-slate-900">{formatRestaurantId(r.restaurantId)}</p>
                           </div>
                         )}
@@ -2679,7 +2679,7 @@ export default function RestaurantsList() {
               {!loadingDetails && !restaurantDetails && !selectedRestaurant && (
                 <div className="flex flex-col items-center justify-center py-20">
                   <p className="text-lg font-semibold text-slate-700 mb-2">No Details Available</p>
-                  <p className="text-sm text-slate-500">Unable to load restaurant details</p>
+                  <p className="text-sm text-slate-500">Unable to load seller details</p>
                 </div>
               )}
             </div>
@@ -2756,7 +2756,7 @@ export default function RestaurantsList() {
                   <Trash2 className="w-6 h-6 text-red-600" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-slate-900">Delete Restaurant</h3>
+                  <h3 className="text-lg font-bold text-slate-900">Delete Seller</h3>
                   <p className="text-sm text-slate-600">
                     {deleteConfirmDialog.restaurant.name}
                   </p>
@@ -2764,7 +2764,7 @@ export default function RestaurantsList() {
               </div>
 
               <p className="text-sm text-slate-700 mb-6">
-                Are you sure you want to delete this restaurant? This action cannot be undone and will permanently remove all restaurant data, including orders, menu items, and settings.
+                Are you sure you want to delete this seller? This action cannot be undone and will permanently remove all seller data, including orders, products, and settings.
               </p>
 
               <div className="flex items-center gap-3">

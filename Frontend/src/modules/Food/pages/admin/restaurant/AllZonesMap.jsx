@@ -385,7 +385,7 @@ export default function AllZonesMap() {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-slate-900">All Zones Map</h1>
-              <p className="text-sm text-slate-600">View all restaurant delivery zones on map</p>
+              <p className="text-sm text-slate-600">View all seller delivery zones on map</p>
             </div>
           </div>
         </div>
@@ -459,7 +459,7 @@ export default function AllZonesMap() {
                 )}
                 {restaurants.length > 0 && (
                   <p>
-                    Click on any <span className="font-semibold text-red-600">red marker</span> to view restaurant name and details. Total restaurants: <strong>{restaurants.length}</strong>
+                    Click on any <span className="font-semibold text-red-600">red marker</span> to view seller name and details. Total sellers: <strong>{restaurants.length}</strong>
                   </p>
                 )}
               </div>

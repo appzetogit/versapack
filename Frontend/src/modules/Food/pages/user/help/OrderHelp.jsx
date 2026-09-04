@@ -160,7 +160,7 @@ export default function OrderHelp() {
       case "confirmed":
         return "Confirmed"
       case "preparing":
-        return "Preparing"
+        return "Packing"
       case "outForDelivery":
         return "Out for Delivery"
       case "delivered":

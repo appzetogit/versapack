@@ -254,7 +254,7 @@ export default function NewAdvertisement() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-2">
-                        Select Restaurant <span className="text-red-500">*</span>
+                        Select Seller <span className="text-red-500">*</span>
                       </label>
                       <select
                         value={formData.restaurant}
@@ -263,7 +263,7 @@ export default function NewAdvertisement() {
                           formErrors.restaurant ? "border-red-500" : "border-slate-300"
                         }`}
                       >
-                        <option value="">Select Restaurant</option>
+                        <option value="">Select Seller</option>
                         <option value="cafe-monarch">Café Monarch</option>
                         <option value="hungry-puppets">Hungry Puppets</option>
                       </select>
@@ -298,7 +298,7 @@ export default function NewAdvertisement() {
                       onChange={(e) => handleInputChange("advertisementType", e.target.value)}
                       className="w-full px-4 py-2.5 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                     >
-                      <option value="Restaurant Promotion">Restaurant Promotion</option>
+                      <option value="Restaurant Promotion">Seller Promotion</option>
                       <option value="Video promotion">Video promotion</option>
                     </select>
                   </div>

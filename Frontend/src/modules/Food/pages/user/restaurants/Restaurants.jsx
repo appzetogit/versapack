@@ -105,7 +105,7 @@ export default function Restaurants() {
     }
   }, [zoneId])
 
-  const hasRestaurants = useMemo(() => restaurants.length > 0, [restaurants.length])
+  const hasRestaurants = useMemo(() => restaurants.length > 0, [sellers.length])
 
   return (
     <AnimatedPage className="min-h-screen bg-gradient-to-b from-yellow-50/30 dark:from-[#0a0a0a] via-white dark:via-[#0a0a0a] to-orange-50/20 dark:to-[#0a0a0a]">
@@ -119,7 +119,7 @@ export default function Restaurants() {
             </Link>
             <TextReveal className="flex items-center gap-2 sm:gap-3 lg:gap-4">
               <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl font-bold text-gray-900 dark:text-white">
-                All Restaurants
+                All Sellers
               </h1>
             </TextReveal>
           </div>
@@ -128,7 +128,7 @@ export default function Restaurants() {
         {showRestaurantsSkeleton ? (
           <RestaurantGridSkeleton count={4} />
         ) : !hasRestaurants ? (
-          <div className="py-16 text-center text-sm text-gray-500">No restaurants available right now.</div>
+          <div className="py-16 text-center text-sm text-gray-500">No sellers available right now.</div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-5 xl:gap-6 pt-2 sm:pt-3 lg:pt-4">
             {restaurants.map((restaurant, index) => {

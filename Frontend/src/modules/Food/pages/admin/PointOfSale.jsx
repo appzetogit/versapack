@@ -431,8 +431,8 @@ export default function PointOfSale() {
         
         {/* Header Section */}
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-[#334257] mb-2">Restaurant POS Analytics & Benefits</h1>
-          <p className="text-sm text-[#8a94aa]">Track restaurant performance, order earnings, and subscription billing</p>
+          <h1 className="text-2xl font-bold text-[#334257] mb-2">Seller POS Analytics & Benefits</h1>
+          <p className="text-sm text-[#8a94aa]">Track seller performance, order earnings, and subscription billing</p>
                 </div>
 
         {/* Restaurant Selection Card */}
@@ -440,7 +440,7 @@ export default function PointOfSale() {
           <div className="flex flex-col gap-4">
                 <div>
                   <label className="block text-sm font-medium text-[#334257] mb-2">
-                Search Restaurant by Name or ID <span className="text-red-500">*</span>
+                Search Seller by Name or ID <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 z-10" />
@@ -457,7 +457,7 @@ export default function PointOfSale() {
                     // Delay to allow click on results
                     setTimeout(() => setShowSearchResults(false), 200)
                   }}
-                  placeholder="Type restaurant name or ID to search..."
+                  placeholder="Type seller name or ID to search..."
                   className="w-full h-11 pl-10 pr-3 rounded-md border border-[#e3e6ef] bg-white text-sm text-[#4a5671] focus:outline-none focus:ring-1 focus:ring-[#006fbd]"
                 />
                 
@@ -563,7 +563,7 @@ export default function PointOfSale() {
 
                     <div className="max-h-72 overflow-y-auto overscroll-contain">
                       {loading && restaurants.length === 0 ? (
-                        <div className="px-4 py-8 text-center text-sm text-[#8a94aa]">Loading restaurants...</div>
+                        <div className="px-4 py-8 text-center text-sm text-[#8a94aa]">Loading sellers...</div>
                       ) : pickerFilteredRestaurants.length > 0 ? (
                         pickerFilteredRestaurants.map((restaurant) => {
                           const isSelected = selectedRestaurant === restaurant._id
@@ -603,7 +603,7 @@ export default function PointOfSale() {
                         })
                       ) : (
                         <div className="px-4 py-8 text-center">
-                          <p className="text-sm font-medium text-[#334257]">No restaurants found</p>
+                          <p className="text-sm font-medium text-[#334257]">No sellers found</p>
                           <p className="text-xs text-[#8a94aa] mt-1">Try a different search term</p>
                         </div>
                       )}
@@ -782,11 +782,11 @@ export default function PointOfSale() {
             {/* Detailed Financial Breakdown */}
             <div className="bg-white rounded-lg shadow-sm border border-[#e3e6ef] p-6">
               <h3 className="text-lg font-semibold text-[#334257] mb-1">Financial Breakdown</h3>
-              <p className="text-xs text-[#8a94aa] mb-4">Order earnings plus current subscription billing status for this restaurant.</p>
+              <p className="text-xs text-[#8a94aa] mb-4">Order earnings plus current subscription billing status for this seller.</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <div className="flex justify-between items-center py-3 border-b border-[#e3e6ef]">
-                    <span className="text-sm text-[#8a94aa]">Subtotal (Dish Price)</span>
+                    <span className="text-sm text-[#8a94aa]">Subtotal (Product Price)</span>
                     <span className="text-base font-semibold text-[#334257]">{formatCurrency(paymentSummary?.subtotal || 0)}</span>
                   </div>
                   <div className="flex justify-between items-center py-3 border-b border-[#e3e6ef]">
@@ -794,11 +794,11 @@ export default function PointOfSale() {
                     <span className="text-base font-semibold text-[#334257]">{formatCurrency(analyticsData.totalRevenue)}</span>
                   </div>
                   <div className="flex justify-between items-center py-3 border-b border-[#e3e6ef]">
-                    <span className="text-sm text-[#8a94aa]">Restaurant Share (from orders)</span>
+                    <span className="text-sm text-[#8a94aa]">Seller Share (from orders)</span>
                     <span className="text-base font-semibold text-green-600">{formatCurrency(analyticsData.restaurantEarning)}</span>
                   </div>
                   <div className="flex justify-between items-center py-3 border-b border-[#e3e6ef]">
-                    <span className="text-sm text-[#8a94aa]">Restaurant Profit</span>
+                    <span className="text-sm text-[#8a94aa]">Seller Profit</span>
                     <span className="text-base font-semibold text-emerald-700">{formatCurrency(analyticsData.restaurantProfit)}</span>
                   </div>
                 </div>
@@ -838,14 +838,14 @@ export default function PointOfSale() {
 
             {/* Restaurant Payments (from FoodTransaction ledger) */}
             <div className="bg-white rounded-lg shadow-sm border border-[#e3e6ef] p-6">
-              <h3 className="text-lg font-semibold text-[#334257] mb-1">Restaurant Payments (Completed Orders)</h3>
+              <h3 className="text-lg font-semibold text-[#334257] mb-1">Seller Payments (Completed Orders)</h3>
               <p className="text-xs text-[#8a94aa] mb-4">
                 Order payout breakdown from the transaction ledger. Subscription payments are shown separately on the right.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-3">
                   <div className="flex justify-between items-center py-2 border-b border-[#e3e6ef]">
-                    <span className="text-sm text-[#8a94aa]">Subtotal (Dish Price)</span>
+                    <span className="text-sm text-[#8a94aa]">Subtotal (Product Price)</span>
                     <span className="text-sm font-semibold text-[#334257]">{formatCurrency(paymentSummary?.subtotal || 0)}</span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-[#e3e6ef]">
@@ -869,7 +869,7 @@ export default function PointOfSale() {
                     <span className="text-sm font-semibold text-[#334257]">{formatCurrency(paymentSummary?.adminDiscountShare || 0)}</span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-[#e3e6ef]">
-                    <span className="text-sm text-[#8a94aa]">Restaurant Bear Discount</span>
+                    <span className="text-sm text-[#8a94aa]">Seller Bear Discount</span>
                     <span className="text-sm font-semibold text-[#334257]">{formatCurrency(paymentSummary?.restaurantDiscountShare || 0)}</span>
                   </div>
                   <div className="flex justify-between items-center py-2">
@@ -950,7 +950,7 @@ export default function PointOfSale() {
                     </div>
                   )}
                   <div className="flex justify-between items-center py-2 border-b border-[#e3e6ef]">
-                    <span className="text-sm text-[#8a94aa]">Restaurant share (orders)</span>
+                    <span className="text-sm text-[#8a94aa]">Seller share (orders)</span>
                     <span className="text-sm font-semibold text-green-700">{formatCurrency(paymentSummary?.restaurantShare || 0)}</span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-[#e3e6ef]">
@@ -1001,7 +1001,7 @@ export default function PointOfSale() {
                   <div className="p-2 bg-orange-100 rounded-lg">
                     <Package className="w-5 h-5 text-orange-600" />
                   </div>
-                  <h3 className="text-base font-semibold text-[#334257]">Restaurant Details</h3>
+                  <h3 className="text-base font-semibold text-[#334257]">Seller Details</h3>
                 </div>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
@@ -1065,16 +1065,16 @@ export default function PointOfSale() {
         ) : selectedRestaurant && loading ? (
           <div className="bg-white rounded-lg shadow-sm border border-[#e3e6ef] p-12 text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#006fbd] mx-auto mb-4"></div>
-            <p className="text-sm text-[#8a94aa]">Loading restaurant analytics...</p>
+            <p className="text-sm text-[#8a94aa]">Loading seller analytics...</p>
           </div>
         ) : (
           <div className="bg-white rounded-lg shadow-sm border border-[#e3e6ef] p-12 text-center">
             <div className="w-16 h-16 rounded-full border-2 border-dashed border-[#d1d7e6] flex items-center justify-center mx-auto mb-4">
               <Search className="w-8 h-8 text-[#8a94aa]" />
             </div>
-            <p className="text-base font-medium text-[#334257] mb-2">Select a Restaurant</p>
+            <p className="text-base font-medium text-[#334257] mb-2">Select a Seller</p>
             <p className="text-sm text-[#8a94aa] max-w-md mx-auto">
-              Please select a restaurant from the dropdown above to view detailed analytics, order earnings, and subscription billing.
+              Please select a seller from the dropdown above to view detailed analytics, order earnings, and subscription billing.
             </p>
           </div>
         )}

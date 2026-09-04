@@ -170,7 +170,7 @@ export default function Offers() {
                           </span>
                         </div>
                         <p className="text-sm text-slate-700 dark:text-slate-300">
-                          <span className="font-semibold">Restaurant:</span>{" "}
+                          <span className="font-semibold">Seller:</span>{" "}
                           {o.restaurantName || "All Restaurants"}
                         </p>
                         {o.endDate && (

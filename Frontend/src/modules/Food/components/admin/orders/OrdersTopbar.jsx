@@ -34,7 +34,7 @@ export default function OrdersTopbar({
           <div className="relative flex-1 sm:flex-initial">
             <input
               type="text"
-              placeholder="Search by order ID, customer, phone, or restaurant..."
+              placeholder="Search by order ID, customer, phone, or seller..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-4 pr-12 py-2.5 w-full sm:w-80 text-sm rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400 transition-all"

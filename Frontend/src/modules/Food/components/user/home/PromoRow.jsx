@@ -20,12 +20,6 @@ export default function PromoRow({ handleVegModeChange, navigate, isVegMode, tog
       icon: gourmetPromoIcon,
     },
     {
-      id: 'under-250',
-      title: "Under ₹99",
-      value: "Switch 99",
-      icon: pricePromoIcon,
-    },
-    {
       id: 'collections',
       title: "Favorites",
       value: "Collections",
@@ -34,7 +28,7 @@ export default function PromoRow({ handleVegModeChange, navigate, isVegMode, tog
   ];
 
   return (
-    <div className="grid grid-cols-4 gap-2 px-3 py-6 bg-transparent justify-items-center w-full max-w-[500px] mx-auto">
+    <div className="grid grid-cols-3 gap-2 px-3 py-6 bg-transparent justify-items-center w-full max-w-[500px] mx-auto">
       {promoCardsData.map((promo, idx) => (
         <motion.div
           key={idx}
@@ -48,7 +42,6 @@ export default function PromoRow({ handleVegModeChange, navigate, isVegMode, tog
           onClick={() => {
             if (promo.id === 'gourmet') navigate('/food/user/gourmet');
             else if (promo.id === 'offers') navigate('/food/user/offers');
-            else if (promo.id === 'under-250') navigate('/food/user/under-250');
             else if (promo.id === 'collections') navigate('/food/user/profile/favorites');
           }}
         >

@@ -52,7 +52,7 @@ import { logoutUserSession } from "@food/utils/moduleLogout";
 import { toast } from "sonner";
 const debugLog = (...args) => { };
 const debugError = (...args) => { };
-const USER_SESSION_PREFERENCE_KEYS = ["userVegMode", "food-under-250-filters"];
+const USER_SESSION_PREFERENCE_KEYS = ["userVegMode"];
 
 import { registerWebPushForCurrentModule } from "@food/utils/firebaseMessaging";
 import DeleteAccountModal from "@food/components/DeleteAccountModal";
@@ -920,7 +920,7 @@ export default function Profile() {
               Veg Mode
             </DialogTitle>
             <DialogDescription className="text-sm text-gray-500">
-              Filter restaurants and dishes based on your dietary preferences
+              Filter sellers and products based on your dietary preferences
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2 px-5 pb-5">

@@ -64,7 +64,7 @@ export default function RestaurantPartnerHero({ compact = false, themeColor = DE
             <h1
               className={`font-bold leading-tight tracking-tight text-white ${compact ? "text-2xl xl:text-3xl" : "text-3xl xl:text-4xl"}`}
             >
-              Grow your restaurant
+              Grow your seller
               <span className="block" style={{ color: themeColor }}>
                 with {companyName}
               </span>

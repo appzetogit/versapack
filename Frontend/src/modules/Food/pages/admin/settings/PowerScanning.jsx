@@ -274,7 +274,7 @@ export default function PowerScanning() {
     <div className="p-6 max-w-5xl mx-auto space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Power Scanning</h1>
-        <p className="text-sm text-gray-500 mt-1">Set module-wise theme color and font for User, Restaurant, and Delivery apps.</p>
+        <p className="text-sm text-gray-500 mt-1">Set module-wise theme color and font for User, Seller, and Delivery apps.</p>
       </div>
 
       {MODULES.map((module) => {

@@ -242,7 +242,7 @@ export default function TransactionReport() {
                 onChange={(e) => setFilters(prev => ({ ...prev, restaurant: e.target.value }))}
                 className="w-full px-2.5 py-1.5 pr-5 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs appearance-none cursor-pointer"
               >
-                <option value="All restaurants">All restaurants</option>
+                <option value="All restaurants">All sellers</option>
                 {restaurants.map(restaurant => (
                   <option key={restaurant._id} value={restaurant._id}>{restaurant.restaurantName || restaurant.name}</option>
                 ))}
@@ -379,10 +379,10 @@ export default function TransactionReport() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                    <img src={restaurantEarningIcon} alt="Restaurant Earning" className="w-6 h-6" />
+                    <img src={restaurantEarningIcon} alt="Seller Earning" className="w-6 h-6" />
                   </div>
                   <div className="flex items-center gap-2">
-                    <p className="text-sm font-semibold text-slate-900">Restaurant Earning</p>
+                    <p className="text-sm font-semibold text-slate-900">Seller Earning</p>
                     <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center">
                       <Info className="w-3 h-3 text-white" />
                     </div>
@@ -477,7 +477,7 @@ export default function TransactionReport() {
                 <tr>
                   <th className="px-1.5 py-1 text-left text-[8px] font-bold text-slate-700 uppercase tracking-wider" style={{ width: '3%' }}>SI</th>
                   <th className="px-1.5 py-1 text-left text-[8px] font-bold text-slate-700 uppercase tracking-wider" style={{ width: '7%' }}>Order Id</th>
-                  <th className="px-1.5 py-1 text-left text-[8px] font-bold text-slate-700 uppercase tracking-wider" style={{ width: '10%' }}>Restaurant</th>
+                  <th className="px-1.5 py-1 text-left text-[8px] font-bold text-slate-700 uppercase tracking-wider" style={{ width: '10%' }}>Seller</th>
                   <th className="px-1.5 py-1 text-left text-[8px] font-bold text-slate-700 uppercase tracking-wider" style={{ width: '10%' }}>Customer Name</th>
                   <th className="px-1.5 py-1 text-left text-[8px] font-bold text-slate-700 uppercase tracking-wider" style={{ width: '11%' }}>Total Item Amount</th>
                   <th className="px-1.5 py-1 text-left text-[8px] font-bold text-slate-700 uppercase tracking-wider" style={{ width: '9%' }}>Coupon Discount</th>

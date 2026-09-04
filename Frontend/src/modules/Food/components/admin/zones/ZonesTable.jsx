@@ -68,7 +68,7 @@ export default function ZonesTable({
               )}
               {visibleColumns.restaurants && (
                 <th className="px-3 py-2 text-left text-[10px] font-bold text-slate-700 uppercase tracking-wider">
-                  Restaurants
+                  Sellers
                 </th>
               )}
               {visibleColumns.deliverymen && (

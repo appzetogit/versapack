@@ -220,10 +220,6 @@ const RestaurantCard = ({
           </div>
         </div>
 
-        <p className="text-[11px] sm:text-[13px] text-gray-500 mb-2.5 line-clamp-1 font-medium">
-          {restaurant.cuisine || "North Indian, Chinese"}
-        </p>
-
         <div className="flex items-center justify-between pt-2.5 border-t border-gray-100/80">
           <div className="flex items-center gap-1.5 text-gray-600 bg-gray-50 px-2 py-1 rounded-md">
             <Clock className="w-3.5 h-3.5 text-orange-500" />

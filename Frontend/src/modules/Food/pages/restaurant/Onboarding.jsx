@@ -1872,7 +1872,7 @@ export default function RestaurantOnboarding() {
             />
           </div>
           <div>
-            <Label className={ONBOARDING_LABEL}>Pure veg restaurant?*</Label>
+            <Label className={ONBOARDING_LABEL}>Pure veg seller?*</Label>
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <button
                 type="button"
@@ -1890,7 +1890,7 @@ export default function RestaurantOnboarding() {
               </button>
             </div>
             <p className={ONBOARDING_HINT}>
-              This helps users filter restaurants by dietary preference.
+              This helps users filter sellers by dietary preference.
             </p>
           </div>
         </div>
@@ -1982,7 +1982,7 @@ export default function RestaurantOnboarding() {
             }}
             inputMode="numeric"
             className={ONBOARDING_INPUT}
-            placeholder="Restaurant's primary contact number"
+            placeholder="Seller's primary contact number"
             disabled={!isEditing}
           />
           <p className={ONBOARDING_HINT}>
@@ -1992,7 +1992,7 @@ export default function RestaurantOnboarding() {
         </div>
         <div className="space-y-3">
           <p className="text-sm text-gray-700">
-            Add your restaurant's location for order pick-up.
+            Add your seller's location for order pick-up.
           </p>
           <div className="relative">
             <Label className={ONBOARDING_LABEL}>Search location</Label>
@@ -2010,7 +2010,7 @@ export default function RestaurantOnboarding() {
                   )
                 }}
                 className={ONBOARDING_INPUT}
-                placeholder="Start typing your restaurant address..."
+                placeholder="Start typing your seller address..."
               />
               {isSearchingLocation && (
                 <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -2530,7 +2530,7 @@ export default function RestaurantOnboarding() {
     <div className="space-y-6">
       {/* Images section */}
       <section className={ONBOARDING_SECTION_FULL}>
-        <h2 className={ONBOARDING_SECTION_TITLE}>Menu & photos</h2>
+        <h2 className={ONBOARDING_SECTION_TITLE}>Products & photos</h2>
         <p className={ONBOARDING_SECTION_DESC}>
           Add clear photos of your printed menu and a primary profile image. This helps customers
           understand what you serve.
@@ -2538,14 +2538,14 @@ export default function RestaurantOnboarding() {
 
         {/* Menu images */}
         <div className="space-y-2">
-          <Label className={ONBOARDING_LABEL}>Menu images</Label>
+          <Label className={ONBOARDING_LABEL}>Product images</Label>
           <div className={`${ONBOARDING_UPLOAD_BOX} flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center`}>
             <div className="flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
                 <ImageIcon className="w-5 h-5 text-gray-700" />
               </div>
               <div className="flex flex-col">
-                <span className="text-sm font-medium text-gray-900">Upload menu images</span>
+                <span className="text-sm font-medium text-gray-900">Upload product images</span>
                 <span className="text-[11px] text-gray-500">
                   JPG, PNG, WebP ? You can select multiple files
                 </span>
@@ -2664,7 +2664,7 @@ export default function RestaurantOnboarding() {
                     return imageSrc ? (
                       <img
                         src={imageSrc}
-                        alt="Restaurant profile"
+                        alt="Seller profile"
                         className="w-full h-full object-cover"
                       />
                     ) : (
@@ -2698,7 +2698,7 @@ export default function RestaurantOnboarding() {
               <div className="flex flex-col">
                 <span className="text-sm font-medium text-gray-900">Upload profile image</span>
                 <span className="text-[11px] text-gray-500">
-                  This will be shown on your listing card and restaurant page.
+                  This will be shown on your listing card and seller page.
                 </span>
               </div>
 
@@ -2807,7 +2807,7 @@ export default function RestaurantOnboarding() {
             <span>Open days</span>
           </Label>
           <p className="text-[11px] text-gray-500">
-            Select the days your restaurant accepts delivery orders.
+            Select the days your seller accepts delivery orders.
           </p>
           <div className="mt-1 grid grid-cols-7 gap-1.5 sm:gap-2">
             {daysOfWeek.map((day) => {
@@ -3251,7 +3251,7 @@ export default function RestaurantOnboarding() {
           <div className="mb-5">
             <h3 className={ONBOARDING_SECTION_TITLE}>Monthly plans by GMV slab</h3>
             <p className={`${ONBOARDING_SECTION_DESC} mt-1`}>
-              Your plan is assigned automatically based on your restaurant&apos;s monthly order volume.
+              Your plan is assigned automatically based on your seller&apos;s monthly order volume.
             </p>
           </div>
 

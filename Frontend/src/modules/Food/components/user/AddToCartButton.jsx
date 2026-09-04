@@ -2,6 +2,7 @@ import { Plus, Minus } from "lucide-react"
 import { Button } from "@food/components/ui/button"
 import { useCart } from "@food/context/CartContext"
 import { isModuleAuthenticated } from "@food/utils/auth"
+import { canAddMore, isOutOfStock } from "@food/utils/productStock"
 import { useNavigate, useLocation } from "react-router-dom"
 import { toast } from "sonner"
 
@@ -11,6 +12,7 @@ export default function AddToCartButton({ item, className = "" }) {
   const cartItem = getCartItem(item.id)
   const navigate = useNavigate()
   const location = useLocation()
+  const outOfStock = isOutOfStock(item)
 
   const handleAddToCart = (e) => {
     e.preventDefault()
@@ -22,13 +24,29 @@ export default function AddToCartButton({ item, className = "" }) {
       return
     }
 
+    // Checkout claims stock atomically and will reject an over-order there, but
+    // finding out at payment is a bad place to learn the shelf was empty.
+    const check = canAddMore(item, 0)
+    if (!check.allowed) {
+      toast.error(check.message)
+      return
+    }
+
     addToCart(item)
   }
 
   const handleIncrease = (e) => {
     e.preventDefault()
     e.stopPropagation()
-    updateQuantity(item.id, (cartItem?.quantity || 0) + 1)
+
+    const currentQty = cartItem?.quantity || 0
+    const check = canAddMore(item, currentQty)
+    if (!check.allowed) {
+      toast.error(check.message)
+      return
+    }
+
+    updateQuantity(item.id, currentQty + 1)
   }
 
   const handleDecrease = (e) => {
@@ -62,6 +80,18 @@ export default function AddToCartButton({ item, className = "" }) {
           </Button>
         </div>
       </div>
+    )
+  }
+
+  if (outOfStock) {
+    return (
+      <Button
+        size="sm"
+        disabled
+        className="bg-gray-200 text-gray-500 cursor-not-allowed hover:bg-gray-200"
+      >
+        Out of stock
+      </Button>
     )
   }
 

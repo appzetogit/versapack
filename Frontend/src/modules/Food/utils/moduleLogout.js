@@ -20,7 +20,7 @@ const AUTH_CHANGED_EVENTS = {
   admin: "adminAuthChanged",
 };
 
-const USER_SESSION_PREFERENCE_KEYS = ["userVegMode", "food-under-250-filters"];
+const USER_SESSION_PREFERENCE_KEYS = ["userVegMode"];
 
 async function signOutFirebaseAuthBestEffort() {
   try {

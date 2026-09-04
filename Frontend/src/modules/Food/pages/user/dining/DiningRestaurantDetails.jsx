@@ -163,7 +163,7 @@ export default function DiningRestaurantDetails() {
   if (error || !restaurant) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#f6f7fb] px-4 text-center">
-        <h2 className="text-2xl font-bold text-[#23180f]">Restaurant not found</h2>
+        <h2 className="text-2xl font-bold text-[#23180f]">Seller not found</h2>
         <Button onClick={goBack} variant="outline">
           Go Back
         </Button>
@@ -343,7 +343,7 @@ export default function DiningRestaurantDetails() {
 
             {!isDiningEnabled && (
               <div className="mt-3 rounded-[18px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                Dining bookings are currently turned off by the restaurant.
+                Dining bookings are currently turned off by the seller.
               </div>
             )}
 
@@ -468,7 +468,7 @@ export default function DiningRestaurantDetails() {
         </section>
 
         <section id="restaurant-about" className="mt-5 border-t border-[#e8e8ef] pt-4">
-          <h2 className="text-[28px] font-black leading-none text-[#23180f]">About the restaurant</h2>
+          <h2 className="text-[28px] font-black leading-none text-[#23180f]">About the seller</h2>
 
           <div className="mt-4 rounded-[18px] border border-[#ececf4] bg-[#fafbff] p-4">
             <div className="space-y-4 text-[14px] text-[#5f6474]">
@@ -499,7 +499,7 @@ export default function DiningRestaurantDetails() {
                   )}
                 </div>
                 <div className="-mt-14 bg-[linear-gradient(180deg,rgba(0,0,0,0),rgba(0,0,0,0.72))] p-3 pt-10 text-sm font-medium text-white">
-                  Pan-Asian Restaurants
+                  Pan-Asian Sellers
                 </div>
               </div>
             </div>

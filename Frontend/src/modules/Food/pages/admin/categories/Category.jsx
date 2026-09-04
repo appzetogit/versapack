@@ -397,8 +397,8 @@ export default function Category() {
           <div>
             <h1 className="text-2xl font-bold text-slate-900">Categories</h1>
             <p className="mt-2 max-w-2xl text-sm text-slate-500">
-              Restaurant-created categories now move through approval, rejection, and optional globalization before every
-              restaurant can use them.
+              Seller-created categories now move through approval, rejection, and optional globalization before every
+              seller can use them.
             </p>
           </div>
 
@@ -629,7 +629,7 @@ export default function Category() {
                       <div>
                         <h2 className="text-xl font-bold text-slate-900">{editingCategory ? "Edit Category" : "Add Category"}</h2>
                         <p className="text-xs text-slate-500">
-                          Admin categories are approved immediately. Restaurant-created categories can also be updated here.
+                          Admin categories are approved immediately. Seller-created categories can also be updated here.
                         </p>
                       </div>
                       <button onClick={resetModal} className="rounded-lg p-1 hover:bg-slate-100">

@@ -941,7 +941,7 @@ export default function ExploreMore() {
             </div>
             <div className="min-w-0 text-left">
               <p className="text-[15px] font-bold text-red-600 tracking-tight">Delete Account</p>
-              <p className="text-[12px] font-medium text-red-400 leading-tight mt-0.5">Permanently close your restaurant account</p>
+              <p className="text-[12px] font-medium text-red-400 leading-tight mt-0.5">Permanently close your seller account</p>
             </div>
           </div>
           <ChevronRight className="relative w-5 h-5 text-red-300 shrink-0 transition-transform group-hover:translate-x-1" />
@@ -1529,7 +1529,7 @@ export default function ExploreMore() {
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 mb-2">Success!</h3>
                 <p className="text-sm text-gray-600 mb-6">
-                  Restaurant is marked offline
+                  Seller is marked offline
                 </p>
                 <button
                   onClick={() => {
@@ -1595,10 +1595,10 @@ export default function ExploreMore() {
                 {/* Status Message */}
                 <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
                   <p className="text-base font-semibold text-gray-900 mb-1">
-                    Restaurant is scheduled off
+                    Seller is scheduled off
                   </p>
                   <p className="text-sm text-gray-600">
-                    Your restaurant is currently marked as offline
+                    Your seller is currently marked as offline
                   </p>
                 </div>
 

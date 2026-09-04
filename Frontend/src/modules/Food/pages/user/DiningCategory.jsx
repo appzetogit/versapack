@@ -155,7 +155,7 @@ export default function DiningCategory() {
               <p className="mb-2 text-xs font-semibold uppercase tracking-[0.34em] text-[#c07a3a] dark:text-orange-300">Dining Category</p>
               <h1 className="text-3xl font-black tracking-tight text-[#23180f] sm:text-4xl dark:text-white">{heading}</h1>
               <p className="mt-2 max-w-2xl text-sm text-[#6b5641] dark:text-gray-300">
-                Explore all restaurants linked to this dining category, check their timings, preview the menu, and jump straight into table booking.
+                Explore all sellers linked to this dining category, check their timings, preview the menu, and jump straight into table booking.
               </p>
             </div>
             <div className="inline-flex items-center gap-2 self-start rounded-full bg-white px-4 py-2 text-sm font-semibold text-[#6b5641] shadow-sm dark:border dark:border-gray-700 dark:bg-[#1a1a1a] dark:text-gray-300">
@@ -166,12 +166,12 @@ export default function DiningCategory() {
         </div>
 
         {isLoading ? (
-          <div className="py-20 text-center text-[#7f6850] dark:text-gray-400">Loading dining restaurants...</div>
+          <div className="py-20 text-center text-[#7f6850] dark:text-gray-400">Loading dining sellers...</div>
         ) : error ? (
           <div className="py-20 text-center text-red-600">{error}</div>
         ) : restaurants.length === 0 ? (
           <div className="rounded-[24px] border border-dashed border-[#e8d9c5] bg-white px-6 py-16 text-center text-[#7f6850] dark:border-gray-800 dark:bg-[#141414] dark:text-gray-400">
-            No restaurants are linked to this dining category yet.
+            No sellers are linked to this dining category yet.
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">

@@ -11,7 +11,7 @@ const TrackingPage = () => {
         <div className="flex items-center justify-between text-white mb-3">
           <ArrowLeft className="w-6 h-6 cursor-pointer" />
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-lg">Sagar Restaurant</span>
+            <span className="font-semibold text-lg">Sagar Seller</span>
           </div>
           <Share2 className="w-5 h-5 cursor-pointer" />
         </div>

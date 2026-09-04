@@ -992,7 +992,7 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
         <nav className="admin-sidebar-scroll flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-3 py-3 space-y-2">
           {filteredMenuData.length === 0 && searchQuery.trim() ? (
             <div className="px-3 py-12 text-left animate-[fadeIn_0.4s_ease-out]">
-              <p className="text-neutral-300 text-sm font-medium text-left">No menu items found</p>
+              <p className="text-neutral-300 text-sm font-medium text-left">No products found</p>
               <p className="text-neutral-500 text-sm mt-2 text-left">Try a different search term</p>
             </div>
           ) : (

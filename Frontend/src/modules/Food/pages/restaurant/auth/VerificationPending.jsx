@@ -89,7 +89,7 @@ export default function VerificationPending() {
               Verification Pending
             </p>
             <h1 className="text-3xl font-extrabold text-slate-950">
-              Your restaurant is under review
+              Your seller is under review
             </h1>
             <p className="mt-3 text-sm leading-6 text-slate-600">
               {companyName} received your onboarding details successfully. Our team will verify your restaurant and activate your dashboard once approval is complete.

@@ -21,6 +21,7 @@ const CouponListPage = lazy(() => import("@food/pages/restaurant/CouponListPage"
 const AddCouponPage = lazy(() => import("@food/pages/restaurant/AddCouponPage"))
 const EditCouponPage = lazy(() => import("@food/pages/restaurant/EditCouponPage"))
 const MenuCategoriesPage = lazy(() => import("@food/pages/restaurant/MenuCategoriesPage"))
+const StockTake = lazy(() => import("@food/pages/restaurant/StockTake"))
 const DeliverySettings = lazy(() => import("@food/pages/restaurant/DeliverySettings"))
 const RushHour = lazy(() => import("@food/pages/restaurant/RushHour"))
 const OutletTimings = lazy(() => import("@food/pages/restaurant/OutletTimings"))
@@ -28,7 +29,6 @@ const DaySlots = lazy(() => import("@food/pages/restaurant/DaySlots"))
 const OutletInfo = lazy(() => import("@food/pages/restaurant/OutletInfo"))
 const RatingsReviews = lazy(() => import("@food/pages/restaurant/RatingsReviews"))
 const EditOwner = lazy(() => import("@food/pages/restaurant/EditOwner"))
-const EditCuisines = lazy(() => import("@food/pages/restaurant/EditCuisines"))
 const EditRestaurantAddress = lazy(() => import("@food/pages/restaurant/EditRestaurantAddress"))
 const Inventory = lazy(() => import("@food/pages/restaurant/Inventory"))
 const Feedback = lazy(() => import("@food/pages/restaurant/Feedback"))
@@ -47,7 +47,6 @@ const DownloadReport = lazy(() => import("@food/pages/restaurant/DownloadReport"
 const ManageOutlets = lazy(() => import("@food/pages/restaurant/ManageOutlets"))
 const UpdateBankDetails = lazy(() => import("@food/pages/restaurant/UpdateBankDetails"))
 const ZoneSetup = lazy(() => import("@food/pages/restaurant/ZoneSetup"))
-const DiningReservations = lazy(() => import("@food/pages/restaurant/DiningReservations"))
 const RestaurantStatus = lazy(() => import("@food/pages/restaurant/RestaurantStatus"))
 const ExploreMore = lazy(() => import("@food/pages/restaurant/ExploreMore"))
 const RestaurantPrivacy = lazy(() => import("@food/pages/restaurant/Privacy"))
@@ -124,9 +123,9 @@ export default function RestaurantRouter() {
           <Route element={<ProtectedRoute requiredRole="restaurant" loginPath="/seller/login"><OutletInfo /></ProtectedRoute>} path="outlet-info" />
           <Route element={<ProtectedRoute requiredRole="restaurant" loginPath="/seller/login"><RatingsReviews /></ProtectedRoute>} path="ratings-reviews" />
           <Route element={<ProtectedRoute requiredRole="restaurant" loginPath="/seller/login"><EditOwner /></ProtectedRoute>} path="edit-owner" />
-          <Route element={<ProtectedRoute requiredRole="restaurant" loginPath="/seller/login"><EditCuisines /></ProtectedRoute>} path="edit-cuisines" />
           <Route element={<ProtectedRoute requiredRole="restaurant" loginPath="/seller/login"><EditRestaurantAddress /></ProtectedRoute>} path="edit-address" />
           <Route element={<ProtectedRoute requiredRole="restaurant" loginPath="/seller/login"><Inventory /></ProtectedRoute>} path="inventory" />
+          <Route element={<ProtectedRoute requiredRole="restaurant" loginPath="/seller/login"><StockTake /></ProtectedRoute>} path="stock" />
           <Route element={<ProtectedRoute requiredRole="restaurant" loginPath="/seller/login"><Feedback /></ProtectedRoute>} path="feedback" />
           <Route element={<ProtectedRoute requiredRole="restaurant" loginPath="/seller/login"><ShareFeedback /></ProtectedRoute>} path="share-feedback" />
           <Route element={<ProtectedRoute requiredRole="restaurant" loginPath="/seller/login"><DishRatings /></ProtectedRoute>} path="dish-ratings" />
@@ -143,7 +142,6 @@ export default function RestaurantRouter() {
           <Route element={<ProtectedRoute requiredRole="restaurant" loginPath="/seller/login"><DownloadReport /></ProtectedRoute>} path="download-report" />
           <Route element={<ProtectedRoute requiredRole="restaurant" loginPath="/seller/login"><ManageOutlets /></ProtectedRoute>} path="manage-outlets" />
           <Route element={<ProtectedRoute requiredRole="restaurant" loginPath="/seller/login"><UpdateBankDetails /></ProtectedRoute>} path="update-bank-details" />
-          <Route element={<ProtectedRoute requiredRole="restaurant" loginPath="/seller/login"><DiningReservations /></ProtectedRoute>} path="reservations" />
           <Route element={<ProtectedRoute requiredRole="restaurant" loginPath="/seller/login"><ZoneSetup /></ProtectedRoute>} path="zone-setup" />
         </Route>
 

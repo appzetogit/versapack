@@ -138,14 +138,14 @@ export default function FoodReport() {
 
               <div className="relative">
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  Restaurant
+                  Seller
                 </label>
                 <select
                   value={filters.restaurant}
                   onChange={(e) => setFilters(prev => ({ ...prev, restaurant: e.target.value }))}
                   className="w-full px-4 py-2.5 pr-8 text-sm rounded-lg border border-slate-300 bg-white text-slate-700 appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="All restaurants">All restaurants</option>
+                  <option value="All restaurants">All sellers</option>
                   <option value="Hungry Puppets">Hungry Puppets</option>
                   <option value="Caf� Monarch">Caf� Monarch</option>
                   <option value="Redcliff Cafe">Redcliff Cafe</option>
@@ -425,7 +425,7 @@ export default function FoodReport() {
                   </th>
                   <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase tracking-wider">
                     <div className="flex items-center gap-1">
-                      <span>Restaurant</span>
+                      <span>Seller</span>
                       <ArrowUpDown className="w-3 h-3 text-slate-400" />
                     </div>
                   </th>

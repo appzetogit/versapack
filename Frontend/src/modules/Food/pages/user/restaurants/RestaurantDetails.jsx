@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, Component, useMemo } from "react"
 import { createPortal } from "react-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import { useParams, useNavigate, useSearchParams } from "react-router-dom"
-import { restaurantAPI, diningAPI, orderAPI } from "@food/api"
+import { restaurantAPI, orderAPI } from "@food/api"
 import { API_BASE_URL } from "@food/api/config"
 import { toast } from "sonner"
 import { useDeliveryLocation } from "@food/context/DeliveryLocationContext"
@@ -47,6 +47,7 @@ import { useProfile } from "@food/context/ProfileContext"
 import AddToCartAnimation from "@food/components/user/AddToCartAnimation"
 import VariantSelector from "@food/components/user/VariantSelector"
 import FoodPriceDisplay from "@food/components/user/FoodPriceDisplay"
+import ProductMeta from "@food/components/user/ProductMeta"
 import { getCompanyNameAsync } from "@food/utils/businessSettings"
 import { isModuleAuthenticated } from "@food/utils/auth"
 import { getRestaurantAvailabilityStatus } from "@food/utils/restaurantAvailability"
@@ -107,7 +108,6 @@ function RestaurantDetailsContent() {
     } catch (_) {}
   }, [])
   const [searchParams] = useSearchParams()
-  const showOnlyUnder250 = searchParams.get('under250') === 'true'
   const targetDishId = useMemo(() => String(searchParams.get('dish') || '').trim(), [searchParams])
   const { addToCart, updateQuantity, removeFromCart, getCartItem, cart, itemCount } = useCart()
   const { vegMode, addDishFavorite, removeDishFavorite, isDishFavorite, getDishFavorites, getFavorites, addFavorite, removeFavorite, isFavorite } = useProfile()
@@ -260,26 +260,8 @@ function RestaurantDetailsContent() {
         let response = null
         let apiRestaurant = null
 
-        // Try dining API first (if available). If it doesn't return a valid restaurant,
-        // always fall back to restaurant API (important when diningAPI is stubbed).
-        try {
-          response = await diningAPI.getRestaurantBySlug(slug)
-          if (response?.data?.success && response?.data?.data) {
-            apiRestaurant = response.data.data
-            debugLog('? Found restaurant in dining API:', apiRestaurant)
-          } else {
-            debugLog('? Dining API returned no restaurant, falling back to restaurant API...')
-          }
-        } catch (diningError) {
-          // If dining API errors, we still fall back unless it's a hard network failure handled below.
-          if (diningError?.response?.status === 404) {
-            debugLog('? Restaurant not found in dining API, trying restaurant API...')
-          } else {
-            debugWarn('? Dining API failed, trying restaurant API...', diningError?.message)
-          }
-        }
-
-        // Restaurant API fallback (works for both ObjectId and slug)
+        // Resolve through the seller API. This used to try the dining catalogue
+        // first and fall back here; with dining gone there is only one lookup.
         if (!apiRestaurant) {
           try {
             // First, try to get restaurant directly by slug/ID (no zoneId needed)
@@ -1127,7 +1109,7 @@ function RestaurantDetailsContent() {
 
     const availability = getRestaurantAvailabilityStatus(restaurant)
     if (!availability.isOpen) {
-      toast.error("Restaurant is currently offline. Please try again later.")
+      toast.error("Seller is currently offline. Please try again later.")
       return
     }
 
@@ -1143,7 +1125,7 @@ function RestaurantDetailsContent() {
     // CRITICAL: Validate restaurant data before adding to cart
     if (!restaurant || !restaurant.name) {
       debugError('? Cannot add item to cart: Restaurant data is missing!');
-      toast.error('Restaurant information is missing. Please refresh the page.');
+      toast.error('Seller information is missing. Please refresh the page.');
       return;
     }
 
@@ -1156,7 +1138,7 @@ function RestaurantDetailsContent() {
         _id: restaurant?._id,
         id: restaurant?.id
       });
-      toast.error('Restaurant ID is missing. Please refresh the page.');
+      toast.error('Seller ID is missing. Please refresh the page.');
       return;
     }
 
@@ -1404,13 +1386,13 @@ function RestaurantDetailsContent() {
   const handleBookmarkClick = (item) => {
     const restaurantId = restaurant?.restaurantId || restaurant?._id || restaurant?.id
     if (!restaurantId) {
-      toast.error("Restaurant information is missing")
+      toast.error("Seller information is missing")
       return
     }
 
     const dishId = item.id || item._id
     if (!dishId) {
-      toast.error("Dish information is missing")
+      toast.error("Product information is missing")
       return
     }
 
@@ -1419,7 +1401,7 @@ function RestaurantDetailsContent() {
     if (isFavorite) {
       // If already bookmarked, remove it
       removeDishFavorite(dishId, restaurantId)
-      toast.success("Dish removed from favorites")
+      toast.success("Product removed from favorites")
     } else {
       // Add to favorites
       const dishData = {
@@ -1437,7 +1419,7 @@ function RestaurantDetailsContent() {
         customisable: item.customisable,
       }
       addDishFavorite(dishData)
-      toast.success("Dish added to favorites")
+      toast.success("Product added to favorites")
     }
   }
 
@@ -1446,12 +1428,12 @@ function RestaurantDetailsContent() {
     const restaurantSlug = restaurant?.slug || slug || ""
 
     if (!restaurantSlug) {
-      toast.error("Restaurant information is missing")
+      toast.error("Seller information is missing")
       return
     }
 
     if (!restaurant) {
-      toast.error("Restaurant data not available")
+      toast.error("Seller data not available")
       return
     }
 
@@ -1460,7 +1442,7 @@ function RestaurantDetailsContent() {
     if (isAlreadyFavorite) {
       // Remove from collection
       removeFavorite(restaurantSlug)
-      toast.success("Restaurant removed from collection")
+      toast.success("Seller removed from collection")
     } else {
       // Add to collection
       addFavorite({
@@ -1473,7 +1455,7 @@ function RestaurantDetailsContent() {
         priceRange: restaurant.priceRange || "",
         image: restaurant.profileImageUrl?.url || restaurant.image || ""
       })
-      toast.success("Restaurant added to collection")
+      toast.success("Seller added to collection")
     }
 
     setShowMenuOptionsSheet(false)
@@ -1503,7 +1485,7 @@ function RestaurantDetailsContent() {
 
     const shared = await tryNativeShare(payload)
     if (shared) {
-      toast.success("Restaurant shared successfully")
+      toast.success("Seller shared successfully")
       setShowMenuOptionsSheet(false)
       return
     }
@@ -1536,7 +1518,7 @@ function RestaurantDetailsContent() {
 
     const shared = await tryNativeShare(payload)
     if (shared) {
-      toast.success("Dish shared successfully")
+      toast.success("Product shared successfully")
       return
     }
 
@@ -1664,12 +1646,6 @@ function RestaurantDetailsContent() {
     if (!items) return items
 
     return items.filter((item) => {
-      // Under 250 filter (when coming from Under 250 page)
-      if (showOnlyUnder250) {
-        const finalPrice = getFinalPrice(item);
-        if (finalPrice > 250) return false;
-      }
-
       // Search filter
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase().trim()
@@ -1739,37 +1715,6 @@ function RestaurantDetailsContent() {
     return null
   }
 
-  // Helper function to check if a section has any items under Rs 250
-  const sectionHasItemsUnder250 = (section) => {
-    if (!showOnlyUnder250) return true; // If not filtering, show all sections
-
-    // Check direct items
-    if (section.items && section.items.length > 0) {
-      const hasUnder250Items = section.items.some(item => {
-        if (item.isAvailable === false) return false;
-        const finalPrice = getFinalPrice(item);
-        return finalPrice <= 250;
-      });
-      if (hasUnder250Items) return true;
-    }
-
-    // Check subsection items
-    if (section.subsections && section.subsections.length > 0) {
-      for (const subsection of section.subsections) {
-        if (subsection.items && subsection.items.length > 0) {
-          const hasUnder250Items = subsection.items.some(item => {
-            if (item.isAvailable === false) return false;
-            const finalPrice = getFinalPrice(item);
-            return finalPrice <= 250;
-          });
-          if (hasUnder250Items) return true;
-        }
-      }
-    }
-
-    return false;
-  }
-
   // Build renderable sections from the current filter state so section/subsection visibility
   // stays in sync with the actual filtered items shown on screen.
   const getFilteredSections = () => {
@@ -1836,7 +1781,6 @@ function RestaurantDetailsContent() {
   }
 
   const hasActiveMenuFilters = Boolean(
-    showOnlyUnder250 ||
     searchQuery.trim() ||
     vegMode === true ||
     filters.sortBy ||
@@ -1847,7 +1791,7 @@ function RestaurantDetailsContent() {
 
   const filteredSections = useMemo(
     () => getFilteredSections(),
-    [restaurant?.menuSections, showOnlyUnder250, searchQuery, vegMode, filters, selectedMenuCategory]
+    [restaurant?.menuSections, searchQuery, vegMode, filters, selectedMenuCategory]
   )
 
   useEffect(() => {
@@ -2012,7 +1956,7 @@ function RestaurantDetailsContent() {
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
           <div className="flex flex-col items-center gap-4">
             <AlertCircle className="h-12 w-12 text-red-500" />
-            <span className="text-sm text-gray-600">Restaurant not found</span>
+            <span className="text-sm text-gray-600">Seller not found</span>
             <Button onClick={goBack} variant="outline">
               Go Back
             </Button>
@@ -2064,7 +2008,7 @@ function RestaurantDetailsContent() {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <input
                     type="text"
-                    placeholder="Search dishes..."
+                    placeholder="Search products..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full pl-9 pr-9 py-2 sm:py-2.5 rounded-full border border-white/50 dark:border-white/15 shadow-sm bg-white/50 dark:bg-black/30 backdrop-blur-md text-sm dark:text-white focus:outline-none focus:ring-2 focus:ring-[#EB590E] focus:border-transparent"
@@ -2199,7 +2143,7 @@ function RestaurantDetailsContent() {
             {isRestaurantOffline && (
               <div className="mt-3 rounded-xl border border-rose-200 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-950/30 px-3 py-2.5 text-[12px] sm:text-sm text-rose-700 dark:text-rose-300 flex items-start gap-2">
                 <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                <span>Orders unavailable — restaurant is offline.</span>
+                <span>Orders unavailable — seller is offline.</span>
               </div>
             )}
           </div>
@@ -2386,7 +2330,7 @@ function RestaurantDetailsContent() {
             {filteredSections.length === 0 && hasActiveMenuFilters && (
               <div className="rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 bg-white dark:bg-[#1a1a1a] px-5 py-8 text-center">
                 <p className="text-sm md:text-base font-medium text-gray-700 dark:text-gray-300">
-                  No dishes match the selected filters.
+                  No products match the selected filters.
                 </p>
                 <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400 mt-2">
                   Clear filters or try a different combination.
@@ -2395,7 +2339,7 @@ function RestaurantDetailsContent() {
             )}
             {filteredSections.length === 0 && (
               <div className="rounded-3xl border border-dashed border-gray-300 bg-white px-6 py-10 text-center text-sm text-gray-500">
-                No dishes match the current filters.
+                No products match the current filters.
               </div>
             )}
 
@@ -2481,7 +2425,7 @@ function RestaurantDetailsContent() {
                   {isExpanded && isRecommended && !loadingMenuItems && sectionItems.length === 0 && (
                     <div className="text-center py-8">
                       <p className="text-gray-500 dark:text-gray-400 text-sm md:text-base">
-                        No dish recommended
+                        No product recommended
                       </p>
                     </div>
                   )}
@@ -2564,6 +2508,8 @@ function RestaurantDetailsContent() {
                                   </div>
                                 )}
                               </div>
+
+                              <ProductMeta item={item} className="mt-1" />
 
                               {/* Description - Show if available */}
                               {item.description && (
@@ -2791,6 +2737,8 @@ function RestaurantDetailsContent() {
                                             </div>
                                           )}
                                         </div>
+
+                                        <ProductMeta item={item} className="mt-1" />
 
                                         {/* Description - Show if available */}
                                         {item.description && (
@@ -3910,7 +3858,7 @@ function RestaurantDetailsContent() {
                     {restaurant?.restaurantOffers?.coupons && Array.isArray(restaurant.restaurantOffers.coupons) && restaurant.restaurantOffers.coupons.length > 0 && (
                       <div>
                         <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
-                          Restaurant coupons
+                          Seller coupons
                         </h3>
                         <div className="space-y-3">
                           {restaurant.restaurantOffers.coupons.map((coupon, couponIndex) => {
@@ -4049,7 +3997,7 @@ function RestaurantDetailsContent() {
                         onClick={handleShareRestaurant}
                       >
                         <Share2 className="h-5 w-5 text-gray-700 dark:text-gray-300" />
-                        <span className="text-base text-gray-900 dark:text-white">Share this restaurant</span>
+                        <span className="text-base text-gray-900 dark:text-white">Share this seller</span>
                       </button>
 
                     </div>
@@ -4057,7 +4005,7 @@ function RestaurantDetailsContent() {
                     {/* Disclaimer Text */}
                     <div className="mt-6 px-2">
                       <p className="text-xs text-gray-500 leading-relaxed">
-                        Menu items, prices, photos and descriptions are set directly by the restaurant. In case you see any incorrect information, please report it to us.
+                        Menu items, prices, photos and descriptions are set directly by the seller. In case you see any incorrect information, please report it to us.
                       </p>
                     </div>
 
@@ -4213,7 +4161,7 @@ class RestaurantDetailsErrorBoundary extends Component {
                   Something went wrong
                 </h2>
                 <p className="text-sm text-gray-600 mb-4 max-w-md">
-                  We could not load this restaurant page right now.
+                  We could not load this seller page right now.
                 </p>
                 <Button onClick={() => window.location.reload()} variant="outline">
                   Reload Page

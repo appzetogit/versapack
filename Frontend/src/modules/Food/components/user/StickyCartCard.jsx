@@ -111,7 +111,7 @@ export default function StickyCartCard() {
                     {restaurantName}
                   </h3>
                   <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400 text-sm md:text-base">
-                    <span>View Menu</span>
+                    <span>View Products</span>
                     <ChevronRight className="h-3 w-3 md:h-4 md:w-4" />
                   </div>
                 </Link>

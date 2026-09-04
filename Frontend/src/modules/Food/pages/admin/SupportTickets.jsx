@@ -269,7 +269,7 @@ export default function SupportTickets() {
             <div>
               <h1 className="text-2xl font-bold text-slate-900">Support Tickets</h1>
               <p className="text-sm text-slate-600 mt-1">
-                Review and respond to user and restaurant support requests.
+                Review and respond to user and seller support requests.
               </p>
             </div>
           </div>
@@ -341,7 +341,7 @@ export default function SupportTickets() {
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                placeholder="Search by issue, description, user, restaurant, or ticket ID..."
+                placeholder="Search by issue, description, user, seller, or ticket ID..."
                 className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -507,7 +507,7 @@ export default function SupportTickets() {
                           <p className="text-slate-700 mt-1">{getUserLabel(ticket)}</p>
                         </div>
                         <div>
-                          <p className="text-xs uppercase tracking-wide text-slate-400">Restaurant</p>
+                          <p className="text-xs uppercase tracking-wide text-slate-400">Seller</p>
                           <p className="text-slate-700 mt-1">{getRestaurantLabel(ticket)}</p>
                         </div>
                         <div>
@@ -663,7 +663,7 @@ export default function SupportTickets() {
                       <p className="text-sm text-slate-900 font-semibold">{getUserLabel(selectedTicket)}</p>
                     </div>
                     <div>
-                      <p className="text-xs font-medium text-slate-500 mb-1 uppercase tracking-wide">Restaurant</p>
+                      <p className="text-xs font-medium text-slate-500 mb-1 uppercase tracking-wide">Seller</p>
                       <p className="text-sm text-slate-900 font-semibold">{getRestaurantLabel(selectedTicket)}</p>
                     </div>
                   </div>
@@ -736,12 +736,12 @@ export default function SupportTickets() {
             <Textarea
               value={responseText}
               onChange={(e) => setResponseText(e.target.value)}
-              placeholder="Write your response to the customer or restaurant..."
+              placeholder="Write your response to the customer or seller..."
               rows={6}
               className="min-h-[180px] resize-y rounded-xl border-slate-300 bg-white px-4 py-3 text-sm leading-6 text-slate-800 shadow-sm focus-visible:border-blue-500 focus-visible:ring-4 focus-visible:ring-blue-100"
             />
             <p className="mt-2 text-xs text-slate-500">
-              This message will be visible in the support ticket for the user or restaurant.
+              This message will be visible in the support ticket for the user or seller.
             </p>
           </div>
 

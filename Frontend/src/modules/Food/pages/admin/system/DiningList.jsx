@@ -217,7 +217,7 @@ export default function DiningList() {
                             <h1 className="text-2xl font-bold text-slate-900">Dining List</h1>
                         </div>
                     </div>
-                    <p className="text-slate-500">Manage restaurants available for dining.</p>
+                    <p className="text-slate-500">Manage sellers available for dining.</p>
                 </div>
 
                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
@@ -231,21 +231,21 @@ export default function DiningList() {
                             <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-6">
                                 <Building2 className="w-10 h-10 text-slate-300" />
                             </div>
-                            <h2 className="text-xl font-bold text-slate-900 mb-2">No dining restaurants added yet</h2>
+                            <h2 className="text-xl font-bold text-slate-900 mb-2">No dining sellers added yet</h2>
                             <p className="text-slate-500 max-w-sm mb-8">
-                                Get started by adding your first restaurant to the dining management system.
+                                Get started by adding your first seller to the dining management system.
                             </p>
                         </div>
                     ) : (
                         <>
                             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-                                <h2 className="text-xl font-bold text-slate-900">Registered Dining Restaurants</h2>
+                                <h2 className="text-xl font-bold text-slate-900">Registered Dining Sellers</h2>
 
                                 <div className="flex flex-wrap items-center gap-3">
                                     <div className="relative flex-1 sm:flex-initial min-w-[250px]">
                                         <input
                                             type="text"
-                                            placeholder="Search dining restaurants..."
+                                            placeholder="Search dining sellers..."
                                             value={searchQuery}
                                             onChange={(e) => setSearchQuery(e.target.value)}
                                             className="pl-10 pr-4 py-2.5 w-full text-sm rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -287,7 +287,7 @@ export default function DiningList() {
                                 <table className="w-full">
                                     <thead className="bg-slate-50 border-b border-slate-200">
                                         <tr>
-                                            <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase tracking-wider">Restaurant</th>
+                                            <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase tracking-wider">Seller</th>
                                             <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase tracking-wider">Owner</th>
                                             <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase tracking-wider">Zone</th>
                                             <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase tracking-wider">Dining</th>
@@ -305,7 +305,7 @@ export default function DiningList() {
                                                         <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
                                                             <Search className="w-8 h-8 text-slate-300" />
                                                         </div>
-                                                        <p className="text-lg font-semibold text-slate-700 mb-1">No dining restaurants found</p>
+                                                        <p className="text-lg font-semibold text-slate-700 mb-1">No dining sellers found</p>
                                                         <p className="text-sm text-slate-500">
                                                             Try adjusting your search query or filters.
                                                         </p>
@@ -411,7 +411,7 @@ export default function DiningList() {
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-sm font-semibold text-slate-900">Dining Status</p>
-                                    <p className="text-xs text-slate-500">Enable or disable dining for this restaurant</p>
+                                    <p className="text-xs text-slate-500">Enable or disable dining for this seller</p>
                                 </div>
                                 <button
                                     onClick={() => setEditingRestaurant(prev => ({
