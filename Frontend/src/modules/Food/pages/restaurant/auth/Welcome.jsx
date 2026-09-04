@@ -254,7 +254,7 @@ export default function RestaurantWelcome() {
 
                       <div className="w-12 h-[0.1px] bg-white mt-0 mb-3" />
                       {/* <p className="text-sm md:text-base text-white/90 font-medium">
-                        restaurant partner
+                        seller partner
                       </p> */}
                     </motion.div>
 

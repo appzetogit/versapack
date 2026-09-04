@@ -136,7 +136,7 @@ export default function JoinUsPageSetup() {
                   : "border-transparent text-slate-600 hover:text-slate-900"
               }`}
             >
-              Restaurant Registration Form
+              Seller Registration Form
             </button>
             <button
               onClick={() => setActiveTab("deliveryman")}

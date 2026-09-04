@@ -199,7 +199,7 @@ export default function ProfessionalSearch() {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 z-10" />
             <Input 
               autoFocus
-              placeholder="Search for restaurants or dishes..." 
+              placeholder="Search for sellers or dishes..." 
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="pl-12 pr-12 h-12 w-full bg-slate-100 dark:bg-zinc-800 border-none focus:ring-2 focus:ring-rose-500 rounded-full text-base"
@@ -292,7 +292,7 @@ export default function ProfessionalSearch() {
               <section>
                 <div className="flex items-center gap-2 mb-4">
                    <div className="w-1 h-5 bg-orange-500 rounded-full" />
-                   <h2 className="text-lg font-bold dark:text-white">Dishes from restaurants</h2>
+                   <h2 className="text-lg font-bold dark:text-white">Dishes from sellers</h2>
                 </div>
                 <div className="grid gap-4">
                   {results.dishes.map((r) => (
@@ -336,7 +336,7 @@ export default function ProfessionalSearch() {
               <section>
                 <div className="flex items-center gap-2 mb-4">
                    <div className="w-1 h-5 bg-rose-500 rounded-full" />
-                   <h2 className="text-lg font-bold dark:text-white">Restaurants</h2>
+                   <h2 className="text-lg font-bold dark:text-white">Sellers</h2>
                 </div>
                 <div className="grid gap-6">
                   {results.restaurants.map((r) => (
@@ -431,7 +431,7 @@ export default function ProfessionalSearch() {
 
           <div className="mt-24 text-center">
             <h2 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">Speak Now</h2>
-            <p className="mt-3 text-gray-500 dark:text-gray-400 font-medium">I'm listening for dishes or restaurants...</p>
+            <p className="mt-3 text-gray-500 dark:text-gray-400 font-medium">I'm listening for dishes or sellers...</p>
           </div>
 
           <Button

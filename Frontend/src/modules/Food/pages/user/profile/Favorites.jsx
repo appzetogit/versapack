@@ -20,7 +20,7 @@ export default function Favorites() {
     e.stopPropagation()
     if (window.confirm("Remove this restaurant from favorites?")) {
       removeFavorite(slug)
-      toast.success("Restaurant removed from favorites")
+      toast.success("Seller removed from favorites")
     }
   }
 
@@ -64,7 +64,7 @@ export default function Favorites() {
                   boxShadow: "0 8px 18px rgba(var(--module-theme-rgb,250,2,114),0.25)",
                 }}
               >
-                Explore Restaurants
+                Explore Sellers
               </Button>
             </Link>
           </CardContent>
@@ -125,7 +125,7 @@ export default function Favorites() {
             {restaurantFavorites.length === 0 ? (
               <div className="col-span-full text-center py-12">
                 <Heart className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-                <p className="text-muted-foreground text-lg mb-4">No restaurants saved yet</p>
+                <p className="text-muted-foreground text-lg mb-4">No sellers saved yet</p>
                 <Link to="/user">
                   <Button
                     className="text-white border-0"
@@ -134,7 +134,7 @@ export default function Favorites() {
                       boxShadow: "0 8px 18px rgba(var(--module-theme-rgb,250,2,114),0.25)",
                     }}
                   >
-                    Explore Restaurants
+                    Explore Sellers
                   </Button>
                 </Link>
               </div>
@@ -191,7 +191,7 @@ export default function Favorites() {
                       </div>
                     </div>
                     <Button className="w-full bg-gradient-to-r bg-primary-orange hover:opacity-90 text-white text-xs py-1.5 h-8">
-                      View Restaurant
+                      View Seller
                       <ArrowRight className="h-3 w-3 ml-1" />
                     </Button>
                   </CardContent>

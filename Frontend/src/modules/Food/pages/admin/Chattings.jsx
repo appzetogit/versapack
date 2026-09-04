@@ -61,7 +61,7 @@ export default function Chattings() {
                         : "border-transparent text-slate-600 hover:text-slate-900"
                     }`}
                   >
-                    Restaurant
+                    Seller
                   </button>
                 </div>
               </div>

@@ -462,7 +462,7 @@ export default function Orders() {
     const restaurantTarget = order.restaurantSlug || order.restaurantId
 
     if (!restaurantTarget || !order.items?.length) {
-      toast.info('Order items or restaurant information not available')
+      toast.info('Order items or seller information not available')
       return
     }
 
@@ -603,7 +603,7 @@ Order again from this restaurant in the ${companyName} app.`
     try {
       const shared = await tryNativeShare(payload)
       if (shared) {
-        toast.success("Restaurant shared successfully")
+        toast.success("Seller shared successfully")
         return
       }
 
@@ -611,7 +611,7 @@ Order again from this restaurant in the ${companyName} app.`
     } catch (error) {
       if (error?.name !== "AbortError") {
         debugError("Error sharing restaurant:", error)
-        toast.error("Failed to share restaurant")
+        toast.error("Failed to share seller")
       }
     } finally {
       setActiveMenuOrderId(null)
@@ -747,7 +747,7 @@ Order again from this restaurant in the ${companyName} app.`
           <Search className="w-5 h-5 text-[#EB590E]" />
           <input
             type="text"
-            placeholder="Search by restaurant or dish"
+            placeholder="Search by seller or dish"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="flex-1 ml-3 outline-none text-gray-600 dark:text-gray-200 bg-transparent placeholder-gray-400"
@@ -844,7 +844,7 @@ Order again from this restaurant in the ${companyName} app.`
                       onClick={() => handleShareRestaurant(order)}
                       className="w-full text-left px-3 py-2 hover:bg-gray-50 text-gray-800"
                     >
-                      Share restaurant
+                      Share seller
                     </button>
                     <button
                       type="button"
@@ -1003,7 +1003,7 @@ Order again from this restaurant in the ${companyName} app.`
                       <p className="text-xs font-medium text-green-600 mt-1">Delivered</p>
                     )}
                     {isRestaurantCancelled && (
-                      <p className="text-xs font-medium text-red-500 mt-1">Restaurant Cancelled</p>
+                      <p className="text-xs font-medium text-red-500 mt-1">Seller Cancelled</p>
                     )}
                     {isUserCancelled && (
                       <p className="text-xs font-medium text-gray-500 mt-1">Cancelled by you</p>
@@ -1034,7 +1034,7 @@ Order again from this restaurant in the ${companyName} app.`
                         <div className="bg-red-100 p-1 rounded-full">
                           <AlertCircle className="w-4 h-4 text-red-500" />
                         </div>
-                        <span className="text-xs font-semibold text-red-500">Restaurant Cancelled</span>
+                        <span className="text-xs font-semibold text-red-500">Seller Cancelled</span>
                       </div>
                       <p className="text-xs text-gray-600 ml-7">If prepaid, refund is sent automatically to the original payment method.</p>
                     </div>
@@ -1067,7 +1067,7 @@ Order again from this restaurant in the ${companyName} app.`
                         onClick={() => handleOpenRating(order)}
                         className="text-xs text-[#EB590E] font-medium mt-0.5 flex items-center"
                       >
-                        Rate restaurant & delivery <span className="ml-0.5">&gt;</span>
+                        Rate seller & delivery <span className="ml-0.5">&gt;</span>
                       </button>
                     </div>
                   ) : (
@@ -1130,7 +1130,7 @@ Order again from this restaurant in the ${companyName} app.`
             <div className="px-6 py-6">
               <div className="mb-6">
                 <p className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
-                  Restaurant rating (out of 5)
+                  Seller rating (out of 5)
                 </p>
                 <div className="flex items-center justify-center gap-2 mb-3">
                   {Array.from({ length: 5 }, (_, i) => i + 1).map((num) => {
@@ -1157,7 +1157,7 @@ Order again from this restaurant in the ${companyName} app.`
                   value={restaurantFeedbackText}
                   onChange={(e) => setRestaurantFeedbackText(e.target.value)}
                   className="w-full rounded-xl border-2 border-gray-200 dark:border-zinc-800 bg-transparent px-4 py-2 text-sm text-gray-800 dark:text-gray-200 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#EB590E] focus:border-[#EB590E] resize-none transition-all"
-                  placeholder="Restaurant feedback (optional)"
+                  placeholder="Seller feedback (optional)"
                 />
               </div>
 
@@ -1241,7 +1241,7 @@ Order again from this restaurant in the ${companyName} app.`
           >
             <div className="flex items-center justify-between border-b border-gray-100 dark:border-zinc-800 px-5 py-4">
               <div>
-                <h3 className="text-base font-semibold text-gray-900 dark:text-white">Share restaurant</h3>
+                <h3 className="text-base font-semibold text-gray-900 dark:text-white">Share seller</h3>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Native share available ho to sab supported apps wahan dikhenge</p>
               </div>
               <button

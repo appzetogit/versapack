@@ -297,7 +297,7 @@ export default function DeliverySettings() {
           <Card className="bg-blue-50 border-blue-200 shadow-sm">
             <CardContent className="p-4">
               <p className="text-sm text-gray-700">
-                <strong>Note:</strong> When delivery is turned off, customers won't be able to place delivery orders from your restaurant. You can turn it back on anytime.
+                <strong>Note:</strong> When delivery is turned off, customers won't be able to place delivery orders from your seller. You can turn it back on anytime.
               </p>
             </CardContent>
           </Card>

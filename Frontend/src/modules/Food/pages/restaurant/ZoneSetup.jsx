@@ -876,7 +876,7 @@ export default function ZoneSetup() {
               </p>
               <h1 className="text-xl font-black tracking-tight text-[#141820] md:text-2xl">Zone setup</h1>
               <p className="text-sm text-[#5c6775] truncate md:mt-0.5">
-                Pin your restaurant inside an active service area
+                Pin your seller inside an active service area
               </p>
             </div>
           </div>
@@ -971,7 +971,7 @@ export default function ZoneSetup() {
                   onFocus={() => {
                     if (searchSuggestions.length > 0) setShowSuggestions(true)
                   }}
-                  placeholder="Search restaurant address..."
+                  placeholder="Search seller address..."
                   className="w-full pl-10 pr-3 py-3 text-sm border border-[#d6dce4] rounded-xl bg-[#f7f8fa] text-[#141820] focus:outline-none focus:ring-2 focus:ring-[#141820]/15 focus:border-[#141820]"
                 />
                 {showSuggestions && searchSuggestions.length > 0 && (

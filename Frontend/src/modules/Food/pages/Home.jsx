@@ -76,13 +76,13 @@ export default function Home() {
             <Link to="/restaurant" className="block">
               <Button variant="outline" className="w-full h-24 flex flex-col items-center justify-center">
                 <span className="text-2xl mb-2">???</span>
-                <span className="font-semibold">Restaurant</span>
+                <span className="font-semibold">Seller</span>
               </Button>
             </Link>
             <Link to="/restaurant/auth/sign-in" className="block">
               <Button variant="outline" className="w-full h-24 flex flex-col items-center justify-center border-2 border-[#ff8100] hover:bg-[#ff8100]/10">
                 <span className="text-2xl mb-2">??</span>
-                <span className="font-semibold">Restaurant Login</span>
+                <span className="font-semibold">Seller Login</span>
               </Button>
             </Link>
             <Link to="/delivery" className="block">

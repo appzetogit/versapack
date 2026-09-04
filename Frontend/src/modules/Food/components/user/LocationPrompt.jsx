@@ -118,7 +118,7 @@ export default function LocationPrompt() {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            We use your location to show nearby restaurants and provide accurate
+            We use your location to show nearby sellers and provide accurate
             delivery times. Your location data is stored locally and never
             shared.
           </p>

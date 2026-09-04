@@ -205,14 +205,14 @@ export default function TableBooking() {
   }, [allSlots, selectedMealPeriod])
 
   if (loading) return <Loader />
-  if (!restaurant) return <div className="p-6 text-center">Restaurant not found</div>
+  if (!seller) return <div className="p-6 text-center">Seller not found</div>
 
   const isDiningEnabled = restaurant?.diningSettings?.isEnabled !== false
   const canProceed = Boolean(isDiningEnabled && restaurant && selectedSlot && selectedDate && selectedGuests)
 
   const handleProceed = () => {
     if (!isDiningEnabled) {
-      toast.error("Dining bookings are currently paused for this restaurant.")
+      toast.error("Dining bookings are currently paused for this seller.")
       return
     }
     if (!canProceed) {
@@ -268,7 +268,7 @@ export default function TableBooking() {
       <div className="mx-auto -mt-4 max-w-md space-y-4 px-4">
         {!isDiningEnabled && (
           <section className="rounded-[22px] border border-amber-200 bg-amber-50 px-4 py-4 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
-            <p className="text-sm font-semibold text-amber-900">Dining bookings are paused by this restaurant.</p>
+            <p className="text-sm font-semibold text-amber-900">Dining bookings are paused by this seller.</p>
             <p className="mt-1 text-xs text-amber-800">You can still view details, but new table bookings are disabled right now.</p>
           </section>
         )}

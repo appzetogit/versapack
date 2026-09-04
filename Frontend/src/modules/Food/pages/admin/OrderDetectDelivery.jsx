@@ -457,7 +457,7 @@ export default function OrderDetectDelivery() {
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-slate-500 mb-1">Restaurant Accepted</p>
+              <p className="text-sm text-slate-500 mb-1">Seller Accepted</p>
               <p className="text-2xl font-bold text-emerald-600">{stats.restaurantAccepted}</p>
             </div>
             <div className="p-3 bg-emerald-50 rounded-lg">

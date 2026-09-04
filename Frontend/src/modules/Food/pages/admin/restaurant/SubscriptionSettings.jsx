@@ -123,7 +123,7 @@ const SubscriptionSettings = () => {
 
   const handleSave = async () => {
     if (!featureEnabled) {
-      toast.error("Restaurant Subscription feature is disabled. Enable it from Feature Settings first.")
+      toast.error("Seller Subscription feature is disabled. Enable it from Feature Settings first.")
       return
     }
     try {
@@ -195,7 +195,7 @@ const SubscriptionSettings = () => {
               Billing configuration
             </div>
             <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
-              Restaurant Subscription Settings
+              Seller Subscription Settings
             </h1>
             <p className="max-w-2xl text-sm leading-relaxed text-gray-500">
               Configure monthly plan pricing, GMV ranges, and the one-time onboarding fee.
@@ -247,7 +247,7 @@ const SubscriptionSettings = () => {
             <div className="flex-1">
               <h2 className="text-lg font-bold text-gray-900">Onboarding fee</h2>
               <p className="mt-1 text-sm text-gray-500">
-                One-time fee collected during restaurant onboarding (base + 18% GST). Set to ₹0 to hide and skip payment.
+                One-time fee collected during seller onboarding (base + 18% GST). Set to ₹0 to hide and skip payment.
               </p>
             </div>
             {Number(settings.onboardingFee) > 0 ? (
@@ -272,7 +272,7 @@ const SubscriptionSettings = () => {
               onChange={(e) => updateSetting("onboardingFee", e.target.value)}
             />
             <p className="text-xs text-gray-400">
-              Base fee before GST. Restaurants pay base + 18% GST on the final onboarding step when greater than zero.
+              Base fee before GST. Sellers pay base + 18% GST on the final onboarding step when greater than zero.
             </p>
           </div>
           <div className="rounded-xl border border-dashed border-pink-200 bg-pink-50/50 px-5 py-4 sm:min-w-[220px]">

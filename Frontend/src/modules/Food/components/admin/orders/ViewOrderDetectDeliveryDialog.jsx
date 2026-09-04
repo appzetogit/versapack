@@ -80,10 +80,10 @@ export default function ViewOrderDetectDeliveryDialog({ isOpen, onOpenChange, or
             <div className="bg-slate-50 rounded-lg p-4">
               <h3 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
                 <MapPin className="w-4 h-4" />
-                Restaurant Information
+                Seller Information
               </h3>
               <div>
-                <p className="text-xs text-slate-500">Restaurant Name</p>
+                <p className="text-xs text-slate-500">Seller Name</p>
                 <p className="text-sm font-medium text-slate-900">{order.restaurantName}</p>
               </div>
             </div>

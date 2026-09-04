@@ -1127,7 +1127,7 @@ function RestaurantDetailsContent() {
 
     const availability = getRestaurantAvailabilityStatus(restaurant)
     if (!availability.isOpen) {
-      toast.error("Restaurant is currently offline. Please try again later.")
+      toast.error("Seller is currently offline. Please try again later.")
       return
     }
 
@@ -1143,7 +1143,7 @@ function RestaurantDetailsContent() {
     // CRITICAL: Validate restaurant data before adding to cart
     if (!restaurant || !restaurant.name) {
       debugError('? Cannot add item to cart: Restaurant data is missing!');
-      toast.error('Restaurant information is missing. Please refresh the page.');
+      toast.error('Seller information is missing. Please refresh the page.');
       return;
     }
 
@@ -1156,7 +1156,7 @@ function RestaurantDetailsContent() {
         _id: restaurant?._id,
         id: restaurant?.id
       });
-      toast.error('Restaurant ID is missing. Please refresh the page.');
+      toast.error('Seller ID is missing. Please refresh the page.');
       return;
     }
 
@@ -1404,7 +1404,7 @@ function RestaurantDetailsContent() {
   const handleBookmarkClick = (item) => {
     const restaurantId = restaurant?.restaurantId || restaurant?._id || restaurant?.id
     if (!restaurantId) {
-      toast.error("Restaurant information is missing")
+      toast.error("Seller information is missing")
       return
     }
 
@@ -1446,12 +1446,12 @@ function RestaurantDetailsContent() {
     const restaurantSlug = restaurant?.slug || slug || ""
 
     if (!restaurantSlug) {
-      toast.error("Restaurant information is missing")
+      toast.error("Seller information is missing")
       return
     }
 
     if (!restaurant) {
-      toast.error("Restaurant data not available")
+      toast.error("Seller data not available")
       return
     }
 
@@ -1460,7 +1460,7 @@ function RestaurantDetailsContent() {
     if (isAlreadyFavorite) {
       // Remove from collection
       removeFavorite(restaurantSlug)
-      toast.success("Restaurant removed from collection")
+      toast.success("Seller removed from collection")
     } else {
       // Add to collection
       addFavorite({
@@ -1473,7 +1473,7 @@ function RestaurantDetailsContent() {
         priceRange: restaurant.priceRange || "",
         image: restaurant.profileImageUrl?.url || restaurant.image || ""
       })
-      toast.success("Restaurant added to collection")
+      toast.success("Seller added to collection")
     }
 
     setShowMenuOptionsSheet(false)
@@ -1503,7 +1503,7 @@ function RestaurantDetailsContent() {
 
     const shared = await tryNativeShare(payload)
     if (shared) {
-      toast.success("Restaurant shared successfully")
+      toast.success("Seller shared successfully")
       setShowMenuOptionsSheet(false)
       return
     }
@@ -2012,7 +2012,7 @@ function RestaurantDetailsContent() {
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
           <div className="flex flex-col items-center gap-4">
             <AlertCircle className="h-12 w-12 text-red-500" />
-            <span className="text-sm text-gray-600">Restaurant not found</span>
+            <span className="text-sm text-gray-600">Seller not found</span>
             <Button onClick={goBack} variant="outline">
               Go Back
             </Button>
@@ -2199,7 +2199,7 @@ function RestaurantDetailsContent() {
             {isRestaurantOffline && (
               <div className="mt-3 rounded-xl border border-rose-200 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-950/30 px-3 py-2.5 text-[12px] sm:text-sm text-rose-700 dark:text-rose-300 flex items-start gap-2">
                 <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                <span>Orders unavailable — restaurant is offline.</span>
+                <span>Orders unavailable — seller is offline.</span>
               </div>
             )}
           </div>
@@ -3910,7 +3910,7 @@ function RestaurantDetailsContent() {
                     {restaurant?.restaurantOffers?.coupons && Array.isArray(restaurant.restaurantOffers.coupons) && restaurant.restaurantOffers.coupons.length > 0 && (
                       <div>
                         <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
-                          Restaurant coupons
+                          Seller coupons
                         </h3>
                         <div className="space-y-3">
                           {restaurant.restaurantOffers.coupons.map((coupon, couponIndex) => {
@@ -4049,7 +4049,7 @@ function RestaurantDetailsContent() {
                         onClick={handleShareRestaurant}
                       >
                         <Share2 className="h-5 w-5 text-gray-700 dark:text-gray-300" />
-                        <span className="text-base text-gray-900 dark:text-white">Share this restaurant</span>
+                        <span className="text-base text-gray-900 dark:text-white">Share this seller</span>
                       </button>
 
                     </div>
@@ -4057,7 +4057,7 @@ function RestaurantDetailsContent() {
                     {/* Disclaimer Text */}
                     <div className="mt-6 px-2">
                       <p className="text-xs text-gray-500 leading-relaxed">
-                        Menu items, prices, photos and descriptions are set directly by the restaurant. In case you see any incorrect information, please report it to us.
+                        Menu items, prices, photos and descriptions are set directly by the seller. In case you see any incorrect information, please report it to us.
                       </p>
                     </div>
 
@@ -4213,7 +4213,7 @@ class RestaurantDetailsErrorBoundary extends Component {
                   Something went wrong
                 </h2>
                 <p className="text-sm text-gray-600 mb-4 max-w-md">
-                  We could not load this restaurant page right now.
+                  We could not load this seller page right now.
                 </p>
                 <Button onClick={() => window.location.reload()} variant="outline">
                   Reload Page

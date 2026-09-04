@@ -40,7 +40,7 @@ const VegModePopups = ({
                   </div>
                   <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-3">Pure Veg Mode</h3>
                   <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed mb-8">
-                    We've filtered your feed to show only 100% vegetarian restaurants. Enjoy your meat-free browsing!
+                    We've filtered your feed to show only 100% vegetarian sellers. Enjoy your meat-free browsing!
                   </p>
                   <button
                     onClick={onCloseVegPopup}

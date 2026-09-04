@@ -1958,7 +1958,7 @@ export default function Cart() {
     }
 
     if (!canPlaceOrder) {
-      toast.error("Restaurant is currently offline. Please try again later.")
+      toast.error("Seller is currently offline. Please try again later.")
       return
     }
 
@@ -2017,7 +2017,7 @@ export default function Cart() {
             restaurantId: item.restaurantId
           }))
         });
-        alert('Error: Restaurant information is missing. Please refresh the page and try again.');
+        alert('Error: Seller information is missing. Please refresh the page and try again.');
         setIsPlacingOrder(false);
         return;
       }
@@ -2056,7 +2056,7 @@ export default function Cart() {
         if (finalRestaurantId && finalRestaurantName) {
           debugLog('?? Auto-cleaning cart to keep items from:', finalRestaurantName);
           cleanCartForRestaurant(finalRestaurantId, finalRestaurantName);
-          toast.error('Cart contained items from different restaurants. Items from other restaurants have been removed.');
+          toast.error('Cart contained items from different sellers. Items from other sellers have been removed.');
         } else {
           // If restaurantData is not available, keep items from first restaurant in cart
           const firstRestaurantId = cart[0]?.restaurantId;
@@ -2064,9 +2064,9 @@ export default function Cart() {
           if (firstRestaurantId && firstRestaurantName) {
             debugLog('?? Auto-cleaning cart to keep items from first restaurant:', firstRestaurantName);
             cleanCartForRestaurant(firstRestaurantId, firstRestaurantName);
-            toast.error('Cart contained items from different restaurants. Items from other restaurants have been removed.');
+            toast.error('Cart contained items from different sellers. Items from other sellers have been removed.');
           } else {
-            toast.error('Cart contains items from different restaurants. Please clear cart and try again.');
+            toast.error('Cart contains items from different sellers. Please clear cart and try again.');
           }
         }
 
@@ -2148,7 +2148,7 @@ export default function Cart() {
           cartRestaurantName: cart[0]?.restaurant,
           finalRestaurantName: finalRestaurantName
         });
-        alert('Error: Restaurant information mismatch detected. Please refresh the page and try again.');
+        alert('Error: Seller information mismatch detected. Please refresh the page and try again.');
         setIsPlacingOrder(false);
         return;
       }
@@ -2466,7 +2466,7 @@ export default function Cart() {
             <Utensils className="h-10 w-10 text-gray-400" />
           </div>
           <h2 className="text-lg font-semibold text-gray-800 dark:text-white mb-1">Your cart is empty</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 text-center">Add items from a restaurant to start a new order</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 text-center">Add items from a seller to start a new order</p>
           <Link to="/user">
             <Button
               className="text-white border-0"
@@ -2475,7 +2475,7 @@ export default function Cart() {
                 boxShadow: "0 8px 18px rgba(var(--module-theme-rgb,250,2,114),0.25)",
               }}
             >
-              Browse Restaurants
+              Browse Sellers
             </Button>
           </Link>
         </div>
@@ -2741,7 +2741,7 @@ export default function Cart() {
                                     restaurantName,
                                     cartItem: cart[0]
                                   });
-                                  toast.error('Restaurant information is missing. Please refresh the page.');
+                                  toast.error('Seller information is missing. Please refresh the page.');
                                   return;
                                 }
 
@@ -3537,7 +3537,7 @@ export default function Cart() {
                       </button>
                     </div>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-                      These notes are shared with the restaurant partner while preparing your order
+                      These notes are shared with the seller partner while preparing your order
                     </p>
                     <textarea
                       value={note}
@@ -3725,7 +3725,7 @@ export default function Cart() {
                         </div>
                         <div className="rounded-xl bg-slate-50 dark:bg-[#141414] p-3">
                           <Percent className="h-4 w-4 text-[#EB590E] mb-2" />
-                          <p className="text-xs font-semibold text-gray-800 dark:text-gray-200">Restaurant deals</p>
+                          <p className="text-xs font-semibold text-gray-800 dark:text-gray-200">Seller deals</p>
                           <p className="text-[11px] text-gray-500 mt-1">Add more items to unlock</p>
                         </div>
                       </div>

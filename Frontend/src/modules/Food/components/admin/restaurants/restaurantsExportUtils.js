@@ -121,7 +121,7 @@ export const exportRestaurantsToPDF = (restaurants, filename = "restaurants") =>
         </style>
       </head>
       <body>
-        <h1>Restaurants List</h1>
+        <h1>Sellers List</h1>
         <p>Generated on: ${new Date().toLocaleString()}</p>
         <table>
           <thead>

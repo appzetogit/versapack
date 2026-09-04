@@ -62,8 +62,8 @@ export default function ZoneSetup() {
               <MapPin className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-slate-900">Zone Setup Restaurant</h1>
-              <p className="text-sm text-slate-600">Manage delivery zones for restaurants</p>
+              <h1 className="text-2xl font-bold text-slate-900">Zone Setup Seller</h1>
+              <p className="text-sm text-slate-600">Manage delivery zones for sellers</p>
             </div>
           </div>
           <div className="flex items-center gap-2">

@@ -51,7 +51,7 @@ export default function ViewSubscriptionDialog({ isOpen, onOpenChange, order }) 
                 <p className="text-sm font-medium text-slate-900">{order.customerPhone}</p>
               </div>
               <div className="space-y-1">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Restaurant</p>
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Seller</p>
                 <p className="text-sm font-medium text-slate-900">{order.restaurant}</p>
               </div>
               <div className="space-y-1">

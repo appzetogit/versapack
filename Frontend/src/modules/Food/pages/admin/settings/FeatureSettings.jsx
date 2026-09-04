@@ -101,7 +101,7 @@ export default function FeatureSettings() {
 
             <Card className="border-slate-200">
                 <CardHeader>
-                    <CardTitle className="text-lg">Restaurant Subscription</CardTitle>
+                    <CardTitle className="text-lg">Seller Subscription</CardTitle>
                     <CardDescription>
                         Controls post-approval onboarding payment, due checks, withdrawal restrictions, and subscription settings visibility.
                     </CardDescription>
@@ -141,7 +141,7 @@ export default function FeatureSettings() {
 
             <Card className="border-slate-200">
                 <CardHeader>
-                    <CardTitle className="text-lg">Root Landing & Unregistered Restaurants</CardTitle>
+                    <CardTitle className="text-lg">Root Landing & Unregistered Sellers</CardTitle>
                     <CardDescription>
                         Controls root URL and Unregistered Restaurants visibility. OFF redirects root (/) to /food/user and hides Unregistered Restaurants.
                     </CardDescription>

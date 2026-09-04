@@ -759,7 +759,7 @@ export default function BusinessSetup() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Restaurant Logo</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Seller Logo</label>
                 <input
                   ref={restaurantLogoInputRef}
                   type="file"
@@ -790,7 +790,7 @@ export default function BusinessSetup() {
                 >
                   {restaurantLogoPreview ? (
                     <>
-                      <img src={restaurantLogoPreview} alt="Restaurant logo preview" className="w-full h-full object-contain" />
+                      <img src={restaurantLogoPreview} alt="Seller logo preview" className="w-full h-full object-contain" />
                       <button
                         type="button"
                         onClick={(e) => {
@@ -807,13 +807,13 @@ export default function BusinessSetup() {
                   ) : (
                     <div className="text-center">
                       <Upload className="w-5 h-5 text-slate-400 mx-auto mb-1" />
-                      <p className="text-xs text-slate-400">Click to upload restaurant logo</p>
+                      <p className="text-xs text-slate-400">Click to upload seller logo</p>
                     </div>
                   )}
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Restaurant Favicon</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Seller Favicon</label>
                 <input
                   ref={restaurantFaviconInputRef}
                   type="file"
@@ -844,7 +844,7 @@ export default function BusinessSetup() {
                 >
                   {restaurantFaviconPreview ? (
                     <>
-                      <img src={restaurantFaviconPreview} alt="Restaurant favicon preview" className="w-full h-full object-contain" />
+                      <img src={restaurantFaviconPreview} alt="Seller favicon preview" className="w-full h-full object-contain" />
                       <button
                         type="button"
                         onClick={(e) => {
@@ -861,7 +861,7 @@ export default function BusinessSetup() {
                   ) : (
                     <div className="text-center">
                       <Upload className="w-5 h-5 text-slate-400 mx-auto mb-1" />
-                      <p className="text-xs text-slate-400">Click to upload restaurant favicon</p>
+                      <p className="text-xs text-slate-400">Click to upload seller favicon</p>
                     </div>
                   )}
                 </div>

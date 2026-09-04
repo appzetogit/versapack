@@ -166,7 +166,7 @@ export default function ContactMessages() {
             <div className="relative flex-1 sm:flex-initial min-w-[250px]">
               <input
                 type="text"
-                placeholder="Ex: Search by name, email, order ID, restaurant, food items"
+                placeholder="Ex: Search by name, email, order ID, seller, food items"
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value)

@@ -238,7 +238,7 @@ export default function DesktopNavbar({ showLogo = true }) {
                                                 }
                                             }}
                                             className="h-6 p-0 border-0 bg-transparent text-sm font-medium placeholder:text-gray-500 focus-visible:ring-0 focus-visible:ring-offset-0"
-                                            placeholder="Search for restaurants, food..."
+                                            placeholder="Search for sellers, food..."
                                         />
                                         {heroSearch && (
                                             <Button

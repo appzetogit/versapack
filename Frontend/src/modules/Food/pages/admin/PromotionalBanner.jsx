@@ -418,13 +418,13 @@ export default function PromotionalBanner() {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Link to Restaurant (Optional)</label>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Link to Seller (Optional)</label>
                       <select
                         value={formData.restaurantId}
                         onChange={(e) => handleRestaurantChange(e.target.value)}
                         className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm appearance-none"
                       >
-                        <option value="">Select a restaurant...</option>
+                        <option value="">Select a seller...</option>
                         {restaurants
                           .filter(r => !formData.zoneId || (r.zoneId?._id || r.zoneId) === formData.zoneId)
                           .map(r => (

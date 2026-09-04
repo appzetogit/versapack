@@ -120,7 +120,7 @@ export const useOrderManager = () => {
       const response = await deliveryAPI.confirmReachedPickup(orderId);
       if (response?.data?.success) {
         updateTripStatus('REACHED_PICKUP');
-        // toast.info('Arrived at Restaurant');
+        // toast.info('Arrived at Seller');
       } else {
         throw new Error('Confirm pickup failed');
       }

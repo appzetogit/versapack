@@ -440,7 +440,7 @@ export default function DeliveryEarnings() {
                   <th className="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Delivery Boy</th>
                   <th className="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Phone</th>
                   <th className="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Order ID</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Restaurant</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Seller</th>
                   <th className="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Earning</th>
                   <th className="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Order Total</th>
                   <th className="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Delivery Fee</th>

@@ -330,9 +330,9 @@ export default function ViewOrderDialog({ isOpen, onOpenChange, order }) {
           {/* Restaurant Information */}
           {order.restaurant && (
             <div className="border-t border-slate-200 pt-4">
-              <h3 className="text-sm font-semibold text-slate-700 mb-4">Restaurant Information</h3>
+              <h3 className="text-sm font-semibold text-slate-700 mb-4">Seller Information</h3>
               <div className="space-y-1">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Restaurant Name</p>
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Seller Name</p>
                 <p className="text-sm font-medium text-slate-900">{order.restaurant}</p>
               </div>
             </div>
@@ -576,11 +576,11 @@ export default function ViewOrderDialog({ isOpen, onOpenChange, order }) {
                   <span className="font-medium text-slate-900">{formatDialogMoney(transaction.amounts.totalCustomerPaid)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-slate-600">Restaurant Payout</span>
+                  <span className="text-slate-600">Seller Payout</span>
                   <span className="font-medium text-slate-900">{formatDialogMoney(transaction.amounts.restaurantShare)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-slate-600">Restaurant Commission</span>
+                  <span className="text-slate-600">Seller Commission</span>
                   <span className="font-medium text-slate-900">{formatDialogMoney(transaction.amounts.restaurantCommission)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
@@ -601,7 +601,7 @@ export default function ViewOrderDialog({ isOpen, onOpenChange, order }) {
                 )}
                 {Number(transaction.amounts.restaurantDiscountShare) > 0 && (
                   <div className="flex justify-between text-sm">
-                    <span className="text-slate-600">Discount Borne by Restaurant</span>
+                    <span className="text-slate-600">Discount Borne by Seller</span>
                     <span className="font-medium text-rose-600">-{formatDialogMoney(transaction.amounts.restaurantDiscountShare)}</span>
                   </div>
                 )}

@@ -31,7 +31,7 @@ export default function CartReplaceDialog({
           </DialogTitle>
 
           <DialogDescription className="mt-2 text-center text-sm leading-relaxed text-gray-500 dark:text-gray-400">
-            You already have items in your cart from another restaurant. Would you
+            You already have items in your cart from another seller. Would you
             like to replace them?
           </DialogDescription>
 
@@ -58,7 +58,7 @@ export default function CartReplaceDialog({
 
             <div className="rounded-2xl border border-orange-100 bg-orange-50/70 p-3.5 dark:border-orange-900/40 dark:bg-orange-950/20">
               <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[#EB590E]">
-                New restaurant
+                New seller
               </p>
               <div className="flex items-center gap-3">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-orange-100 dark:bg-[#1a1a1a] dark:ring-orange-900/40">

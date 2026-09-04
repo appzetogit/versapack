@@ -22,7 +22,7 @@ export default function SetupTaxes() {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 px-4 py-3 border-b border-slate-100">
             <div>
               <h2 className="text-sm font-semibold text-slate-900">
-                Allow Tax Calculation For Restaurant ?
+                Allow Tax Calculation For Seller ?
               </h2>
               <p className="text-xs text-slate-500 mt-1">
                 To active tax calculation Turn On The Status.

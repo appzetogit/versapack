@@ -214,7 +214,7 @@ export default function DiningManagement() {
                         </div>
                         <div>
                             <h1 className="text-2xl font-bold text-slate-900">Dining Management</h1>
-                            <p className="text-sm text-slate-600 mt-1">Manage dining categories, restaurant links, banners, and stories</p>
+                            <p className="text-sm text-slate-600 mt-1">Manage dining categories, seller links, banners, and stories</p>
                         </div>
                     </div>
                 </div>
@@ -313,7 +313,7 @@ export default function DiningManagement() {
                             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
                                 <h2 className="text-lg font-bold text-slate-900 mb-2">Add Dining Page Banner</h2>
                                 <p className="text-sm text-slate-500 mb-4">
-                                    This banner shows on the user dining page and is not linked to any restaurant.
+                                    This banner shows on the user dining page and is not linked to any seller.
                                 </p>
                                 <div className="space-y-4">
                                     <div>

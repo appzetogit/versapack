@@ -224,7 +224,7 @@ export default function UserOrderDetails() {
 
   const handleCallRestaurant = () => {
     if (!restaurantPhone) {
-      toast.error("Restaurant phone number not available")
+      toast.error("Seller phone number not available")
       return
     }
     window.location.href = `tel:${restaurantPhone}`
@@ -346,7 +346,7 @@ export default function UserOrderDetails() {
       (typeof currentOrder?.restaurantId === "string" ? currentOrder.restaurantId : currentOrder?.restaurantId?._id)
 
     if (!restaurantTarget || !items.length) {
-      toast.error("Order items or restaurant information not available")
+      toast.error("Order items or seller information not available")
       return
     }
 
@@ -709,7 +709,7 @@ export default function UserOrderDetails() {
             className="w-full bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-900/30 text-orange-700 dark:text-orange-400 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-orange-100 dark:hover:bg-orange-900/40 transition-colors"
           >
             <FileText className="w-4 h-4" />
-            Restaurant Complaint
+            Seller Complaint
           </button>
         </div>
       )}

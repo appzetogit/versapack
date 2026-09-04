@@ -460,7 +460,7 @@ export default function FoodsList() {
   const handleFoodFormSubmit = async () => {
     if (!ensureActionAccess(foodFormMode === "edit" ? "edit" : "create")) return
     if (!foodForm.restaurantId) {
-      toast.error("Please select a restaurant")
+      toast.error("Please select a seller")
       return
     }
     if (!String(foodForm.categoryName || "").trim()) {
@@ -628,7 +628,7 @@ export default function FoodsList() {
 
   const handleBulkUpload = async () => {
     if (!bulkUploadRestaurantId) {
-      toast.error("Please select a restaurant first")
+      toast.error("Please select a seller first")
       return
     }
     if (!bulkUploadFile) {
@@ -703,7 +703,7 @@ export default function FoodsList() {
   const handleBulkDelete = async () => {
     if (!ensureActionAccess("delete")) return
     if (!isRestaurantSelected) {
-      toast.error("Select a restaurant to bulk delete items")
+      toast.error("Select a seller to bulk delete items")
       return
     }
     if (selectedDeleteCount === 0) {
@@ -814,7 +814,7 @@ export default function FoodsList() {
             <div className="flex flex-col gap-2 min-w-[240px]">
               <input
                 type="text"
-                placeholder="Search restaurant..."
+                placeholder="Search seller..."
                 value={restaurantFilterSearch}
                 onChange={(e) => setRestaurantFilterSearch(e.target.value)}
                 className="px-3 py-2 text-sm rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400"
@@ -824,7 +824,7 @@ export default function FoodsList() {
                 onChange={(e) => setSelectedRestaurant(e.target.value)}
                 className="px-4 py-2.5 min-w-[240px] text-sm rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400"
               >
-                <option value="all">All Restaurants</option>
+                <option value="all">All Sellers</option>
                 {filteredRestaurantOptions.map((restaurant) => (
                   <option key={restaurant.id} value={restaurant.id}>
                     {restaurant.name}
@@ -894,7 +894,7 @@ export default function FoodsList() {
                   Title
                 </th>
                 <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase tracking-wider">
-                  Restaurant
+                  Seller
                 </th>
                 <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase tracking-wider">
                   Category
@@ -919,7 +919,7 @@ export default function FoodsList() {
                   <td colSpan={isRestaurantSelected ? 7 : 6} className="px-6 py-20 text-center">
                     <div className="flex flex-col items-center justify-center">
                       <p className="text-lg font-semibold text-slate-700 mb-1">No Data Found</p>
-                      <p className="text-sm text-slate-500">No food items match your search or restaurant filter</p>
+                      <p className="text-sm text-slate-500">No food items match your search or seller filter</p>
                     </div>
                   </td>
                 </tr>
@@ -1083,7 +1083,7 @@ export default function FoodsList() {
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4 text-sm bg-slate-50 border border-slate-200 rounded-lg p-4">
-                <p><span className="font-semibold text-slate-700">Restaurant:</span> <span className="text-slate-900">{selectedFood.restaurantName || "-"}</span></p>
+                <p><span className="font-semibold text-slate-700">Seller:</span> <span className="text-slate-900">{selectedFood.restaurantName || "-"}</span></p>
                 <p><span className="font-semibold text-slate-700">Price:</span> <span className="text-slate-900">{selectedFood.variants?.length ? `Starting from \u20B9${selectedFood.price}` : `\u20B9${selectedFood.price}`}</span></p>
                 <p><span className="font-semibold text-slate-700">Category:</span> <span className="text-slate-900">{selectedFood.categoryName || "-"}</span></p>
                 <p><span className="font-semibold text-slate-700">Food Type:</span> <span className="text-slate-900">{selectedFood.foodType || "-"}</span></p>
@@ -1137,14 +1137,14 @@ export default function FoodsList() {
           <div className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Restaurant</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Seller</label>
                 <select
                   value={foodForm.restaurantId}
                   onChange={(e) => setFoodForm((prev) => ({ ...prev, restaurantId: e.target.value, categoryId: "", categoryName: "" }))}
                   disabled={foodFormMode === "edit"}
                   className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm bg-white disabled:bg-slate-100"
                 >
-                  <option value="">Select restaurant</option>
+                  <option value="">Select seller</option>
                   {restaurantOptions.map((restaurant) => (
                     <option key={restaurant.id} value={restaurant.id}>
                       {restaurant.name}
@@ -1469,10 +1469,10 @@ export default function FoodsList() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-sm font-semibold text-slate-900">Step 2: Select Restaurant</label>
+                  <label className="block text-sm font-semibold text-slate-900">Step 2: Select Seller</label>
                   <input
                     type="text"
-                    placeholder="Search restaurant..."
+                    placeholder="Search seller..."
                     value={bulkUploadRestaurantSearch}
                     onChange={(e) => setBulkUploadRestaurantSearch(e.target.value)}
                     className="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-slate-400"
@@ -1482,7 +1482,7 @@ export default function FoodsList() {
                     onChange={(e) => setBulkUploadRestaurantId(e.target.value)}
                     className="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-slate-400"
                   >
-                    <option value="">Choose a restaurant</option>
+                    <option value="">Choose a seller</option>
                     {filteredBulkUploadRestaurants.map((restaurant) => (
                       <option key={restaurant.id} value={restaurant.id}>
                         {restaurant.name}

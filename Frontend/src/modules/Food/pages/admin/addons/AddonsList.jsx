@@ -63,7 +63,7 @@ export default function AddonsList() {
         setAddons(approvedOnly)
       } catch (error) {
         debugError("Error fetching addons:", error)
-        toast.error("Failed to load restaurant add-ons")
+        toast.error("Failed to load seller add-ons")
         setAddons([])
       } finally {
         setLoading(false)
@@ -190,8 +190,8 @@ export default function AddonsList() {
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">Restaurant add-ons</h1>
-            <div className="text-sm text-slate-500 mt-1">Manage add-ons submitted by restaurants.</div>
+            <h1 className="text-2xl font-bold text-slate-900">Seller add-ons</h1>
+            <div className="text-sm text-slate-500 mt-1">Manage add-ons submitted by sellers.</div>
           </div>
 
           <div className="flex items-center gap-2" />
@@ -202,7 +202,7 @@ export default function AddonsList() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
               type="text"
-              placeholder="Search add-ons or restaurant..."
+              placeholder="Search add-ons or seller..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10 pr-4 py-2.5 w-full text-sm rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400"
@@ -229,7 +229,7 @@ export default function AddonsList() {
                   Name
                 </th>
                 <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase tracking-wider">
-                  Restaurant
+                  Seller
                 </th>
                 <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase tracking-wider">
                   Price
@@ -354,7 +354,7 @@ export default function AddonsList() {
 
               <div className="grid grid-cols-2 gap-4 text-sm bg-slate-50 border border-slate-200 rounded-lg p-4">
                 <p>
-                  <span className="font-semibold text-slate-700">Restaurant:</span>{" "}
+                  <span className="font-semibold text-slate-700">Seller:</span>{" "}
                   <span className="text-slate-900">{selectedAddon?.restaurant?.name || "-"}</span>
                 </p>
                 <p>

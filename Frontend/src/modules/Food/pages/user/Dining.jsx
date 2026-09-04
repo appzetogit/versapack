@@ -319,7 +319,7 @@ export default function Dining() {
 
   const nearbyPopularRestaurants = useMemo(() => {
     const within10Km = normalizedRestaurantList
-      .filter((restaurant) => Number.isFinite(restaurant.distanceValue) && restaurant.distanceValue <= 10)
+      .filter((restaurant) => Number.isFinite(seller.distanceValue) && seller.distanceValue <= 10)
       .sort((a, b) => a.distanceValue - b.distanceValue)
 
     return within10Km.length > 0 ? within10Km : normalizedRestaurantList
@@ -739,7 +739,7 @@ export default function Dining() {
           <div className="mb-6">
             <div className="flex items-center justify-between mb-4 px-1">
               <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white tracking-tight">
-                Popular Restaurants Within 10km
+                Popular Sellers Within 10km
               </h3>
               <p className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
                 {filteredRestaurants.length} nearby places
@@ -818,7 +818,7 @@ export default function Dining() {
             </div>
           ) : filteredRestaurants.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-[#eadfce] bg-[#fffaf4] px-6 py-12 text-center text-sm font-medium text-gray-500">
-              No popular dining restaurants were found within 10 km for the current location.
+              No popular dining sellers were found within 10 km for the current location.
             </div>
           ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6 lg:gap-8">
@@ -1365,7 +1365,7 @@ export default function Dining() {
                 {/* Rating Tab */}
                 {activeFilterTab === 'rating' && (
                   <div className="space-y-4 mb-8">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Restaurant Rating</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Seller Rating</h3>
                     <div className="grid grid-cols-2 gap-3">
                       <button
                         onClick={() => toggleFilter('rating-35-plus')}

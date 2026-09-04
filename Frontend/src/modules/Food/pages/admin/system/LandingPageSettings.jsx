@@ -1219,7 +1219,7 @@ export default function LandingPageSettings({ type = "admin" }) {
                 Location picker section
               </h2>
               <p className="text-xs sm:text-sm text-slate-600 mb-3">
-                Customize location search bar and placeholder text to help users find nearby restaurants.
+                Customize location search bar and placeholder text to help users find nearby sellers.
               </p>
 
               {/* Language Tabs */}
@@ -1286,13 +1286,13 @@ export default function LandingPageSettings({ type = "admin" }) {
                 Business Statistics Section
               </h2>
               <p className="text-xs sm:text-sm text-slate-600 mb-3">
-                Display key business statistics like total restaurants, happy customers, and average delivery time.
+                Display key business statistics like total sellers, happy customers, and average delivery time.
               </p>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
                   <label className="block text-xs sm:text-sm font-semibold text-slate-700 mb-1.5">
-                    Restaurant*
+                    Seller*
                   </label>
                   <input
                     type="number"

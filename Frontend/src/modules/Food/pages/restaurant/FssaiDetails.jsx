@@ -20,7 +20,7 @@ export default function FssaiDetails() {
           <div className="flex items-center gap-1">
             <h1 className="text-base font-semibold text-gray-900">FSSAI Details</h1>
           </div>
-          <p className="text-xs text-gray-500">No live restaurant license data available.</p>
+          <p className="text-xs text-gray-500">No live seller license data available.</p>
         </div>
       </div>
 

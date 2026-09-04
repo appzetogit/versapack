@@ -253,9 +253,9 @@ export default function RestaurantComplaints() {
           <div className="flex items-center gap-3 mb-2">
             <AlertTriangle className="w-6 h-6 text-slate-600" />
             <div>
-              <h1 className="text-2xl font-bold text-slate-900">Restaurant Complaints</h1>
+              <h1 className="text-2xl font-bold text-slate-900">Seller Complaints</h1>
               <p className="text-sm text-slate-600 mt-1">
-                Review and resolve customer complaints related to restaurant orders.
+                Review and resolve customer complaints related to seller orders.
               </p>
             </div>
           </div>
@@ -327,7 +327,7 @@ export default function RestaurantComplaints() {
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                placeholder="Search by order, customer, restaurant, or description..."
+                placeholder="Search by order, customer, seller, or description..."
                 className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -464,7 +464,7 @@ export default function RestaurantComplaints() {
                             </p>
                           </div>
                           <div>
-                            <p className="text-xs uppercase tracking-wide text-slate-400">Restaurant</p>
+                            <p className="text-xs uppercase tracking-wide text-slate-400">Seller</p>
                             <p className="text-slate-700 mt-1 flex items-center gap-1">
                               <Store className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                               {getRestaurantLabel(complaint)}
@@ -478,7 +478,7 @@ export default function RestaurantComplaints() {
 
                         {complaint.restaurantResponse ? (
                           <div className="rounded-lg bg-amber-50 border border-amber-100 px-3 py-2 text-sm text-amber-900">
-                            <span className="font-medium">Restaurant response:</span> {complaint.restaurantResponse}
+                            <span className="font-medium">Seller response:</span> {complaint.restaurantResponse}
                           </div>
                         ) : null}
 
@@ -605,7 +605,7 @@ export default function RestaurantComplaints() {
                       <p className="text-sm text-slate-900 font-semibold">{getCustomerLabel(selectedComplaint)}</p>
                     </div>
                     <div>
-                      <p className="text-xs font-medium text-slate-500 mb-1 uppercase tracking-wide">Restaurant</p>
+                      <p className="text-xs font-medium text-slate-500 mb-1 uppercase tracking-wide">Seller</p>
                       <p className="text-sm text-slate-900 font-semibold">{getRestaurantLabel(selectedComplaint)}</p>
                     </div>
                   </div>
@@ -615,7 +615,7 @@ export default function RestaurantComplaints() {
                   <div>
                     <div className="flex items-center gap-3 mb-4">
                       <div className="w-1 h-6 bg-amber-500 rounded" />
-                      <h3 className="text-base font-semibold text-slate-900">Restaurant Response</h3>
+                      <h3 className="text-base font-semibold text-slate-900">Seller Response</h3>
                     </div>
                     <div className="pl-4">
                       <div className="bg-amber-50 border border-amber-200 p-4 rounded-lg">

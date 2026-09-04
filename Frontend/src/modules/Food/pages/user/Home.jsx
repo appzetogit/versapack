@@ -431,7 +431,7 @@ const RestaurantImageCarousel = React.memo(
           <div
             className="absolute bottom-2 right-2 z-10 flex items-center gap-[3px] rounded-full border border-white/20 bg-black/55 px-[5px] py-[3px] shadow-[0_2px_8px_rgba(0,0,0,0.4)]"
             role="tablist"
-            aria-label="Restaurant image pages"
+            aria-label="Seller image pages"
           >
             {images.map((_, index) => {
               const isActive = index === safeIndex;
@@ -3331,7 +3331,7 @@ export default function Home() {
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.25 }}>
-                    <LoadingSkeletonRegion label="Loading restaurants" className="h-full p-1 sm:p-2">
+                    <LoadingSkeletonRegion label="Loading sellers" className="h-full p-1 sm:p-2">
                       <RestaurantGridSkeleton
                         count={3}
                         className="grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3"
@@ -3413,7 +3413,7 @@ export default function Home() {
                   variant="outline"
                   onClick={loadMoreRestaurants}
                   className="text-sm font-medium border-gray-300 hover:border-gray-400">
-                  Load more restaurants
+                  Load more sellers
                 </Button>
               )}
               <div
@@ -3602,7 +3602,7 @@ export default function Home() {
                       data-section-id="rating"
                       className="space-y-4 mb-8">
                       <h3 className="text-lg font-semibold text-gray-900  dark:text-white mb-4">
-                        Restaurant Rating
+                        Seller Rating
                       </h3>
                       <div className="grid grid-cols-2 gap-3">
                         <button
@@ -3789,7 +3789,7 @@ export default function Home() {
                           }`}>
                           <span
                             className={`text-sm font-medium ${activeFilters.has("has-offers") ? "text-[#EB590E]" : "text-gray-700 dark:text-gray-300"}`}>
-                            Restaurants with offers
+                            Sellers with offers
                           </span>
                         </button>
                       </div>
@@ -3912,7 +3912,7 @@ export default function Home() {
                       </div>
                     </div>
                     <span className="text-sm font-medium text-gray-900 dark:text-white">
-                      All restaurants
+                      All sellers
                     </span>
                   </label>
 
@@ -3941,7 +3941,7 @@ export default function Home() {
                       </div>
                     </div>
                     <span className="text-sm font-medium text-gray-900 dark:text-white">
-                      Pure Veg restaurants only
+                      Pure Veg sellers only
                     </span>
                   </label>
                 </div>
@@ -4017,7 +4017,7 @@ export default function Home() {
 
                   {/* Description */}
                   <p className="text-gray-600 text-center mb-6 text-sm">
-                    You'll see all restaurants, including those serving non-veg
+                    You'll see all sellers, including those serving non-veg
                     dishes
                   </p>
 

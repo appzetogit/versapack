@@ -65,14 +65,14 @@ export default function SubscriptionFilterPanel({ isOpen, onClose, filters, setF
           {restaurants.length > 0 && (
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-2">
-                Restaurant
+                Seller
               </label>
               <select
                 value={filters.restaurant || ""}
                 onChange={(e) => setFilters(prev => ({ ...prev, restaurant: e.target.value }))}
                 className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
               >
-                <option value="">All Restaurants</option>
+                <option value="">All Sellers</option>
                 {restaurants.map((rest) => (
                   <option key={rest} value={rest}>{rest}</option>
                 ))}

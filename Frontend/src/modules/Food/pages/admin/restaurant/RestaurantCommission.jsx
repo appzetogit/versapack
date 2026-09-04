@@ -346,7 +346,7 @@ export default function RestaurantCommission() {
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold text-slate-900">Restaurant Commission</h1>
+              <h1 className="text-2xl font-bold text-slate-900">Seller Commission</h1>
               <span className="px-3 py-1 rounded-full text-sm font-semibold bg-slate-100 text-slate-700">
                 {filteredCommissions.length}
               </span>
@@ -367,7 +367,7 @@ export default function RestaurantCommission() {
             <div className="relative flex-1 sm:flex-initial min-w-[250px]">
               <input
                 type="text"
-                placeholder="Ex: Search by restaurant name or ID"
+                placeholder="Ex: Search by seller name or ID"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 pr-4 py-2.5 w-full text-sm rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400"
@@ -395,12 +395,12 @@ export default function RestaurantCommission() {
                     )}
                     {visibleColumns.restaurant && (
                       <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase tracking-wider">
-                        Restaurant Name
+                        Seller Name
                       </th>
                     )}
                     {visibleColumns.restaurantId && (
                       <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase tracking-wider">
-                        Restaurant ID
+                        Seller ID
                       </th>
                     )}
                     {visibleColumns.defaultCommission && (
@@ -506,13 +506,13 @@ export default function RestaurantCommission() {
       <Dialog open={isRestaurantSelectOpen} onOpenChange={setIsRestaurantSelectOpen}>
         <DialogContent className="max-w-xl bg-white p-0">
           <DialogHeader className="px-6 pt-6 pb-4 border-b border-slate-200">
-            <DialogTitle className="text-lg font-semibold text-slate-900">Select Restaurant</DialogTitle>
+            <DialogTitle className="text-lg font-semibold text-slate-900">Select Seller</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 px-6 py-4">
             <div className="relative">
               <input
                 type="text"
-                placeholder="Search restaurants..."
+                placeholder="Search sellers..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 pr-4 py-2 w-full text-sm rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -538,7 +538,7 @@ export default function RestaurantCommission() {
                   </button>
                 ))}
               {filteredRestaurants.filter(r => !r.hasCommissionSetup).length === 0 && (
-                <p className="text-center text-sm text-slate-500 py-4">No restaurants available</p>
+                <p className="text-center text-sm text-slate-500 py-4">No sellers available</p>
               )}
             </div>
           </div>
@@ -639,7 +639,7 @@ export default function RestaurantCommission() {
       <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
         <DialogContent className="max-w-md bg-white">
           <DialogHeader>
-            <DialogTitle>Delete Restaurant Commission</DialogTitle>
+            <DialogTitle>Delete Seller Commission</DialogTitle>
           </DialogHeader>
           <div className="py-4">
             <p className="text-sm text-slate-700">

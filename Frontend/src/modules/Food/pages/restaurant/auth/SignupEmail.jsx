@@ -213,7 +213,7 @@ export default function RestaurantSignupEmail() {
       <div className="hidden lg:flex lg:w-1/2 relative">
         <img
           src={loginBg}
-          alt="Restaurant background"
+          alt="Seller background"
           className="w-full h-full object-cover"
         />
         <div className="absolute inset-0 flex items-center text-white pointer-events-none">
@@ -224,7 +224,7 @@ export default function RestaurantSignupEmail() {
               FOOD PLATFORM
             </h1>
             <p className="text-base xl:text-lg opacity-95 max-w-xl">
-              Create your restaurant account and start managing your business today.
+              Create your seller account and start managing your business today.
             </p>
           </div>
         </div>
@@ -243,7 +243,7 @@ export default function RestaurantSignupEmail() {
                 {companyName}
               </span>
               <span className="text-xs font-medium text-gray-500">
-                Restaurant Panel
+                Seller Panel
               </span>
             </div>
           </div>

@@ -119,7 +119,7 @@ export default function RestaurantGoogleCallback() {
           <div className="flex flex-col items-center justify-center py-6 space-y-3">
             <CheckCircle2 className="h-14 w-14 text-green-500" />
             <p className="text-sm text-gray-700">
-              Your Google account has been linked to your restaurant profile.
+              Your Google account has been linked to your seller profile.
             </p>
           </div>
         )}

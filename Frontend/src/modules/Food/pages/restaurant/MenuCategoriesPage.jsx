@@ -307,7 +307,7 @@ export default function MenuCategoriesPage() {
         </select>
         {isPureVegRestaurant && (
           <p className="mt-1 text-xs text-emerald-700">
-            Pure veg restaurant: category scope is locked to Veg.
+            Pure veg seller: category scope is locked to Veg.
           </p>
         )}
       </div>
@@ -447,7 +447,7 @@ export default function MenuCategoriesPage() {
           </div>
         ) : ownCategories.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center md:py-16">
-            <p className="text-lg font-semibold text-slate-900">No restaurant categories yet</p>
+            <p className="text-lg font-semibold text-slate-900">No seller categories yet</p>
             <p className="mt-2 text-sm text-slate-500">
               Start with a category and choose diet scope for dishes.
             </p>

@@ -355,7 +355,7 @@ export default function EditRestaurant() {
       if (updated) {
         setRestaurant((prev) => ({ ...(prev || {}), ...updated }))
       }
-      alert("Restaurant details updated successfully")
+      alert("Seller details updated successfully")
     } catch (e) {
       alert(e?.response?.data?.message || "Failed to update restaurant details")
     } finally {
@@ -440,7 +440,7 @@ export default function EditRestaurant() {
         setRestaurant((prev) => ({ ...(prev || {}), ...updated }))
         setMediaForm(normalizeMediaFormFromRestaurant(updated))
       }
-      alert("Restaurant media updated successfully")
+      alert("Seller media updated successfully")
     } catch (e) {
       alert(e?.response?.data?.message || "Failed to update restaurant media")
     } finally {
@@ -488,7 +488,7 @@ export default function EditRestaurant() {
       if (updatedRestaurant) {
         setRestaurant((prev) => ({ ...(prev || {}), ...updatedRestaurant }))
       }
-      alert("Restaurant location updated successfully")
+      alert("Seller location updated successfully")
     } catch (e) {
       alert(e?.response?.data?.message || "Failed to update restaurant location")
     } finally {
@@ -509,7 +509,7 @@ export default function EditRestaurant() {
               <ArrowLeft className="w-4 h-4 text-slate-700" />
             </button>
             <div>
-              <h1 className="text-2xl font-bold text-slate-900">Edit Restaurant</h1>
+              <h1 className="text-2xl font-bold text-slate-900">Edit Seller</h1>
               <p className="text-sm text-slate-500">
                 {restaurant?.name || restaurant?.restaurantName || restaurantId}
               </p>
@@ -545,7 +545,7 @@ export default function EditRestaurant() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label>Restaurant Name</Label>
+                  <Label>Seller Name</Label>
                   <Input value={detailsForm.name} onChange={(e) => setDetailsForm((p) => ({ ...p, name: e.target.value }))} />
                 </div>
                 <div>
@@ -660,21 +660,21 @@ export default function EditRestaurant() {
                 </Button>
               </div>
               <p className="text-sm text-slate-500 mb-4">
-                Uploads are staged here &mdash; nothing changes on the restaurant until you press Save Media.
+                Uploads are staged here &mdash; nothing changes on the seller until you press Save Media.
               </p>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <Label>Cover Image</Label>
                   <p className="text-xs text-slate-500 mt-1">
-                    The hero image on the restaurant page. Replacing it also updates the page banner.
+                    The hero image on the seller page. Replacing it also updates the page banner.
                   </p>
                   <div className="mt-2">
                     {mediaForm.coverImage ? (
                       <div className="relative w-full h-40 rounded-lg overflow-hidden border border-slate-200 bg-slate-50">
                         <img
                           src={mediaForm.coverImage}
-                          alt="Restaurant cover"
+                          alt="Seller cover"
                           className="w-full h-full object-cover"
                         />
                         <button
@@ -845,7 +845,7 @@ export default function EditRestaurant() {
                   <Label>Search location</Label>
                   <Input
                     ref={locationSearchInputRef}
-                    placeholder="Start typing your restaurant address..."
+                    placeholder="Start typing your seller address..."
                     className="mt-1 bg-white text-sm text-black! dark:text-white! placeholder:text-gray-500 dark:placeholder:text-gray-400 caret-black dark:caret-white"
                     style={{ color: "#000", WebkitTextFillColor: "#000" }}
                   />

@@ -137,7 +137,7 @@ export const PickupActionModal = ({
                   <div className="flex items-center gap-2">
                     {isAtPickup ? (
                       <div className="bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">
-                        <span className="text-emerald-600 text-[10px] font-black uppercase tracking-widest">At Restaurant √</span>
+                        <span className="text-emerald-600 text-[10px] font-black uppercase tracking-widest">At Seller √</span>
                       </div>
                     ) : (
                       <div className="bg-orange-50 px-3 py-1 rounded-full border border-orange-100">

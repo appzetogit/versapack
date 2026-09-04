@@ -748,7 +748,7 @@ export default function OrderTracking() {
     const cleanPhone = String(rawPhone).replace(/[^\d+]/g, '');
 
     if (!cleanPhone || cleanPhone.length < 5) {
-      toast.error('Restaurant phone number not available');
+      toast.error('Seller phone number not available');
       return;
     }
 
@@ -1055,7 +1055,7 @@ export default function OrderTracking() {
     if (!order) return;
 
     if (isAdminAccepted) {
-      toast.error('Order has already been accepted by the restaurant and cannot be cancelled.');
+      toast.error('Order has already been accepted by the seller and cannot be cancelled.');
       return;
     }
 
@@ -1562,7 +1562,7 @@ export default function OrderTracking() {
                   backgroundColor: `rgba(${themeRgb}, 0.12)`,
                   borderColor: `rgba(${themeRgb}, 0.35)`,
                 }}
-                aria-label="Call restaurant"
+                aria-label="Call seller"
               >
                 <Phone className="w-4 h-4" style={{ color: themeColor }} />
               </button>

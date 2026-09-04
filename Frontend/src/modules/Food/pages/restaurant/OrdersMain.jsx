@@ -1244,7 +1244,7 @@ export default function OrdersMain() {
       window.dispatchEvent(new Event("restaurantProfileRefresh"));
 
       alert(
-        "Restaurant reverified successfully! Verification will be done in 24 hours.",
+        "Seller reverified successfully! Verification will be done in 24 hours.",
       );
     } catch (error) {
       // Don't log network/timeout errors (backend might be down)

@@ -315,7 +315,7 @@ export default function RestaurantStatus() {
           </button>
           <div className="flex-1">
             <h1 className="text-lg font-bold text-gray-900">Store status</h1>
-            <p className="text-sm text-gray-500 mt-0.5">You are mapped to 1 restaurant</p>
+            <p className="text-sm text-gray-500 mt-0.5">You are mapped to 1 seller</p>
           </div>
         </div>
       </div>

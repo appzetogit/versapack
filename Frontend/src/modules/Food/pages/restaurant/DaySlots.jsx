@@ -576,7 +576,7 @@ export default function DaySlots() {
         
         <div className="bg-gray-50 p-2 md:bg-transparent md:px-0 md:pt-4">
           <p className="text-sm text-gray-700 md:max-w-3xl md:mx-auto md:px-8 md:rounded-xl md:border md:border-slate-200 md:bg-white md:px-4 md:py-3 md:shadow-sm">
-            Add or modify your restaurant timings here. You can create maximum up to 3 time slots in a day.
+            Add or modify your seller timings here. You can create maximum up to 3 time slots in a day.
           </p>
         </div>
 

@@ -2005,9 +2005,9 @@ export default function LandingPageManagement() {
                   </div>
 
                   <div>
-                    <Label htmlFor="recommended-search">Recommended For You Restaurants</Label>
+                    <Label htmlFor="recommended-search">Recommended For You Sellers</Label>
                     <p className="text-xs text-slate-500 mt-1 mb-2">
-                      Choose multiple restaurants to display below filters on the user home page.
+                      Choose multiple sellers to display below filters on the user home page.
                     </p>
 
                     <div className="relative mb-3">
@@ -2016,7 +2016,7 @@ export default function LandingPageManagement() {
                         id="recommended-search"
                         value={recommendedSearchQuery}
                         onChange={(e) => setRecommendedSearchQuery(e.target.value)}
-                        placeholder="Search restaurants..."
+                        placeholder="Search sellers..."
                         className="pl-9"
                       />
                     </div>
@@ -2039,7 +2039,7 @@ export default function LandingPageManagement() {
 
                     <div className="max-h-72 overflow-y-auto border border-slate-200 rounded-lg divide-y divide-slate-100">
                       {filteredRestaurantsForRecommended.length === 0 ? (
-                        <div className="p-4 text-sm text-slate-500 text-center">No restaurants found</div>
+                        <div className="p-4 text-sm text-slate-500 text-center">No sellers found</div>
                       ) : (
                         filteredRestaurantsForRecommended.map((restaurant) => {
                           const isChecked = (settings.recommendedRestaurantIds || []).includes(restaurant._id)
@@ -2159,10 +2159,10 @@ export default function LandingPageManagement() {
             {exploreMoreSubTab === 'gourmet' && (
               <>
                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
-                  <h2 className="text-lg font-bold text-slate-900 mb-4">Add Restaurant to Gourmet</h2>
+                  <h2 className="text-lg font-bold text-slate-900 mb-4">Add Seller to Gourmet</h2>
                   <div className="space-y-4">
                     <div>
-                      <Label htmlFor="restaurant-gourmet">Select Restaurant</Label>
+                      <Label htmlFor="restaurant-gourmet">Select Seller</Label>
                       <select
                         id="restaurant-gourmet"
                         value={selectedRestaurantGourmet}
@@ -2170,7 +2170,7 @@ export default function LandingPageManagement() {
                         className="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                         disabled={restaurantsLoading}
                       >
-                        <option value="">Select a restaurant...</option>
+                        <option value="">Select a seller...</option>
                         {allRestaurants
                           .filter(r => !gourmetRestaurants.some(gr => gr.restaurant?._id === r._id))
                           .map((restaurant) => (
@@ -2199,7 +2199,7 @@ export default function LandingPageManagement() {
                   ) : gourmetRestaurants.length === 0 ? (
                     <div className="text-center py-12 text-slate-500">
                       <ChefHat className="w-12 h-12 mx-auto mb-3 text-slate-400" />
-                      <p>No restaurants added to Gourmet yet.</p>
+                      <p>No sellers added to Gourmet yet.</p>
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
@@ -2266,9 +2266,9 @@ export default function LandingPageManagement() {
         <Dialog open={showRestaurantModal} onOpenChange={setShowRestaurantModal}>
           <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col p-0">
             <DialogHeader className="px-6 pt-6 pb-4 border-b border-slate-200">
-              <DialogTitle className="text-2xl font-bold text-slate-900">Select Restaurants to Link with Banner</DialogTitle>
+              <DialogTitle className="text-2xl font-bold text-slate-900">Select Sellers to Link with Banner</DialogTitle>
               <DialogDescription className="text-slate-600 mt-2">
-                Select restaurants that will be linked to this banner. When users click on this banner, they will be redirected to the selected restaurants.
+                Select sellers that will be linked to this banner. When users click on this banner, they will be redirected to the selected sellers.
               </DialogDescription>
             </DialogHeader>
 
@@ -2279,7 +2279,7 @@ export default function LandingPageManagement() {
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
                   <Input
                     type="text"
-                    placeholder="Search restaurants by name or ID..."
+                    placeholder="Search sellers by name or ID..."
                     value={restaurantSearchQuery}
                     onChange={(e) => setRestaurantSearchQuery(e.target.value)}
                     className="pl-10 h-11 bg-white border-slate-300 focus:border-blue-500 focus:ring-blue-500"
@@ -2307,12 +2307,12 @@ export default function LandingPageManagement() {
                 {restaurantsLoading ? (
                   <div className="flex flex-col items-center justify-center py-16">
                     <Loader2 className="w-10 h-10 text-blue-600 animate-spin mb-3" />
-                    <p className="text-slate-500">Loading restaurants...</p>
+                    <p className="text-slate-500">Loading sellers...</p>
                   </div>
                 ) : filteredRestaurantsForModal.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-16 text-center px-6">
                     <ImageIcon className="w-16 h-16 text-slate-300 mb-4" />
-                    <p className="text-slate-600 font-medium mb-1">No restaurants found</p>
+                    <p className="text-slate-600 font-medium mb-1">No sellers found</p>
                     <p className="text-sm text-slate-500">
                       {restaurantSearchQuery ? 'Try a different search term' : 'No restaurants available'}
                     </p>

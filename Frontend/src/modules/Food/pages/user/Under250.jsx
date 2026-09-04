@@ -1177,7 +1177,7 @@ export default function Under250() {
         {/* Restaurant Menu Sections */}
         {loadingRestaurants ? (
           <div className="flex justify-center items-center py-12">
-            <div className="text-gray-500 dark:text-gray-400">Loading restaurants...</div>
+            <div className="text-gray-500 dark:text-gray-400">Loading sellers...</div>
           </div>
         ) : sortedAndFilteredRestaurants.length === 0 ? (
           <div className="flex justify-center items-center py-12">

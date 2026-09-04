@@ -320,7 +320,7 @@ export default function FeedbackExperienceReport() {
                   >
                     <option value="">All Modules</option>
                     <option value="user">User</option>
-                    <option value="restaurant">Restaurant</option>
+                    <option value="restaurant">Seller</option>
                     <option value="delivery">Delivery</option>
                   </select>
                   <ChevronDown className="absolute right-2 bottom-2.5 w-4 h-4 text-slate-500 pointer-events-none" />

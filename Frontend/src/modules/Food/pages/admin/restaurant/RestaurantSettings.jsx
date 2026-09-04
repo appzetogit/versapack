@@ -73,9 +73,9 @@ export default function RestaurantSettings() {
   return (
     <div className="mx-auto max-w-3xl p-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Restaurant Settings</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Seller Settings</h1>
         <p className="mt-1 text-sm text-gray-500">
-          Set the order acceptance timer for all restaurants.
+          Set the order acceptance timer for all sellers.
         </p>
       </div>
 
@@ -86,7 +86,7 @@ export default function RestaurantSettings() {
             <CardTitle className="text-lg">Order Acceptance Time</CardTitle>
           </div>
           <CardDescription>
-            New restaurant order popups will use this value. Existing active orders keep their current timer.
+            New seller order popups will use this value. Existing active orders keep their current timer.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">

@@ -906,7 +906,7 @@ export default function CategoryPage() {
             <div className="flex-1 relative max-w-2xl">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
               <Input
-                placeholder="Restaurant name or a dish..."
+                placeholder="Seller name or a dish..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 pr-4 h-11 md:h-12 rounded-lg border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-[#1a1a1a] focus:bg-white dark:focus:bg-[#2a2a2a] focus:border-gray-500 dark:focus:border-gray-600 text-sm md:text-base dark:text-white placeholder:text-gray-600 dark:placeholder:text-gray-400"
@@ -1102,7 +1102,7 @@ export default function CategoryPage() {
                                 }
                               }}
                             />
-                          ) : restaurant.image ? (
+                          ) : seller.image ? (
                             <img
                               src={restaurant.image}
                               alt={restaurant.name}
@@ -1173,7 +1173,7 @@ export default function CategoryPage() {
             {/* Loading Overlay */}
             {showRestaurantSkeleton && (
               <div className="absolute inset-0 z-10 rounded-lg bg-white/92 backdrop-blur-sm dark:bg-[#1a1a1a]/92">
-                <LoadingSkeletonRegion label="Loading restaurants" className="h-full p-1 sm:p-2">
+                <LoadingSkeletonRegion label="Loading sellers" className="h-full p-1 sm:p-2">
                   <RestaurantGridSkeleton count={4} compact />
                 </LoadingSkeletonRegion>
               </div>
@@ -1211,7 +1211,7 @@ export default function CategoryPage() {
                               }
                             }}
                           />
-                        ) : restaurant.image ? (
+                        ) : seller.image ? (
                           <img
                             src={restaurant.image}
                             alt={restaurant.name}
@@ -1485,7 +1485,7 @@ export default function CategoryPage() {
                         data-section-id="rating"
                         className="space-y-4 mb-8"
                       >
-                        <h3 className="text-lg md:text-xl font-semibold text-gray-900 dark:text-white mb-4">Restaurant Rating</h3>
+                        <h3 className="text-lg md:text-xl font-semibold text-gray-900 dark:text-white mb-4">Seller Rating</h3>
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
                           <button
                             onClick={() => toggleFilter('rating-35-plus')}

@@ -58,7 +58,7 @@ export default function TableBookingSuccess() {
                 className="text-center space-y-2 mb-10"
             >
                 <h1 className="text-3xl font-black text-gray-900">Table is Booked!</h1>
-                <p className="text-gray-500 font-medium tracking-wide italic">Restaurant will confirm your request soon</p>
+                <p className="text-gray-500 font-medium tracking-wide italic">Seller will confirm your request soon</p>
                 <div className="pt-2">
                     <span className="bg-[#FFF2EB] text-[#EB590E] px-4 py-1 rounded-full text-xs font-bold uppercase tracking-widest border border-[#EB590E]/20">
                         BOOKING ID: {booking.bookingId}
@@ -83,7 +83,7 @@ export default function TableBookingSuccess() {
                             <img
                                 src={booking.restaurant?.image || booking.restaurant?.profileImage?.url || ""}
                                 className="w-full h-full object-cover rounded-xl"
-                                alt="restaurant"
+                                alt="seller"
                                 onError={(e) => {
                                     e.currentTarget.style.display = 'none'
                                 }}
@@ -166,7 +166,7 @@ export default function TableBookingSuccess() {
             </motion.div>
 
             <p className="mt-8 text-[10px] font-bold text-slate-300 uppercase tracking-widest px-10 text-center">
-                Show this ticket at the restaurant for a smooth entry
+                Show this ticket at the seller for a smooth entry
             </p>
         </AnimatedPage>
     )
