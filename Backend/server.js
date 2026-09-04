@@ -1,7 +1,5 @@
 import http from 'http';
-import crypto from 'crypto';
 import path from 'path';
-import { exec } from 'child_process';
 
 import app from './src/app.js';
 import { config } from './src/config/env.js';
@@ -126,30 +124,6 @@ const startServer = async () => {
         } else if (config.bullmqEnabled && !config.serverQueueBootstrapEnabled) {
             logger.info('BullMQ queue bootstrap disabled for this server process.');
         }
-
-        app.post('/api/deploy', (req, res) => {
-            const signature = req.headers['x-hub-signature-256'];
-            const secret = 'mysecret123';
-
-            const hash = 'sha256=' + crypto
-                .createHmac('sha256', secret)
-                .update(JSON.stringify(req.body))
-                .digest('hex');
-
-            if (signature !== hash) {
-                return res.status(403).send('Unauthorized');
-            }
-
-            exec('cd ~ && ./deploy.sh', (err, stdout) => {
-                if (err) {
-                    console.error(err);
-                    return res.send('Deploy failed');
-                }
-
-                console.log(stdout);
-                res.send('Deploy success');
-            });
-        });
 
         server = httpServer.listen(config.port, config.host, () => {
             logger.info(`Server running in ${config.nodeEnv} mode on ${config.host}:${config.port}`);
