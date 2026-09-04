@@ -6,3 +6,4 @@ coverage/
 .DS_Store
 /backups/
 /uploads/
+/config/firebase-service-account.json

@@ -196,7 +196,7 @@ export default function UnifiedOTPFastLogin() {
             animate={{ opacity: 1, y: 0 }}
             className="text-2xl md:text-5xl font-black tracking-tight mb-1"
           >
-            SwitchEats <span className="text-white/80 font-normal">Master</span>
+            VersaPack <span className="text-white/80 font-normal">Master</span>
           </motion.h1>
           <p className="text-xs md:text-base font-bold text-white/90 tracking-[0.2em] uppercase">
             Taste the best, forget the rest

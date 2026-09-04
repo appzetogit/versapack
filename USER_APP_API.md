@@ -1,4 +1,4 @@
-# Suvio — User App API Reference
+# VersaPack — User App API Reference
 
 Every endpoint below was enumerated from the live route files, not from memory.
 Anything not listed here does not exist.

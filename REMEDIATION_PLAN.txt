@@ -1,5 +1,5 @@
 ================================================================================
-SWITCHEATSV2 — REMEDIATION & SCALABILITY PLAN
+VERSAPACK — REMEDIATION & SCALABILITY PLAN
 ================================================================================
 Generated from full platform audit (Backend + Frontend)
 Target: Fix CRITICAL + MAJOR issues, then scale to 10k+ orders/day
@@ -318,8 +318,8 @@ PART 5 — INFRASTRUCTURE SETUP (PM2 + REDIS + NGINX)
 
   Process              | Script                          | Instances | Port
   ---------------------|----------------------------------|-----------|------
-  switcheats-api       | server.js                        | 4 (cluster)| 5000
-  switcheats-socket    | socket-server.js                 | 1         | 5001
+  versapack-api       | server.js                        | 4 (cluster)| 5000
+  versapack-socket    | socket-server.js                 | 1         | 5001
   worker-order         | src/queues/workers/order.worker.js        | 1 | -
   worker-payment       | src/queues/workers/payment.worker.js      | 1 | -
   worker-tracking      | src/queues/workers/tracking.worker.js   | 1 | -

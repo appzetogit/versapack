@@ -4,7 +4,7 @@ const debugWarn = (...args) => {}
 const debugError = (...args) => {}
 
 
-const STORAGE_KEY = "switcheats_restaurants"
+const STORAGE_KEY = "versapack_restaurants"
 
 // Get restaurants from localStorage
 export const getRestaurants = () => {

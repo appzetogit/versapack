@@ -75,7 +75,7 @@ const FORCE = process.argv.includes('--force');
 // rate limiter.
 const UA = {
   'User-Agent':
-    'SuvioQuickCommerce/1.0 (https://quick.appzeto.com; catalogue seeding)',
+    'VersaPack/1.0 (https://quick.appzeto.com; catalogue seeding)',
 };
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

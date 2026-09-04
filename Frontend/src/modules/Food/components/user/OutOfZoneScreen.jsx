@@ -4,7 +4,7 @@ import { Link, useLocation } from "react-router-dom";
 import outOfZoneBg from "@food/assets/Outofzone_bg.jpg";
 
 const OutOfZoneScreen = ({ location }) => {
-  const BRAND_NAME = "SwitchEats";
+  const BRAND_NAME = "VersaPack";
 
   const routerLocation = useLocation();
 

@@ -2403,7 +2403,7 @@ export default function Cart() {
           `2. Backend is accessible at ${backendUrl}\n` +
           `3. Check browser console (F12) for more details\n\n` +
           `If backend is not running, start it with:\n` +
-          `cd switcheats/backend && npm start`
+          `cd versapack/backend && npm start`
 
         debugError("?? Network Error Details:", {
           code: error.code,

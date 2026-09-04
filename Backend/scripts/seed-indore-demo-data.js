@@ -220,9 +220,9 @@ const restaurantSeeds = [
 ];
 
 const adminSeed = {
-  email: 'admin@suvio.appzeto.com',
+  email: 'admin@versapack.appzeto.com',
   password: 'Admin@12345',
-  name: 'Suvio Super Admin',
+  name: 'VersaPack Super Admin',
   phone: '9171119999'
 };
 

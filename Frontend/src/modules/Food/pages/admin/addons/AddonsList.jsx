@@ -123,7 +123,7 @@ export default function AddonsList() {
       let imageUrl = editImagePreview || ""
       // If a new file selected, upload it
       if (editImageFile) {
-        const uploadRes = await uploadAPI.uploadMedia(editImageFile, { folder: "switcheats/admin/addons" })
+        const uploadRes = await uploadAPI.uploadMedia(editImageFile, { folder: "versapack/admin/addons" })
         imageUrl = uploadRes?.data?.data?.url || uploadRes?.data?.url || imageUrl
       }
 

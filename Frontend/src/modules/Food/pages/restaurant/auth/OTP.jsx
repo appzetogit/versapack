@@ -12,7 +12,7 @@ import { resolveDeviceFcmToken, registerWebPushForCurrentModule } from "@food/ut
 import { useCompanyName } from "@food/hooks/useCompanyName"
 import { loadBusinessSettings, getModuleLogoUrl } from "@food/utils/businessSettings"
 import RestaurantPartnerHero from "@food/components/restaurant/auth/RestaurantPartnerHero"
-import quickSpicyLogo from "@food/assets/switcheats-logo.png"
+import quickSpicyLogo from "@food/assets/versapack-logo.png"
 
 const THEME = "#FA0272"
 

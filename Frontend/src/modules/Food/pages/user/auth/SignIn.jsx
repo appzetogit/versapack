@@ -7,7 +7,7 @@ import { Input } from "@food/components/ui/input"
 import { authAPI } from "@food/api"
 import { motion } from "framer-motion"
 import loginBanner from "@food/assets/loginbanner.png"
-import logoImg from "@food/assets/switcheats-logo copy.png"
+import logoImg from "@food/assets/versapack-logo copy.png"
 const debugLog = (...args) => { }
 const debugWarn = (...args) => { }
 const debugError = (...args) => { }

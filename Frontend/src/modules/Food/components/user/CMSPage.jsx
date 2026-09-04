@@ -98,7 +98,7 @@ export default function CMSPage({ endpoint, title: defaultTitle, module = "USER"
              <h1 className="text-xl md:text-2xl font-black text-gray-900 dark:text-white tracking-tight leading-none">
                {pageData.title || defaultTitle}
              </h1>
-             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">SwitchEats Information</p>
+             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">VersaPack Information</p>
           </div>
         </div>
       </div>
@@ -117,8 +117,8 @@ export default function CMSPage({ endpoint, title: defaultTitle, module = "USER"
                   <Mail className="w-6 h-6 text-[#FA0272]" />
                 </div>
                 <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-wider mb-2">Email Us</h3>
-                <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">{pageData.email || 'support@switcheats.com'}</p>
-                <a href={`mailto:${pageData.email || 'support@switcheats.com'}`} className="mt-4 text-xs font-black text-[#FA0272] uppercase tracking-widest hover:underline">Send Message</a>
+                <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">{pageData.email || 'support@versapack.com'}</p>
+                <a href={`mailto:${pageData.email || 'support@versapack.com'}`} className="mt-4 text-xs font-black text-[#FA0272] uppercase tracking-widest hover:underline">Send Message</a>
               </div>
               <div className="bg-gray-50 dark:bg-gray-900/50 p-6 rounded-3xl border border-gray-100 dark:border-gray-800 flex flex-col items-center text-center group transition-all hover:border-[#FA0272]/30">
                 <div className="w-12 h-12 bg-white dark:bg-gray-800 rounded-2xl flex items-center justify-center mb-4 shadow-sm group-hover:scale-110 transition-transform">
@@ -189,7 +189,7 @@ export default function CMSPage({ endpoint, title: defaultTitle, module = "USER"
 
         <p className="text-center mt-10 text-[10px] text-gray-400 font-black uppercase tracking-[0.2em] leading-relaxed">
           Last updated: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} <br />
-          © {new Date().getFullYear()} SwitchEats. All Rights Reserved.
+          © {new Date().getFullYear()} VersaPack. All Rights Reserved.
         </p>
       </div>
     </AnimatedPage>

@@ -44,7 +44,7 @@ export default function LandingPage() {
   const [isRestaurantOpen, setIsRestaurantOpen] = useState(false);
   const [isDeliveryOpen, setIsDeliveryOpen] = useState(false);
   const [supportContact, setSupportContact] = useState({
-    email: "support@switcheats.com",
+    email: "support@versapack.com",
     mobile: "1-800-123-4567"
   });
   const [leadForm, setLeadForm] = useState({
@@ -67,7 +67,7 @@ export default function LandingPage() {
         const data = response?.data?.data || response?.data;
         if (data && (data.email || data.mobile)) {
           setSupportContact({
-            email: data.email || "support@switcheats.com",
+            email: data.email || "support@versapack.com",
             mobile: data.mobile || "1-800-123-4567"
           });
         }
@@ -247,14 +247,14 @@ export default function LandingPage() {
               </div>
               <div className="overflow-hidden pb-4">
                 <motion.div custom={2} initial="hidden" animate="visible" variants={textReveal} className="flex items-center gap-4 lg:gap-8">
-                  <span className="text-transparent bg-clip-text bg-gradient-to-br from-[#FA0272] to-pink-600">SWITCHEATS?</span>
+                  <span className="text-transparent bg-clip-text bg-gradient-to-br from-[#FA0272] to-pink-600">VERSAPACK?</span>
                 </motion.div>
               </div>
             </h1>
 
             <div className="overflow-hidden mt-4 lg:mt-6 max-w-xl">
               <motion.p custom={3} initial="hidden" animate="visible" variants={textReveal} className="text-base lg:text-lg text-slate-600 font-light leading-relaxed">
-                SwitchEats is a next-generation food delivery platform built with a mission to create fairness and transparency in the food ecosystem. Unlike traditional platforms, we operate on a lifetime 0% commission model, ensuring that restaurant partners keep every hard-earned penny of their revenue.
+                VersaPack is a next-generation food delivery platform built with a mission to create fairness and transparency in the food ecosystem. Unlike traditional platforms, we operate on a lifetime 0% commission model, ensuring that restaurant partners keep every hard-earned penny of their revenue.
               </motion.p>
             </div>
 
@@ -317,13 +317,13 @@ export default function LandingPage() {
 
           <div className="space-y-8">
             <span className="inline-block text-xs font-black tracking-[0.3em] text-[#FA0272] uppercase bg-pink-50 border border-pink-100 rounded-full px-3 py-1">
-              About SwitchEats
+              About VersaPack
             </span>
             <h3 className="text-5xl lg:text-7xl font-black leading-[1.1] tracking-tight text-slate-900">
               Empowering partners, <br /><span className="italic text-slate-500 font-light">restoring trust.</span>
             </h3>
             <p className="text-lg md:text-xl text-slate-600 leading-relaxed font-light max-w-lg">
-              Unlike traditional delivery apps that squeeze restaurant margins, SwitchEats works on a lifetime 0% commission model. We believe in creating a balanced, fair, and growth-oriented food ecosystem.
+              Unlike traditional delivery apps that squeeze restaurant margins, VersaPack works on a lifetime 0% commission model. We believe in creating a balanced, fair, and growth-oriented food ecosystem.
             </p>
             <div className="pt-2">
               <button
@@ -414,7 +414,7 @@ export default function LandingPage() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
               <a
-                href="https://apps.apple.com/in/app/switcheats/id6766444150"
+                href="https://apps.apple.com/in/app/versapack/id6766444150"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-center gap-3 bg-slate-900 text-white hover:bg-[#FA0272] px-8 py-4 rounded-2xl font-bold transition-all duration-300 text-sm shadow-md shadow-slate-900/10 cursor-pointer"
@@ -422,7 +422,7 @@ export default function LandingPage() {
                 <Apple className="w-5 h-5" /> App Store
               </a>
               <a
-                href="https://play.google.com/store/apps/details?id=com.switcheats.user1"
+                href="https://play.google.com/store/apps/details?id=com.versapack.user1"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-center gap-3 bg-white border border-slate-200 text-slate-800 hover:bg-slate-50 px-8 py-4 rounded-2xl font-bold transition-all duration-300 text-sm shadow-sm cursor-pointer"
@@ -763,7 +763,7 @@ export default function LandingPage() {
                 <span className="text-transparent bg-clip-text bg-gradient-to-br from-slate-900 to-slate-500 italic font-light">Operating.</span>
               </h3>
               <p className="text-lg text-slate-600 font-light leading-relaxed">
-                Starting our journey from the progressive landscape of <strong>Telangana</strong>, SwitchEats is engineered to scale across India, specifically focusing on empowering Tier-2 and Tier-3 cities.
+                Starting our journey from the progressive landscape of <strong>Telangana</strong>, VersaPack is engineered to scale across India, specifically focusing on empowering Tier-2 and Tier-3 cities.
               </p>
             </div>
 
@@ -831,7 +831,7 @@ export default function LandingPage() {
               <div className="relative z-10 flex-1 flex items-center justify-center py-4 overflow-hidden select-none pointer-events-none">
                 <img 
                   src="/india-map-operations.jpg" 
-                  alt="Switcheats Operational Map" 
+                  alt="VersaPack Operational Map" 
                   className="w-full h-full object-contain filter brightness-110 contrast-105 saturate-110 transform scale-[1.18]"
                   style={{
                     maskImage: 'radial-gradient(circle at center, black 65%, transparent 100%)',
@@ -1002,9 +1002,9 @@ export default function LandingPage() {
               <div className="flex gap-4">
                 {[
                   { Icon: Facebook, url: "https://www.facebook.com/share/1J8C8U4wnK/?mibextid=wwXIfr" },
-                  { Icon: Youtube, url: "https://youtube.com/@switcheats?si=EzceIs61zBwz3SGO" },
-                  { Icon: Instagram, url: "https://www.instagram.com/switcheats?igsh=MTA3eXJnMTRlMTF5Zw%3D%3D&utm_source=qr" },
-                  { Icon: Linkedin, url: "https://www.linkedin.com/company/switcheats/" }
+                  { Icon: Youtube, url: "https://youtube.com/@versapack?si=EzceIs61zBwz3SGO" },
+                  { Icon: Instagram, url: "https://www.instagram.com/versapack?igsh=MTA3eXJnMTRlMTF5Zw%3D%3D&utm_source=qr" },
+                  { Icon: Linkedin, url: "https://www.linkedin.com/company/versapack/" }
                 ].map(({ Icon, url }, i) => (
                   <a 
                     key={i} 
@@ -1022,7 +1022,7 @@ export default function LandingPage() {
             <div className="flex flex-col gap-5 text-sm font-medium">
               <h4 className="text-slate-900 font-bold tracking-widest text-xs uppercase mb-1">Legal</h4>
               <a 
-                href="https://switcheats.com/food/user/profile/privacy" 
+                href="https://versapack.com/food/user/profile/privacy" 
                 target="_blank" 
                 rel="noopener noreferrer" 
                 className="hover:text-[#FA0272] transition-colors"
@@ -1030,7 +1030,7 @@ export default function LandingPage() {
                 Privacy Policy
               </a>
               <a 
-                href="https://switcheats.com/food/user/profile/terms" 
+                href="https://versapack.com/food/user/profile/terms" 
                 target="_blank" 
                 rel="noopener noreferrer" 
                 className="hover:text-[#FA0272] transition-colors"
@@ -1042,7 +1042,7 @@ export default function LandingPage() {
             <div className="flex flex-col gap-5 text-sm font-medium">
               <h4 className="text-slate-900 font-bold tracking-widest text-xs uppercase mb-1">Company</h4>
               <a 
-                href="https://switcheats.com/food/user/profile/about" 
+                href="https://versapack.com/food/user/profile/about" 
                 target="_blank" 
                 rel="noopener noreferrer" 
                 className="hover:text-[#FA0272] transition-colors"
@@ -1050,7 +1050,7 @@ export default function LandingPage() {
                 About Us
               </a>
               <a 
-                href="https://switcheats.com/food/user/profile/help-content" 
+                href="https://versapack.com/food/user/profile/help-content" 
                 target="_blank" 
                 rel="noopener noreferrer" 
                 className="hover:text-[#FA0272] transition-colors"
@@ -1094,7 +1094,7 @@ export default function LandingPage() {
             {/* Sticky Header */}
             <header className="sticky top-0 w-full z-50 px-6 py-6 md:px-12 lg:px-20 flex items-center justify-between bg-[#FCFBFA]/80 backdrop-blur-md border-b border-slate-200/40 shrink-0">
               <div className="text-2xl font-black text-slate-900 tracking-tighter">
-                {APP_CONFIG?.NAME || "SwitchEats"}
+                {APP_CONFIG?.NAME || "VersaPack"}
                 <span className="text-[#FA0272]">.</span>
               </div>
               <button
@@ -1119,7 +1119,7 @@ export default function LandingPage() {
                   <span className="text-transparent bg-clip-text bg-gradient-to-br from-slate-900 to-slate-500 italic font-light">in the Food Ecosystem.</span>
                 </h1>
                 <p className="text-xl text-slate-600 font-light leading-relaxed">
-                  SwitchEats is built with a mission to create a sustainable, transparent, and balanced environment for both food merchants and consumers across India.
+                  VersaPack is built with a mission to create a sustainable, transparent, and balanced environment for both food merchants and consumers across India.
                 </p>
               </div>
 
@@ -1128,7 +1128,7 @@ export default function LandingPage() {
                 <div className="absolute top-[-50%] right-[-10%] w-[350px] h-[350px] bg-[#FA0272]/20 rounded-full blur-[90px] pointer-events-none" />
                 <div className="relative z-10 space-y-6">
                   <p className="text-2xl md:text-3xl lg:text-4xl font-light leading-relaxed italic text-slate-100 max-w-4xl">
-                    "SwitchEats isn’t just a food delivery app—it’s a movement towards fair business, trust, and transparency."
+                    "VersaPack isn’t just a food delivery app—it’s a movement towards fair business, trust, and transparency."
                   </p>
                   <div className="w-16 h-1 bg-[#FA0272] rounded-full" />
                   <p className="text-xs uppercase tracking-widest font-bold text-slate-400">Our Core Philosophy</p>
@@ -1163,7 +1163,7 @@ export default function LandingPage() {
                     </div>
                     <h3 className="text-2xl font-black text-slate-900 mb-3 tracking-tight">Trust & Transparent Pricing</h3>
                     <p className="text-slate-600 font-light leading-relaxed">
-                      By offering transparent pricing, SwitchEats ensures customers pay genuine prices without hidden markups. We are building long-term relationships of trust with both restaurants and consumers.
+                      By offering transparent pricing, VersaPack ensures customers pay genuine prices without hidden markups. We are building long-term relationships of trust with both restaurants and consumers.
                     </p>
                   </div>
                   <div className="mt-8 pt-6 border-t border-slate-100 flex items-center gap-3">
@@ -1180,7 +1180,7 @@ export default function LandingPage() {
                     </div>
                     <h3 className="text-2xl font-black text-slate-900 mb-3 tracking-tight">Telangana to Tier 2 & 3 Cities</h3>
                     <p className="text-slate-600 font-light leading-relaxed">
-                      SwitchEats is starting its journey from Telangana, with a strategic focus on expanding across Tier 2 and Tier 3 cities in India. We aim to empower local businesses in these growing regions and integrate them into the digital market.
+                      VersaPack is starting its journey from Telangana, with a strategic focus on expanding across Tier 2 and Tier 3 cities in India. We aim to empower local businesses in these growing regions and integrate them into the digital market.
                     </p>
                   </div>
                   <div className="mt-8 pt-6 border-t border-slate-100 flex items-center gap-3">
@@ -1197,7 +1197,7 @@ export default function LandingPage() {
                     </div>
                     <h3 className="text-2xl font-black text-slate-900 mb-3 tracking-tight">Founded by Visionaries</h3>
                     <p className="text-slate-600 font-light leading-relaxed">
-                      SwitchEats was founded by two passionate 23-year-old entrepreneurs driven by a vision to revolutionize the food delivery industry and create a more balanced, fair, and growth-oriented platform for all stakeholders.
+                      VersaPack was founded by two passionate 23-year-old entrepreneurs driven by a vision to revolutionize the food delivery industry and create a more balanced, fair, and growth-oriented platform for all stakeholders.
                     </p>
                   </div>
                   <div className="mt-8 pt-6 border-t border-slate-100 flex items-center gap-3">
@@ -1212,7 +1212,7 @@ export default function LandingPage() {
               <div className="text-center py-12 md:py-20 border-t border-slate-200/60 flex flex-col items-center gap-6 shrink-0">
                 <h3 className="text-3xl md:text-4xl font-black text-slate-900">Be Part of the Movement</h3>
                 <p className="text-slate-500 max-w-lg font-light">
-                  Support your local neighborhood restaurants. Join SwitchEats today as a customer or partner and help us create a fair ecosystem.
+                  Support your local neighborhood restaurants. Join VersaPack today as a customer or partner and help us create a fair ecosystem.
                 </p>
                 <div className="flex gap-4 mt-2">
                   <button
@@ -1228,7 +1228,7 @@ export default function LandingPage() {
 
             {/* Simple Footer */}
             <footer className="bg-slate-50 border-t border-slate-200/50 py-8 text-center text-xs text-slate-400 font-medium shrink-0">
-              <p>© 2026 {APP_CONFIG?.NAME || "SwitchEats"} Technologies Inc. All rights reserved.</p>
+              <p>© 2026 {APP_CONFIG?.NAME || "VersaPack"} Technologies Inc. All rights reserved.</p>
             </footer>
           </motion.div>
         )}
@@ -1249,7 +1249,7 @@ export default function LandingPage() {
             {/* Sticky Header */}
             <header className="sticky top-0 w-full z-50 px-4 py-4 md:px-12 lg:px-20 flex items-center justify-between bg-[#FAF7F2]/90 backdrop-blur-md border-b border-slate-200/40 shrink-0">
               <div className="text-xl md:text-2xl font-black text-slate-900 tracking-tighter">
-                {APP_CONFIG?.NAME || "SwitchEats"}
+                {APP_CONFIG?.NAME || "VersaPack"}
                 <span className="text-[#FA0272]">.</span>
               </div>
               <div className="flex items-center gap-2 sm:gap-3">
@@ -1285,7 +1285,7 @@ export default function LandingPage() {
                   <span className="text-transparent bg-clip-text bg-gradient-to-br from-[#FA0272] to-[#E02477] font-extrabold italic font-light">Reclaim 100% of Your Revenue.</span>
                 </h1>
                 <p className="text-xl text-slate-700 font-light leading-relaxed max-w-3xl mx-auto">
-                  Say goodbye to standard 25%-30% commissions that wipe out restaurant profit margins. With SwitchEats, you gain access to a powerful digital ordering system on a <strong>lifetime 0% commission model</strong>.
+                  Say goodbye to standard 25%-30% commissions that wipe out restaurant profit margins. With VersaPack, you gain access to a powerful digital ordering system on a <strong>lifetime 0% commission model</strong>.
                 </p>
               </div>
 
@@ -1304,7 +1304,7 @@ export default function LandingPage() {
 
                   <div className="flex flex-col sm:flex-row gap-4 pt-2">
                     <a
-                      href="https://apps.apple.com/in/app/switcheats-partner/id6766466794"
+                      href="https://apps.apple.com/in/app/versapack-partner/id6766466794"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center justify-center gap-3 bg-white text-slate-950 hover:bg-[#FA0272] hover:text-white px-8 py-4 rounded-2xl font-bold transition-all duration-300 text-sm shadow-md cursor-pointer text-center"
@@ -1312,7 +1312,7 @@ export default function LandingPage() {
                       <Apple className="w-5 h-5" /> iOS App Store
                     </a>
                     <a
-                      href="https://play.google.com/store/apps/details?id=com.switcheats.restaurant1"
+                      href="https://play.google.com/store/apps/details?id=com.versapack.restaurant1"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center justify-center gap-3 bg-slate-800 border border-slate-700 text-white hover:bg-[#FA0272] hover:border-[#FA0272] px-8 py-4 rounded-2xl font-bold transition-all duration-300 text-sm shadow-md cursor-pointer text-center"
@@ -1340,7 +1340,7 @@ export default function LandingPage() {
                     {/* Middle: Comparison metric */}
                     <div className="grid grid-cols-2 gap-3 py-2 flex-1 items-center">
                       <div className="bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-center">
-                        <div className="text-[8px] text-slate-500 font-bold uppercase tracking-wider">With SwitchEats</div>
+                        <div className="text-[8px] text-slate-500 font-bold uppercase tracking-wider">With VersaPack</div>
                         <div className="text-sm font-black text-[#FA0272] mt-0.5">₹18,450.00</div>
                         <div className="text-[7px] text-slate-400 mt-0.5">0% Commission Paid</div>
                       </div>
@@ -1387,7 +1387,7 @@ export default function LandingPage() {
                     </div>
                     <h3 className="text-2xl font-black text-slate-900 mb-3 tracking-tight">Instant Daily Settlements</h3>
                     <p className="text-slate-600 font-light leading-relaxed">
-                      Say goodbye to frustrating weekly payout cycles that lock up your operating capital. SwitchEats processes bank settlements daily, keeping your cash flow running smoothly.
+                      Say goodbye to frustrating weekly payout cycles that lock up your operating capital. VersaPack processes bank settlements daily, keeping your cash flow running smoothly.
                     </p>
                   </div>
                   <div className="mt-8 pt-6 border-t border-slate-200/50 flex items-center gap-3">
@@ -1437,7 +1437,7 @@ export default function LandingPage() {
                 <div className="text-center mb-10">
                   <h3 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">Become a Restaurant Partner</h3>
                   <p className="text-slate-600 max-w-lg font-light text-sm md:text-base mx-auto mt-3">
-                    Fill out the form below to register your interest, and our onboarding team will contact you to set up your restaurant on SwitchEats.
+                    Fill out the form below to register your interest, and our onboarding team will contact you to set up your restaurant on VersaPack.
                   </p>
                 </div>
 
@@ -1452,7 +1452,7 @@ export default function LandingPage() {
                     </div>
                     <h4 className="text-xl font-bold text-slate-900">Application Submitted Successfully!</h4>
                     <p className="text-sm text-slate-600 max-w-md mx-auto">
-                      Thank you for choosing SwitchEats. Our onboarding representative will get in touch with you shortly to finalize your registration.
+                      Thank you for choosing VersaPack. Our onboarding representative will get in touch with you shortly to finalize your registration.
                     </p>
                     <button
                       onClick={() => setLeadSuccess(false)}
@@ -1556,7 +1556,7 @@ export default function LandingPage() {
 
             {/* Simple Footer */}
             <footer className="bg-slate-50 border-t border-slate-200/50 py-8 text-center text-xs text-slate-400 font-medium shrink-0">
-              <p>© 2026 {APP_CONFIG?.NAME || "SwitchEats"} Technologies Inc. All rights reserved.</p>
+              <p>© 2026 {APP_CONFIG?.NAME || "VersaPack"} Technologies Inc. All rights reserved.</p>
             </footer>
           </motion.div>
         )}
@@ -1577,7 +1577,7 @@ export default function LandingPage() {
             {/* Sticky Cyber Header */}
             <header className="sticky top-0 w-full z-50 px-6 py-6 md:px-12 lg:px-20 flex items-center justify-between bg-[#07080B]/90 backdrop-blur-md border-b border-slate-800/80 shrink-0">
               <div className="text-2xl font-black text-white tracking-tighter">
-                {APP_CONFIG?.NAME || "SwitchEats"}
+                {APP_CONFIG?.NAME || "VersaPack"}
                 <span className="text-[#FA0272]">.</span>
               </div>
               <button
@@ -1602,7 +1602,7 @@ export default function LandingPage() {
                   <span className="text-transparent bg-clip-text bg-gradient-to-br from-[#FA0272] to-indigo-400 font-extrabold italic font-light">Earn More & Cash Out Faster.</span>
                 </h1>
                 <p className="text-xl text-slate-400 font-light leading-relaxed max-w-3xl mx-auto">
-                  Join the elite squad of SwitchEats Captains. Secure the most competitive distance-based payout structure, absolute route clarity, weekly settlements, and <strong>keep 100% of your customer tips</strong>.
+                  Join the elite squad of VersaPack Captains. Secure the most competitive distance-based payout structure, absolute route clarity, weekly settlements, and <strong>keep 100% of your customer tips</strong>.
                 </p>
               </div>
 
@@ -1623,7 +1623,7 @@ export default function LandingPage() {
 
                   <div className="flex flex-col sm:flex-row gap-4 pt-2">
                     <a
-                      href="https://apps.apple.com/in/app/switcheats-captain/id6766778164"
+                      href="https://apps.apple.com/in/app/versapack-captain/id6766778164"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center justify-center gap-3 bg-white text-slate-950 hover:bg-[#FA0272] hover:text-white px-8 py-4 rounded-2xl font-bold transition-all duration-300 text-sm shadow-md cursor-pointer text-center"
@@ -1631,7 +1631,7 @@ export default function LandingPage() {
                       <Apple className="w-5 h-5" /> iOS App Store
                     </a>
                     <a
-                      href="https://play.google.com/store/apps/details?id=com.switcheats.delivery1"
+                      href="https://play.google.com/store/apps/details?id=com.versapack.delivery1"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center justify-center gap-3 bg-slate-800 border border-slate-800 text-white hover:bg-[#FA0272] hover:border-[#FA0272] px-8 py-4 rounded-2xl font-bold transition-all duration-300 text-sm shadow-md cursor-pointer text-center"
@@ -1708,7 +1708,7 @@ export default function LandingPage() {
                     </div>
                     <h3 className="text-2xl font-black text-white mb-3 tracking-tight">Keep 100% Customer Tips</h3>
                     <p className="text-slate-400 font-light leading-relaxed">
-                      Every single rupee that a grateful customer tips you belongs entirely to you. SwitchEats takes zero cuts from your extra rewards. Honest payouts, guaranteed.
+                      Every single rupee that a grateful customer tips you belongs entirely to you. VersaPack takes zero cuts from your extra rewards. Honest payouts, guaranteed.
                     </p>
                   </div>
                   <div className="mt-8 pt-6 border-t border-slate-800/60 flex items-center gap-3">
@@ -1742,7 +1742,7 @@ export default function LandingPage() {
                     </div>
                     <h3 className="text-2xl font-black text-white mb-3 tracking-tight">Fast Weekly Wallet Payouts</h3>
                     <p className="text-slate-400 font-light leading-relaxed">
-                      Never wait weeks to enjoy your hard-earned rewards. SwitchEats settles your total earnings straight into your active digital wallet every single week, cleanly and securely.
+                      Never wait weeks to enjoy your hard-earned rewards. VersaPack settles your total earnings straight into your active digital wallet every single week, cleanly and securely.
                     </p>
                   </div>
                   <div className="mt-8 pt-6 border-t border-slate-800/60 flex items-center gap-3">
@@ -1772,7 +1772,7 @@ export default function LandingPage() {
 
               {/* Bottom Call to Action */}
               <div className="text-center py-12 md:py-20 border-t border-slate-800/80 flex flex-col items-center gap-6 shrink-0">
-                <h3 className="text-3xl md:text-4xl font-black text-white">Start Earning with SwitchEats</h3>
+                <h3 className="text-3xl md:text-4xl font-black text-white">Start Earning with VersaPack</h3>
                 <p className="text-slate-400 max-w-lg font-light text-sm md:text-base">
                   Get on the road and empower the local neighborhood restaurant ecosystem while securing premium distance-based earnings.
                 </p>
@@ -1790,7 +1790,7 @@ export default function LandingPage() {
 
             {/* Simple Footer */}
             <footer className="bg-slate-950 border-t border-slate-900 py-8 text-center text-xs text-slate-505 font-medium shrink-0">
-              <p>© 2026 {APP_CONFIG?.NAME || "SwitchEats"} Technologies Inc. All rights reserved.</p>
+              <p>© 2026 {APP_CONFIG?.NAME || "VersaPack"} Technologies Inc. All rights reserved.</p>
             </footer>
           </motion.div>
         )}

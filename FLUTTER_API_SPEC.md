@@ -427,7 +427,7 @@ Pre-order copy (no auth): `GET /food/admin/cashback-settings/public` → `{ cash
 ```json
 { "totalRefunded": 546,
   "refunds": [
-    { "orderId":"6a64...", "orderDisplayId":"FOD-123", "restaurantName":"Suvio",
+    { "orderId":"6a64...", "orderDisplayId":"FOD-123", "restaurantName":"VersaPack",
       "amount":546, "status":"processed",            // pending | processed | failed
       "method":"razorpay", "refundId":"rfnd_...", "reason":"...",
       "creditedToWallet": true,                       // false = back to card

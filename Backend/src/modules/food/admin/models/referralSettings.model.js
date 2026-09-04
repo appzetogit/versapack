@@ -10,7 +10,7 @@ const referralSettingsSchema = new mongoose.Schema(
          * Shareable invite link templates, one per role. Put {code} where the referral code
          * belongs; if omitted, ?ref=<code> is appended. Blank disables the link and the app
          * shares the bare code instead. Works for a web signup URL or a store listing, e.g.
-         *   https://suvio.example.com/food/delivery/signup?ref={code}
+         *   https://versapack.example.com/food/delivery/signup?ref={code}
          *   https://play.google.com/store/apps/details?id=com.example.app&referrer={code}
          */
         referralLinkUser: { type: String, default: '', trim: true },

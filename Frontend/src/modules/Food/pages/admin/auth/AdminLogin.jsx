@@ -14,7 +14,7 @@ import { Input } from "@food/components/ui/input"
 import { Label } from "@food/components/ui/label"
 import AdminAuthHero from "@food/components/admin/auth/AdminAuthHero"
 import { Eye, EyeOff, Shield, Loader2 } from "lucide-react"
-import quickSpicyLogo from "@food/assets/switcheats-logo.png"
+import quickSpicyLogo from "@food/assets/versapack-logo.png"
 
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
@@ -171,7 +171,7 @@ export default function AdminLogin() {
             <div>
               <p className="text-[10px] font-medium text-white/50">Admin Portal</p>
               <p className="text-sm font-semibold text-white">
-                Suvio <span style={{ color: themeColor }}>Quick Commerce</span>
+                VersaPack <span style={{ color: themeColor }}>Quick Commerce</span>
               </p>
             </div>
           </div>
@@ -310,7 +310,7 @@ export default function AdminLogin() {
             </div>
 
             <p className="mt-5 text-center text-xs text-gray-400">
-              Protected admin access &middot; Suvio Quick Commerce
+              Protected admin access &middot; VersaPack Quick Commerce
             </p>
           </motion.div>
         </div>

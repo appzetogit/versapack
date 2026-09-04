@@ -1,5 +1,5 @@
 export const APP_CONFIG = {
-  NAME: 'SwitchEats',
+  NAME: 'VersaPack',
   VERSION: '1.0.0',
 };
 

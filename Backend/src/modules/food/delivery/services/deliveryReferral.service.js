@@ -15,7 +15,7 @@ const REFERRAL_SIGNUP_PATH = '/food/delivery/signup';
  *
  * `template` comes from referral settings (referralLinkDelivery / referralLinkUser) and may
  * contain {code}, so admins can point invites at a web signup OR a store listing:
- *   https://suvio.example.com/food/delivery/signup?ref={code}
+ *   https://versapack.example.com/food/delivery/signup?ref={code}
  *   https://play.google.com/store/apps/details?id=com.example.app&referrer={code}
  * With no {code}, ?ref=<code> is appended. A bare origin gets the signup path added.
  *

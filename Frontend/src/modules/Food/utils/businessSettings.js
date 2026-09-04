@@ -529,22 +529,22 @@ export const getCachedSettings = () => {
 
 /**
  * Get company name from business settings with fallback
- * @returns {string} Company name or default "SwitchEats Food"
+ * @returns {string} Company name or default "VersaPack Food"
  */
 export const getCompanyName = () => {
   const settings = getCachedSettings();
-  return settings?.companyName || "SwitchEats";
+  return settings?.companyName || "VersaPack";
 };
 
 /**
  * Get company name asynchronously (loads if not cached)
- * @returns {Promise<string>} Company name or default "SwitchEats Food"
+ * @returns {Promise<string>} Company name or default "VersaPack Food"
  */
 export const getCompanyNameAsync = async () => {
   try {
     const settings = await loadBusinessSettings();
-    return settings?.companyName || "SwitchEats";
+    return settings?.companyName || "VersaPack";
   } catch (error) {
-    return "SwitchEats";
+    return "VersaPack";
   }
 };

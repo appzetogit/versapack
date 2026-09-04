@@ -1,12 +1,12 @@
 # Hostinger KVM2 example: Nginx in front of PM2 cluster.
-# Copy to /etc/nginx/sites-available/switcheats and symlink into sites-enabled.
+# Copy to /etc/nginx/sites-available/versapack and symlink into sites-enabled.
 
-upstream switcheats_api {
+upstream versapack_api {
     server 127.0.0.1:5000;
     keepalive 64;
 }
 
-upstream switcheats_socket {
+upstream versapack_socket {
     server 127.0.0.1:5001;
     keepalive 64;
 }
@@ -41,7 +41,7 @@ server {
         image/svg+xml;
 
     location /health {
-        proxy_pass http://switcheats_api;
+        proxy_pass http://versapack_api;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -50,7 +50,7 @@ server {
     }
 
     location /ready {
-        proxy_pass http://switcheats_api;
+        proxy_pass http://versapack_api;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -59,7 +59,7 @@ server {
     }
 
     location /socket.io/ {
-        proxy_pass http://switcheats_socket;
+        proxy_pass http://versapack_socket;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection $connection_upgrade;
@@ -83,7 +83,7 @@ server {
         limit_req zone=api_limit burst=60 nodelay;
         limit_conn perip 30;
 
-        proxy_pass http://switcheats_api;
+        proxy_pass http://versapack_api;
         proxy_http_version 1.1;
         proxy_set_header Connection '';
         proxy_set_header Host $host;

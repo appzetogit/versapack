@@ -1,7 +1,7 @@
 module.exports = {
   apps: [
     {
-      name: 'switcheats-api',
+      name: 'versapack-api',
       cwd: './Backend',
       script: 'server.js',
       instances: 'max',
@@ -17,7 +17,7 @@ module.exports = {
       }
     },
     {
-      name: 'switcheats-socket',
+      name: 'versapack-socket',
       cwd: './Backend',
       script: 'socket-server.js',
       instances: 1,
@@ -30,7 +30,7 @@ module.exports = {
       }
     },
     {
-      name: 'switcheats-scheduler',
+      name: 'versapack-scheduler',
       cwd: './Backend',
       script: 'scripts/run-scheduled-jobs.js',
       instances: 1,
@@ -42,7 +42,7 @@ module.exports = {
       }
     },
     {
-      name: 'switcheats-worker-otp',
+      name: 'versapack-worker-otp',
       cwd: './Backend',
       script: 'src/queues/workers/otp.worker.js',
       instances: 1,
@@ -54,7 +54,7 @@ module.exports = {
       }
     },
     {
-      name: 'switcheats-worker-notification',
+      name: 'versapack-worker-notification',
       cwd: './Backend',
       script: 'src/queues/workers/notification.worker.js',
       instances: 1,
@@ -66,7 +66,7 @@ module.exports = {
       }
     },
     {
-      name: 'switcheats-worker-order',
+      name: 'versapack-worker-order',
       cwd: './Backend',
       script: 'src/queues/workers/order.worker.js',
       instances: 1,
@@ -78,7 +78,7 @@ module.exports = {
       }
     },
     {
-      name: 'switcheats-worker-tracking',
+      name: 'versapack-worker-tracking',
       cwd: './Backend',
       script: 'src/queues/workers/tracking.worker.js',
       instances: 1,
@@ -90,7 +90,7 @@ module.exports = {
       }
     },
     {
-      name: 'switcheats-worker-payment',
+      name: 'versapack-worker-payment',
       cwd: './Backend',
       script: 'src/queues/workers/payment.worker.js',
       instances: 1,
@@ -102,7 +102,7 @@ module.exports = {
       }
     },
     {
-      name: 'switcheats-worker-maintenance',
+      name: 'versapack-worker-maintenance',
       cwd: './Backend',
       script: 'src/queues/workers/maintenance.worker.js',
       instances: 1,

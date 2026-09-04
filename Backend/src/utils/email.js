@@ -36,7 +36,7 @@ export async function sendAdminResetOtpEmail(to, otp) {
         return false;
     }
     const from = config.emailFrom || config.emailUser;
-    const subject = 'Your password reset code – Switcheats Admin';
+    const subject = 'Your password reset code – VersaPack Admin';
     const html = `
 <!DOCTYPE html>
 <html>
@@ -47,14 +47,14 @@ export async function sendAdminResetOtpEmail(to, otp) {
   <p style="font-size: 24px; font-weight: bold; letter-spacing: 4px; background: #f5f5f5; padding: 12px 16px; border-radius: 8px;">${otp}</p>
   <p style="color: #666; font-size: 14px;">If you did not request this, you can ignore this email.</p>
   <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-  <p style="color: #999; font-size: 12px;">Switcheats Admin</p>
+  <p style="color: #999; font-size: 12px;">VersaPack Admin</p>
 </body>
 </html>`;
     const text = `Your password reset code is: ${otp}. It is valid for 10 minutes. If you did not request this, ignore this email.`;
 
     try {
         await trans.sendMail({
-            from: typeof from === 'string' && from.includes('<') ? from : `Switcheats <${from}>`,
+            from: typeof from === 'string' && from.includes('<') ? from : `VersaPack <${from}>`,
             to,
             subject,
             text,

@@ -1202,7 +1202,7 @@ export default function Inventory() {
     try {
       let imageUrl = ""
       if (addonImageFile) {
-        const uploadRes = await uploadAPI.uploadMedia(addonImageFile, { folder: "switcheats/restaurant/addons" })
+        const uploadRes = await uploadAPI.uploadMedia(addonImageFile, { folder: "versapack/restaurant/addons" })
         imageUrl = uploadRes?.data?.data?.url || uploadRes?.data?.url || ""
       }
       const payload = {
@@ -3146,7 +3146,7 @@ export default function Inventory() {
                         />
                       </div>
                       <p className="text-sm text-gray-500">
-                        Item won't be visible to customers on SwitchEats app till you mark it back in stock
+                        Item won't be visible to customers on VersaPack app till you mark it back in stock
                       </p>
                     </div>
                   </label>
