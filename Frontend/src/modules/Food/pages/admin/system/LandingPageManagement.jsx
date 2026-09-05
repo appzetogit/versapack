@@ -62,11 +62,6 @@ export default function LandingPageManagement() {
   const [allRestaurants, setAllRestaurants] = useState([])
   const [restaurantsLoading, setRestaurantsLoading] = useState(false)
 
-  // Gourmet Restaurants
-  const [gourmetRestaurants, setGourmetRestaurants] = useState([])
-  const [gourmetLoading, setGourmetLoading] = useState(true)
-  const [gourmetDeleting, setGourmetDeleting] = useState(null)
-  const [selectedRestaurantGourmet, setSelectedRestaurantGourmet] = useState("")
 
   // Common
   const [error, setError] = useState(null)
@@ -138,15 +133,13 @@ export default function LandingPageManagement() {
     fetchSettings()
   }, [])
 
-  // Fetch Top 10 and Gourmet when Explore More tab is active; refetch restaurants so dropdown is populated
+  // Refetch explore-more content when that tab is active.
   useEffect(() => {
     if (activeTab === 'explore-more') {
       if (allRestaurants.length === 0) {
         fetchAllRestaurants()
       }
-      if (exploreMoreSubTab === 'gourmet') {
-        fetchGourmetRestaurants()
-      } else if (exploreMoreSubTab === 'icons') {
+      if (exploreMoreSubTab === 'icons') {
         fetchExploreMore()
       }
     }
@@ -1015,101 +1008,6 @@ export default function LandingPageManagement() {
     }
   }
 
-  const fetchGourmetRestaurants = async () => {
-    try {
-      setGourmetLoading(true)
-      setError(null)
-      const response = await api.get('/food/hero-banners/gourmet', getAuthConfig())
-      if (response.data.success) {
-        setGourmetRestaurants(response.data.data.restaurants || [])
-      }
-    } catch (err) {
-      if (err.response?.status === 401 || err.response?.status === 404) {
-        setGourmetRestaurants([])
-        setError(null)
-      } else {
-        const errorMessage = err.response?.data?.message || 'Failed to load Gourmet restaurants'
-        setErrorSafely(errorMessage)
-      }
-    } finally {
-      setGourmetLoading(false)
-    }
-  }
-
-  const handleAddGourmetRestaurant = async () => {
-    if (!selectedRestaurantGourmet) {
-      setError('Please select a restaurant')
-      return
-    }
-
-    try {
-      setError(null)
-      setSuccess(null)
-      const response = await api.post('/food/hero-banners/gourmet', {
-        restaurantId: selectedRestaurantGourmet
-      }, getAuthConfig())
-      if (response.data.success) {
-        setSuccess('Restaurant added to Gourmet successfully!')
-        setSelectedRestaurantGourmet("")
-        await fetchGourmetRestaurants()
-        setTimeout(() => setSuccess(null), 3000)
-      }
-    } catch (err) {
-      setErrorSafely(err.response?.data?.message || 'Failed to add restaurant to Gourmet.')
-    }
-  }
-  const handleDeleteGourmetRestaurant = async (id) => {
-    if (!window.confirm('Are you sure you want to remove this restaurant from Gourmet?')) return
-    try {
-      setGourmetDeleting(id)
-      setError(null)
-      setSuccess(null)
-      const response = await api.delete(`/food/hero-banners/gourmet/${id}`, getAuthConfig())
-      if (response.data.success) {
-        setSuccess('Restaurant removed from Gourmet successfully!')
-        await fetchGourmetRestaurants()
-        setTimeout(() => setSuccess(null), 3000)
-      }
-    } catch (err) {
-      setErrorSafely(err.response?.data?.message || 'Failed to remove restaurant.')
-    } finally {
-      setGourmetDeleting(null)
-    }
-  }
-
-  const handleGourmetOrderChange = async (id, direction) => {
-    const restaurant = gourmetRestaurants.find(r => r._id === id)
-    if (!restaurant) return
-    const newOrder = direction === 'up' ? restaurant.order - 1 : restaurant.order + 1
-    const otherRestaurant = gourmetRestaurants.find(r => r.order === newOrder && r._id !== id)
-    if (!otherRestaurant && newOrder < 0) return
-    try {
-      setError(null)
-      await api.patch(`/food/hero-banners/gourmet/${id}/order`, { order: newOrder }, getAuthConfig())
-      if (otherRestaurant) {
-        await api.patch(`/food/hero-banners/gourmet/${otherRestaurant._id}/order`, { order: restaurant.order }, getAuthConfig())
-      }
-      await fetchGourmetRestaurants()
-    } catch (err) {
-      setErrorSafely('Failed to update Gourmet restaurant order.')
-    }
-  }
-
-  const handleToggleGourmetStatus = async (id, currentStatus) => {
-    try {
-      setError(null)
-      setSuccess(null)
-      const response = await api.patch(`/food/hero-banners/gourmet/${id}/status`, {}, getAuthConfig())
-      if (response.data.success) {
-        setSuccess(`Restaurant ${currentStatus ? 'deactivated' : 'activated'} successfully!`)
-        await fetchGourmetRestaurants()
-        setTimeout(() => setSuccess(null), 3000)
-      }
-    } catch (err) {
-      setErrorSafely(err.response?.data?.message || 'Failed to update restaurant status.')
-    }
-  }
-
   // ==================== RENDER ====================
 
   const tabs = [
@@ -1120,7 +1018,6 @@ export default function LandingPageManagement() {
 
   const exploreMoreTabs = [
     { id: 'icons', label: 'Icons', icon: ImageIcon },
-    { id: 'gourmet', label: 'Gourmet', icon: ChefHat },
   ]
 
   return (
@@ -1569,7 +1466,7 @@ export default function LandingPageManagement() {
               <div className="flex gap-2 overflow-x-auto">
                 {exploreMoreTabs.map((tab) => {
                   const Icon = tab.icon
-                  const isActive = activeTab === 'explore-more' && (tab.id === 'gourmet' ? gourmetRestaurants.length > 0 : false)
+                  const isActive = false
                   return (
                     <button
                       key={tab.id}
@@ -1597,7 +1494,6 @@ export default function LandingPageManagement() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                   {[
                     { id: 'offers', label: 'Offers', link: '/user/offers' },
-                    { id: 'gourmet', label: 'Gourmet', link: '/user/gourmet' },
                     { id: 'collection', label: 'Collections', link: '/user/profile/favorites' }
                   ].map((item) => {
                     // Find matching item from DB
@@ -1653,110 +1549,6 @@ export default function LandingPageManagement() {
               </div>
             )}
 
-            {/* Gourmet Tab Content */}
-            {exploreMoreSubTab === 'gourmet' && (
-              <>
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
-                  <h2 className="text-lg font-bold text-slate-900 mb-4">Add Seller to Gourmet</h2>
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="restaurant-gourmet">Select Seller</Label>
-                      <select
-                        id="restaurant-gourmet"
-                        value={selectedRestaurantGourmet}
-                        onChange={(e) => setSelectedRestaurantGourmet(e.target.value)}
-                        className="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        disabled={restaurantsLoading}
-                      >
-                        <option value="">Select a seller...</option>
-                        {allRestaurants
-                          .filter(r => !gourmetRestaurants.some(gr => gr.restaurant?._id === r._id))
-                          .map((restaurant) => (
-                            <option key={restaurant._id} value={restaurant._id}>
-                              {restaurant.name}
-                            </option>
-                          ))}
-                      </select>
-                    </div>
-                    <Button
-                      onClick={handleAddGourmetRestaurant}
-                      disabled={!selectedRestaurantGourmet}
-                      className="bg-blue-500 hover:bg-blue-600 text-white"
-                    >
-                      Add to Gourmet
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-                  <h2 className="text-lg font-bold text-slate-900 mb-4">Gourmet Restaurants ({gourmetRestaurants.length})</h2>
-                  {gourmetLoading ? (
-                    <div className="flex items-center justify-center py-12">
-                      <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
-                    </div>
-                  ) : gourmetRestaurants.length === 0 ? (
-                    <div className="text-center py-12 text-slate-500">
-                      <ChefHat className="w-12 h-12 mx-auto mb-3 text-slate-400" />
-                      <p>No sellers added to Gourmet yet.</p>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                      {gourmetRestaurants
-                        .sort((a, b) => a.order - b.order)
-                        .map((item, index) => {
-                          // Get restaurant cover image with priority: coverImages > menuImages > profileImage
-                          const coverImages = item.restaurant?.coverImages && item.restaurant.coverImages.length > 0
-                            ? item.restaurant.coverImages.map(img => img.url || img).filter(Boolean)
-                            : []
-
-                          const menuImages = item.restaurant?.menuImages && item.restaurant.menuImages.length > 0
-                            ? item.restaurant.menuImages.map(img => img.url || img).filter(Boolean)
-                            : []
-
-                          const restaurantImage = coverImages.length > 0
-                            ? coverImages[0]
-                            : (menuImages.length > 0
-                              ? menuImages[0]
-                              : (item.restaurant?.profileImage?.url || "https://via.placeholder.com/400"))
-
-                          return (
-                            <div key={item._id} className="border border-slate-200 rounded-lg overflow-hidden">
-                              <div className="relative h-32 bg-slate-100">
-                                <img src={restaurantImage} alt={item.restaurant?.name} className="w-full h-full object-cover" />
-                                <div className="absolute top-1 right-1">
-                                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${item.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-                                    {item.isActive ? 'Active' : 'Inactive'}
-                                  </span>
-                                </div>
-                              </div>
-                              <div className="p-2">
-                                <h3 className="font-semibold text-slate-900 mb-0.5 text-sm line-clamp-1">{item.restaurant?.name || 'N/A'}</h3>
-                                <p className="text-[10px] text-slate-500 mb-2">Rating: {item.restaurant?.rating || 0}?</p>
-                                <div className="flex items-center justify-between gap-1">
-                                  <div className="flex items-center gap-0.5">
-                                    <button onClick={() => handleGourmetOrderChange(item._id, 'up')} disabled={index === 0} className="p-1 rounded hover:bg-slate-100 disabled:opacity-50">
-                                      <ArrowUp className="w-3 h-3 text-slate-600" />
-                                    </button>
-                                    <button onClick={() => handleGourmetOrderChange(item._id, 'down')} disabled={index === gourmetRestaurants.length - 1} className="p-1 rounded hover:bg-slate-100 disabled:opacity-50">
-                                      <ArrowDown className="w-3 h-3 text-slate-600" />
-                                    </button>
-                                  </div>
-                                  <button onClick={() => handleToggleGourmetStatus(item._id, item.isActive)} className={`px-2 py-1 rounded text-[10px] font-medium ${item.isActive ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}`}>
-                                    {item.isActive ? 'Deactivate' : 'Activate'}
-                                  </button>
-                                  <button onClick={() => handleDeleteGourmetRestaurant(item._id)} disabled={gourmetDeleting === item._id} className="p-1 rounded hover:bg-red-100 text-red-600 disabled:opacity-50">
-                                    {gourmetDeleting === item._id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          )
-                        })}
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
           </>
         )}
 

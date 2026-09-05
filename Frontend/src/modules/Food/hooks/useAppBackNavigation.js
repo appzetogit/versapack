@@ -73,10 +73,6 @@ const resolveBackPath = ({ pathname, search, state }) => {
     return "/food/user/cart"
   }
 
-  if (/^\/user\/collections\/[^/]+$/.test(normalizedPath)) {
-    return "/food/user/collections"
-  }
-
   if (normalizedPath === "/user/categories") {
     return "/food/user"
   }
@@ -85,11 +81,7 @@ const resolveBackPath = ({ pathname, search, state }) => {
     return "/food/user/categories"
   }
 
-  if (
-    normalizedPath === "/user/offers" ||
-    normalizedPath === "/user/gourmet" ||
-    normalizedPath === "/user/coffee"
-  ) {
+  if (normalizedPath === "/user/offers") {
     return "/food/user"
   }
 

@@ -119,7 +119,6 @@ import OutOfZoneScreen from "@food/components/user/OutOfZoneScreen";
 
 // Explore More Icons
 import exploreOffers from "@food/assets/explore more icons/offers.png";
-import exploreGourmet from "@food/assets/explore more icons/gourmet.png";
 import exploreTop10 from "@food/assets/explore more icons/top 10.png";
 import exploreCollection from "@food/assets/explore more icons/collection.png";
 import { isVideoUrl } from "@food/utils/mediaType";
@@ -1229,12 +1228,6 @@ export default function Home() {
         label: "Offers",
         image: exploreOffers,
         href: "/food/user/offers",
-      },
-      {
-        id: "gourmet",
-        label: "Gourmet",
-        image: exploreGourmet,
-        href: "/food/user/gourmet",
       },
       {
         id: "collection",
