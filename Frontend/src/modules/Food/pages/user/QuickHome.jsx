@@ -123,6 +123,9 @@ export default function QuickHome() {
       try {
         const response = await searchAPI.searchProducts({
           ...(zoneId ? { zoneId } : {}),
+          // The shelf the customer is actually assigned to, not every store in the
+          // zone -- a product another store carries is one they cannot buy.
+          ...(servingStore?._id ? { storeId: servingStore._id } : {}),
           inStockOnly: true,
           limit: RAIL_LIMIT,
         })
@@ -143,7 +146,7 @@ export default function QuickHome() {
     return () => {
       cancelled = true
     }
-  }, [zoneId, resolveImage])
+  }, [zoneId, servingStore?._id, resolveImage])
 
   /**
    * Shapes a rail product into what the cart context expects.

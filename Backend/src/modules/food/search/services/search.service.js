@@ -251,10 +251,9 @@ const PRODUCT_SEARCH_PROJECTION = {
     ...Object.fromEntries(
         PRODUCT_SEARCH_SELECT.split(' ').filter(Boolean).map((field) => [field, 1]),
     ),
-    // Computed by the $group stage rather than read off the document, so they have to
-    // be named here or the projection derived from the field list above drops them.
-    sellerCount: 1,
-    lowestPrice: 1,
+    // Computed by the $group stage rather than read off the document, so it has to
+    // be named here or the projection derived from the field list above drops it.
+    inStockNearby: 1,
 };
 
 /**
@@ -272,7 +271,7 @@ const PRODUCT_SEARCH_PROJECTION = {
  * past the point where that scan is cheap.
  */
 export const searchProducts = async (query = {}) => {
-    const { q, categoryId, zoneId, isVeg, inStockOnly, page = 1, limit = 20 } = query;
+    const { q, categoryId, zoneId, storeId, isVeg, inStockOnly, page = 1, limit = 20 } = query;
 
     const pageNumber = Math.max(parseInt(page, 10) || 1, 1);
     const limitNumber = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 50);
@@ -300,8 +299,27 @@ export const searchProducts = async (query = {}) => {
 
     const sellerById = new Map(sellers.map((seller) => [String(seller._id), seller]));
 
+    // Scoped to one store when the caller names it, which is the quick-commerce path:
+    // the customer is assigned a dark store by distance and shops that shelf, so
+    // showing them a product another store carries is showing them something they
+    // cannot buy. Without storeId this falls back to every store serving the zone,
+    // which is what a marketplace seller's catalogue still needs.
+    //
+    // Honoured only when that store is among the ones already resolved for this zone.
+    // The id arrives from the client, so taking it at face value would let a caller
+    // read the catalogue of a store that is unapproved or serves somewhere else --
+    // the zone and status filters above would simply be skipped.
+    const requestedStoreId =
+        storeId && mongoose.Types.ObjectId.isValid(String(storeId)) ? String(storeId) : null;
+    const scopedStoreId =
+        requestedStoreId && sellerById.has(requestedStoreId)
+            ? new mongoose.Types.ObjectId(requestedStoreId)
+            : null;
+
     const productFilter = {
-        restaurantId: { $in: sellers.map((seller) => seller._id) },
+        restaurantId: scopedStoreId
+            ? scopedStoreId
+            : { $in: sellers.map((seller) => seller._id) },
         approvalStatus: 'approved'
     };
 
@@ -371,23 +389,49 @@ export const searchProducts = async (query = {}) => {
         { $project: { ...PRODUCT_SEARCH_PROJECTION, _score: 1 } },
         // _id breaks ties so paging cannot repeat or skip a row between requests.
         { $sort: { _score: -1, _id: 1 } },
-        // One row per PRODUCT, not per seller's listing of it.
+        // One row per PRODUCT, not per store's listing of it.
         //
-        // On a marketplace a dozen sellers stock the same tub of butter, and without
-        // this a search for it returned the same thing a dozen times and filled the
-        // first page with one product. Grouping on masterProductId collapses them to
-        // the best-ranked listing plus a count of who else has it and the cheapest
-        // price going, which is the comparison a shopper actually came to make.
+        // The same tub of butter is a separate row in every dark store that carries
+        // it, so without this a search returns it once per store and one product
+        // fills the page. Grouping on masterProductId collapses them to the
+        // best-ranked listing.
+        //
+        // What comes out of the group is deliberately NOT a seller count and a
+        // cheapest price. That pair answers "who sells this and for how much", which
+        // is the question on a marketplace of independent shops. These stores are all
+        // ours and price the same, so the only thing a shopper can actually act on is
+        // whether it is on a shelf that can reach them in ten minutes.
         //
         // Unlinked listings group on their own _id, so anything not yet in the master
-        // catalogue — which is all of it until the backfill runs — stays exactly as it
-        // was. $first is meaningful because the $sort above already ran.
+        // catalogue stays exactly as it was. $first is meaningful because the $sort
+        // above already ran, and that sort scores in-stock listings above out-of-stock
+        // ones -- so where one nearby store has it and another does not, the row that
+        // survives is the one the customer can actually buy.
         {
             $group: {
                 _id: { $ifNull: ['$masterProductId', '$_id'] },
                 doc: { $first: '$$ROOT' },
-                sellerCount: { $sum: 1 },
-                lowestPrice: { $min: '$price' },
+                // True when at least one store in range can sell it right now.
+                // stockQty null means untracked, which is sellable, not empty.
+                inStockNearby: {
+                    $max: {
+                        $cond: [
+                            {
+                                $and: [
+                                    { $ne: ['$isAvailable', false] },
+                                    {
+                                        $or: [
+                                            { $eq: ['$stockQty', null] },
+                                            { $gt: ['$stockQty', 0] },
+                                        ],
+                                    },
+                                ],
+                            },
+                            1,
+                            0,
+                        ],
+                    },
+                },
             },
         },
         {
@@ -395,7 +439,7 @@ export const searchProducts = async (query = {}) => {
                 newRoot: {
                     $mergeObjects: [
                         '$doc',
-                        { sellerCount: '$sellerCount', lowestPrice: '$lowestPrice' },
+                        { inStockNearby: { $eq: ['$inStockNearby', 1] } },
                     ],
                 },
             },
@@ -449,10 +493,10 @@ export const searchProducts = async (query = {}) => {
             // null for anything without a recorded net quantity, which the grid must
             // render as absent rather than as a zero price.
             unitPrice: unitPriceForProduct(product),
-            // How many sellers carry this product, and the best price among them. 1
-            // for a standalone listing, so the grid can simply hide the comparison.
-            sellerCount: Number(row.sellerCount) || 1,
-            lowestPrice: Number.isFinite(Number(row.lowestPrice)) ? Number(row.lowestPrice) : null,
+            // Whether a store that can reach this customer has it on the shelf now.
+            // The row itself may still be the out-of-stock one if nothing nearby has
+            // it, which is why this is separate from `inStock` above.
+            inStockNearby: row.inStockNearby === true,
             seller: seller
                 ? {
                     _id: seller._id,
