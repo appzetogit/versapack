@@ -1,0 +1,238 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import mongoose from 'mongoose';
+
+import { FoodItem } from '../src/modules/food/admin/models/food.model.js';
+import { FoodOrder } from '../src/modules/food/orders/models/order.model.js';
+import {
+    totalQuantityByItem,
+    reserveStockForItems,
+    restoreOrderStock
+} from '../src/modules/food/orders/services/inventory.service.js';
+
+/**
+ * Stock reservation without a database.
+ *
+ * ESM gives every importer the same model object, so replacing a method here is
+ * seen by inventory.service.js. That buys coverage of the branch that actually
+ * matters — what happens to units already claimed when a later line comes up
+ * short — which is where a bug silently invents or destroys inventory. It does
+ * NOT cover the atomicity of the conditional update itself; that is Mongo's
+ * guarantee and needs a real server to test.
+ */
+
+const oid = () => new mongoose.Types.ObjectId().toString();
+
+/** Minimal stand-in for `findById(id).select(...).lean()`. */
+const thenable = (value) => ({
+    select() { return this; },
+    lean: async () => value
+});
+
+function withStubbedItem({ stock }, run) {
+    const realUpdateOne = FoodItem.updateOne;
+    const realFindById = FoodItem.findById;
+
+    // Every $inc the service issues is applied to this map, so assertions can read
+    // the net effect rather than replaying a call log.
+    const calls = [];
+
+    FoodItem.updateOne = async (filter, update) => {
+        const id = String(filter._id);
+        calls.push({ filter, update });
+
+        if (update?.$inc?.stockQty !== undefined) {
+            const delta = update.$inc.stockQty;
+            const current = stock[id];
+
+            if (filter.stockQty?.$gte !== undefined) {
+                // The reserve path: only matches when there is enough on hand, and
+                // never matches null, exactly as `$gte` behaves in Mongo.
+                if (current === null || current === undefined || current < filter.stockQty.$gte) {
+                    return { modifiedCount: 0, matchedCount: 0 };
+                }
+            }
+            if (filter.stockQty?.$ne === null) {
+                // The restock path: untracked items are skipped.
+                if (current === null || current === undefined) {
+                    return { modifiedCount: 0, matchedCount: 0 };
+                }
+            }
+            stock[id] = current + delta;
+            return { modifiedCount: 1, matchedCount: 1 };
+        }
+        return { modifiedCount: 0, matchedCount: 0 };
+    };
+
+    FoodItem.findById = (id) => {
+        const key = String(id);
+        if (!(key in stock)) return thenable(null);
+        return thenable({ _id: key, name: `item-${key.slice(-4)}`, stockQty: stock[key] });
+    };
+
+    return Promise.resolve(run({ calls }))
+        .finally(() => {
+            FoodItem.updateOne = realUpdateOne;
+            FoodItem.findById = realFindById;
+        });
+}
+
+test('totalQuantityByItem', async (t) => {
+    await t.test('sums the same product across separate lines', () => {
+        const a = oid();
+        const totals = totalQuantityByItem([
+            { itemId: a, quantity: 2 },
+            { itemId: a, quantity: 3 }
+        ]);
+        // Two variants of one product draw down one shelf.
+        assert.equal(totals.get(a), 5);
+    });
+
+    await t.test('ignores lines with no usable id', () => {
+        const totals = totalQuantityByItem([
+            { itemId: '', quantity: 2 },
+            { itemId: 'not-an-objectid', quantity: 2 },
+            { quantity: 2 }
+        ]);
+        assert.equal(totals.size, 0);
+    });
+
+    await t.test('treats a missing or bad quantity as one unit, never zero', () => {
+        const a = oid();
+        assert.equal(totalQuantityByItem([{ itemId: a }]).get(a), 1);
+        assert.equal(totalQuantityByItem([{ itemId: a, quantity: 0 }]).get(a), 1);
+        assert.equal(totalQuantityByItem([{ itemId: a, quantity: -5 }]).get(a), 1);
+    });
+});
+
+test('reserveStockForItems', async (t) => {
+    await t.test('claims units for a tracked product', async () => {
+        const a = oid();
+        const stock = { [a]: 10 };
+        await withStubbedItem({ stock }, async () => {
+            const taken = await reserveStockForItems([{ itemId: a, quantity: 3 }]);
+            assert.deepEqual(taken, [{ itemId: a, qty: 3 }]);
+            assert.equal(stock[a], 7);
+        });
+    });
+
+    await t.test('lets an untracked product through without decrementing', async () => {
+        const a = oid();
+        const stock = { [a]: null };
+        await withStubbedItem({ stock }, async () => {
+            const taken = await reserveStockForItems([{ itemId: a, quantity: 3 }]);
+            assert.deepEqual(taken, [], 'nothing was claimed');
+            assert.equal(stock[a], null, 'null must never be decremented into a number');
+        });
+    });
+
+    await t.test('puts back everything already claimed when a later line is short', async () => {
+        // The whole point of the rollback: a rejected order must leave the shelf
+        // exactly as it found it, not half-consumed by the lines that succeeded.
+        const a = oid();
+        const b = oid();
+        const stock = { [a]: 10, [b]: 1 };
+
+        await withStubbedItem({ stock }, async () => {
+            await assert.rejects(
+                () => reserveStockForItems([
+                    { itemId: a, quantity: 4 },
+                    { itemId: b, quantity: 5 }
+                ]),
+                /Only 1 left of/
+            );
+            assert.equal(stock[a], 10, 'the first line was restored');
+            assert.equal(stock[b], 1, 'the short line was never touched');
+        });
+    });
+
+    await t.test('names the product that ran out, so the cart can highlight it', async () => {
+        const a = oid();
+        const stock = { [a]: 0 };
+        await withStubbedItem({ stock }, async () => {
+            await assert.rejects(
+                () => reserveStockForItems([{ itemId: a, quantity: 1 }]),
+                /just went out of stock/
+            );
+        });
+    });
+
+    await t.test('rejects a product that no longer exists', async () => {
+        const a = oid();
+        await withStubbedItem({ stock: {} }, async () => {
+            await assert.rejects(
+                () => reserveStockForItems([{ itemId: a, quantity: 1 }]),
+                /no longer available/
+            );
+        });
+    });
+
+    await t.test('claims the summed quantity when one product spans two lines', async () => {
+        const a = oid();
+        const stock = { [a]: 4 };
+        await withStubbedItem({ stock }, async () => {
+            // 3 + 2 = 5 against 4 on hand must fail as one claim, not succeed twice.
+            await assert.rejects(
+                () => reserveStockForItems([
+                    { itemId: a, quantity: 3 },
+                    { itemId: a, quantity: 2 }
+                ]),
+                /Only 4 left of/
+            );
+            assert.equal(stock[a], 4);
+        });
+    });
+
+    await t.test('an empty basket claims nothing', async () => {
+        await withStubbedItem({ stock: {} }, async () => {
+            assert.deepEqual(await reserveStockForItems([]), []);
+        });
+    });
+});
+
+test('restoreOrderStock', async (t) => {
+    const withStubbedOrder = (claimResult, run) => {
+        const real = FoodOrder.findOneAndUpdate;
+        let filterSeen = null;
+        FoodOrder.findOneAndUpdate = (filter) => {
+            filterSeen = filter;
+            return thenable(claimResult);
+        };
+        return Promise.resolve(run(() => filterSeen)).finally(() => {
+            FoodOrder.findOneAndUpdate = real;
+        });
+    };
+
+    await t.test('does nothing for an order that never reserved', async () => {
+        assert.equal(await restoreOrderStock({ _id: oid() }), false);
+        assert.equal(await restoreOrderStock(null), false);
+    });
+
+    await t.test('returns units to the shelf exactly once', async () => {
+        const a = oid();
+        const orderId = oid();
+        const stock = { [a]: 2 };
+
+        await withStubbedItem({ stock }, async () => {
+            // First call wins the claim on stockRestoredAt.
+            await withStubbedOrder({ items: [{ itemId: a, quantity: 3 }] }, async (getFilter) => {
+                assert.equal(
+                    await restoreOrderStock({ _id: orderId, stockReservedAt: new Date() }),
+                    true
+                );
+                assert.equal(stock[a], 5);
+                // The guard that makes a double restock impossible.
+                assert.equal(getFilter().stockRestoredAt, null);
+            });
+
+            // Second call loses the claim and must not restock again.
+            await withStubbedOrder(null, async () => {
+                assert.equal(
+                    await restoreOrderStock({ _id: orderId, stockReservedAt: new Date() }),
+                    false
+                );
+                assert.equal(stock[a], 5, 'a second restore must not invent inventory');
+            });
+        });
+    });
+});

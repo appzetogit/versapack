@@ -17,7 +17,8 @@
     "migrate:order-payments": "node scripts/migrate-orders-to-transactions.js",
     "migrate:outlet-timings-from-opening-closing": "node scripts/sync-outlet-timings-from-opening-closing.js",
     "cleanup:legacy-collections": "node scripts/cleanup-legacy-collections.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node --test \"tests/**/*.test.js\"",
+    "test:watch": "node --test --watch \"tests/**/*.test.js\"",
     "start:scheduler": "node scripts/run-scheduled-jobs.js",
     "start:socket": "node socket-server.js"
   },
