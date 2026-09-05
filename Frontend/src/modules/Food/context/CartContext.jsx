@@ -690,7 +690,10 @@ export function useCart() {
   // Check if context is from the actual provider by checking the _isProvider flag
   if (!context || context._isProvider !== true) {
     // In development, log a warning but don't throw to prevent crashes
-    if (process.env.NODE_ENV === 'development') {
+    // `process` does not exist in the browser and Vite defines no shim for it, so
+    // this threw a ReferenceError instead of logging. import.meta.env is the Vite
+    // idiom and is replaced at build time.
+    if (import.meta.env.DEV) {
       debugWarn('⚠️ useCart called outside CartProvider. Using default values.');
       debugWarn('💡 Make sure the component is rendered inside UserLayout which provides CartProvider.');
     }
