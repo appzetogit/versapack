@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { Worker, Queue } from 'bullmq';
 import { config } from '../../config/env.js';
 import { logger } from '../../utils/logger.js';
+import { connectDB, disconnectDB } from '../../config/db.js';
 import { getBullMQConnection } from '../connection.js';
 import { MAINTENANCE_QUEUE } from '../queue.constants.js';
 import { processMaintenanceJob } from '../processors/maintenance.processor.js';
@@ -11,6 +12,16 @@ const startMaintenanceWorker = async () => {
         logger.info('BullMQ is disabled. Maintenance worker not started.');
         return null;
     }
+
+    /**
+     * A worker is its own process, so it has to open its own database connection --
+     * nothing else in it does. Without this every job that reads or writes fails
+     * with "Operation `<collection>` buffering timed out after 10000ms", and the
+     * processors catch that and report the job completed, so the queue drains
+     * cleanly while doing nothing at all. It stayed invisible for as long as
+     * BULLMQ_ENABLED was false and no job ever ran.
+     */
+    await connectDB();
 
     const connection = getBullMQConnection();
     if (!connection) {
@@ -76,6 +87,7 @@ const worker = await startMaintenanceWorker();
 if (worker) {
     const shutdown = async () => {
         await worker.close();
+        await disconnectDB().catch(() => {});
         process.exit(0);
     };
     process.on('SIGTERM', shutdown);
