@@ -26,6 +26,10 @@ export const adminSidebarMenu = [
         label: "Products",
         icon: "Utensils",
         subItems: [
+          // The shared catalogue sits above the per-seller lists on purpose: it is
+          // what those listings should be pointing at, so it is the thing to look at
+          // first when the same product appears under three different names.
+          { label: "Master Catalogue", path: "/admin/store/master-products" },
           { label: "Seller Products List", path: "/admin/store/products" },
           { label: "Seller Add-ons List", path: "/admin/store/addons" },
         ],

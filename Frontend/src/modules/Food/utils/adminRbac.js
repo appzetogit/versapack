@@ -30,6 +30,11 @@ const PATH_PREFIX_TO_SECTION = [
   { prefix: "/admin/store/delivery-support-tickets", section: "delivery_management" },
   { prefix: "/admin/store/delivery-order-reassignment-requests", section: "delivery_management" },
   { prefix: "/admin/store/food-approval", section: "food_management" },
+  // Listed before /admin/store/products so the longer path is matched first; a
+  // prefix scan would otherwise never reach it if the shorter one ever became a
+  // prefix of it. The master catalogue is catalogue work, so it shares the
+  // food_management section rather than inventing one nobody has been granted.
+  { prefix: "/admin/store/master-products", section: "food_management" },
   { prefix: "/admin/store/products", section: "food_management" },
   // Legacy twins of the routes above. The router still serves them so old
   // bookmarks resolve, and without a prefix here those visits would match no

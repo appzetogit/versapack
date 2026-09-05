@@ -675,6 +675,42 @@ export const adminAPI = {
     }),
   deleteFood: (id) =>
     apiClient.delete(`/food/admin/foods/${id}`, { contextModule: "admin" }),
+
+  /**
+   * Master products — the shared catalogue every seller listing points at.
+   *
+   * A master holds what the product IS (name, brand, pack, barcode, tax class);
+   * the seller's listing keeps price, MRP and stock. Linking is admin-only,
+   * because it rewrites which product a seller is selling under.
+   */
+  getMasterProducts: (params = {}) =>
+    apiClient.get("/food/admin/master-products", { params, contextModule: "admin" }),
+  getMasterProduct: (id) =>
+    apiClient.get(`/food/admin/master-products/${String(id)}`, {
+      contextModule: "admin",
+    }),
+  createMasterProduct: (body) =>
+    apiClient.post("/food/admin/master-products", body ?? {}, {
+      contextModule: "admin",
+    }),
+  updateMasterProduct: (id, body) =>
+    apiClient.patch(`/food/admin/master-products/${String(id)}`, body ?? {}, {
+      contextModule: "admin",
+    }),
+  /** Seller listings attached to one master — what a merge is checked against. */
+  getMasterProductListings: (id, params = {}) =>
+    apiClient.get(`/food/admin/master-products/${String(id)}/listings`, {
+      params,
+      contextModule: "admin",
+    }),
+  /** Pass masterProductId: null to detach a listing. */
+  linkListingToMaster: (listingId, masterProductId) =>
+    apiClient.patch(
+      `/food/admin/foods/${String(listingId)}/master-product`,
+      { masterProductId: masterProductId ?? null },
+      { contextModule: "admin" },
+    ),
+
   /** Food approvals (admin) - pending items created by restaurants */
   getPendingFoodApprovals: (params = {}) =>
     apiClient.get("/food/admin/foods/pending-approvals", {
