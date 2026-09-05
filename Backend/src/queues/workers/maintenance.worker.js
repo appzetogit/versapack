@@ -3,6 +3,7 @@ import { Worker, Queue } from 'bullmq';
 import { config } from '../../config/env.js';
 import { logger } from '../../utils/logger.js';
 import { connectDB, disconnectDB } from '../../config/db.js';
+import { initSocketEmitter } from '../../config/socket.js';
 import { getBullMQConnection } from '../connection.js';
 import { MAINTENANCE_QUEUE } from '../queue.constants.js';
 import { processMaintenanceJob } from '../processors/maintenance.processor.js';
@@ -22,6 +23,8 @@ const startMaintenanceWorker = async () => {
      * BULLMQ_ENABLED was false and no job ever ran.
      */
     await connectDB();
+    // Jobs emit to riders and customers; without this those emits vanish.
+    await initSocketEmitter();
 
     const connection = getBullMQConnection();
     if (!connection) {
