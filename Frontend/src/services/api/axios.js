@@ -179,9 +179,12 @@ function isModuleAgnosticEndpoint(url = "") {
 function getModuleFromAppLocation() {
   if (typeof window === "undefined") return null;
   const path = String(window.location?.pathname || "").toLowerCase();
+  // Both the bare and the /food-prefixed forms: the routers canonicalise
+  // /delivery/* to /food/delivery/* and /food/restaurant/* to /seller/*, so a
+  // panel can be sitting on either while a request goes out.
   if (path.startsWith("/admin")) return "admin";
   if (path.startsWith("/seller") || path.startsWith("/food/restaurant")) return "restaurant";
-  if (path.startsWith("/delivery")) return "delivery";
+  if (path.startsWith("/delivery") || path.startsWith("/food/delivery")) return "delivery";
   return null;
 }
 
