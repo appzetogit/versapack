@@ -106,6 +106,23 @@ const pricingSchema = new mongoose.Schema(
     {
         subtotal: { type: Number, required: true, min: 0 },
         tax: { type: Number, default: 0, min: 0 },
+        /**
+         * The same tax, split the way an invoice for goods has to show it.
+         *
+         * A single figure charges the right amount and cannot be printed on a lawful
+         * invoice: GST is CGST plus SGST within a state and IGST across one, and the
+         * document must say which. The customer pays the same either way, so this is
+         * a record of what was charged rather than a change to it. Snapshotted for
+         * the same reason gstRate and hsnCode are -- a store re-registered in another
+         * state must not retroactively alter an invoice already issued.
+         */
+        taxBreakdown: {
+            cgst: { type: Number, default: 0, min: 0 },
+            sgst: { type: Number, default: 0, min: 0 },
+            igst: { type: Number, default: 0, min: 0 },
+            placeOfSupply: { type: String, trim: true, default: '' },
+            isIntraState: { type: Boolean, default: true },
+        },
         packagingFee: { type: Number, default: 0, min: 0 },
         deliveryFee: { type: Number, default: 0, min: 0 },
         deliveryFeeGst: { type: Number, default: 0, min: 0 },

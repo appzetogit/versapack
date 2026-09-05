@@ -48,6 +48,7 @@ import {
   assertRestaurantOpenForOrdering,
 } from './order-pricing.service.js';
 import { calculateDistanceKm, normalizeDeliveryAddress } from '../../shared/geo.utils.js';
+import { buildTaxBreakdown } from './gstSplit.util.js';
 import * as dispatchService from './order-dispatch.service.js';
 import * as deliveryService from './order-delivery.service.js';
 import * as paymentService from './order-payment.service.js';
@@ -747,6 +748,17 @@ export async function createOrder(userId, dto) {
     }
 
     normalizedPricing.restaurantCommission = restaurantCommission;
+
+    // The invoice components for the tax already computed above. Charges nothing
+    // extra -- the customer pays the same figure either way -- but a tax invoice for
+    // goods has to state whether it was CGST+SGST or IGST, and a single `tax` number
+    // cannot. Place of supply for delivered goods is the delivery address, so it is
+    // the store's state that is compared against, not the platform's.
+    normalizedPricing.taxBreakdown = buildTaxBreakdown(
+      normalizedPricing.tax,
+      restaurant,
+      deliveryAddress,
+    );
 
     // Provisional value; synced to the transaction's platformNetProfit (which also
     // accounts for the admin discount share) once the initial transaction is created.

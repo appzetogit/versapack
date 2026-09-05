@@ -173,6 +173,7 @@ export async function loadActiveFeeSettings() {
       deliveryFee: 0,
       deliveryFeeRanges: [],
       platformFee: 0,
+      packagingFee: 0,
       gstRate: 0,
     }
   );
@@ -476,7 +477,11 @@ export async function calculateOrderPricing(userId, dto, options = {}) {
 
   const feeSettings = await loadActiveFeeSettings();
 
-  const packagingFee = 0;
+  // Was hardcoded to 0. A restaurant packs a bag it already owns; a grocery order
+  // needs crates, liners and ice packs for anything frozen, and the platform was
+  // absorbing all of it. Unset in fee settings still means 0, so nothing moves until
+  // an admin actually configures a figure.
+  const packagingFee = Number(feeSettings.packagingFee) || 0;
   const platformFee = Number(feeSettings.platformFee || 0);
 
   let distanceKm = await getDeliveryDistanceKm(restaurant, deliveryAddress);
