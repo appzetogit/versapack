@@ -295,6 +295,14 @@ router.delete('/foods/:id', invalidatePublicMenus, adminController.deleteFood);
 // Placed after the /foods routes but sharing invalidatePublicMenus: editing a master
 // changes the name, images and tax class every linked listing is sold under, so the
 // cached customer menus are just as stale as they are after editing a listing.
+// ----- Returns -----
+// Approving a return moves money out, so it is admin-only and each decision is
+// claimed conditionally in the service -- two admins clicking at once must not be
+// able to refund the same request twice.
+router.get('/returns', orderController.listReturnsAdminController);
+router.patch('/returns/:returnId/decision', orderController.decideReturnAdminController);
+router.patch('/returns/:returnId/collected', orderController.collectReturnAdminController);
+
 router.get('/master-products', masterProductController.listMasterProductsController);
 router.post('/master-products', invalidatePublicMenus, masterProductController.createMasterProductController);
 router.get('/master-products/:id', masterProductController.getMasterProductController);

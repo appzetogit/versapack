@@ -387,6 +387,44 @@ async function applyPartialRefund(order, { amount, description, cancelledBy = 'r
 
 const round2Money = (value) => Math.round((Number(value) || 0) * 100) / 100;
 
+/**
+ * Pays a customer back for goods returned after delivery.
+ *
+ * Reuses applyPartialRefund rather than applyCancellationRefund for the same reason
+ * short-picking does: the order was delivered and is not being undone, so its payment
+ * must not be flipped to 'refunded'. A delivered order marked fully refunded drops out
+ * of the paid reporting it belongs in, and would let a later refund path decide it had
+ * already been made whole.
+ */
+export async function applyReturnRefund(order, amount, returnId) {
+  if (!order) throw new ValidationError('Order not found for refund');
+
+  const result = await applyPartialRefund(order, {
+    amount,
+    description: `Refund for returned items on order #${order.order_id || order._id}`,
+    cancelledBy: 'admin',
+  });
+  await order.save();
+
+  if (!result.processed) {
+    // Cash orders reach here: the money was collected at the door and there is no
+    // instrument to send it back through, so it becomes a wallet credit instead of
+    // silently succeeding.
+    if (result.reason === 'cash_payment') {
+      await userWalletService.refundWalletBalance(
+        order.userId,
+        amount,
+        `Refund for returned items on order #${order.order_id || order._id}`,
+        { orderId: order._id, returnId: String(returnId), source: 'return' },
+      );
+      return { processed: true, method: 'wallet_credit' };
+    }
+    throw new Error(result.reason || 'refund_failed');
+  }
+
+  return result;
+}
+
 async function applyCancellationRefund(order, { cancelledBy = 'system', refundAmount } = {}) {
   if (!order?.payment) {
     return { attempted: false, processed: false, reason: 'missing_payment' };

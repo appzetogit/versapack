@@ -528,3 +528,66 @@ export async function getOrderRouteUserController(req, res, next) {
         next(err);
     }
 }
+
+// ── Returns ──────────────────────────────────────────────────────────────────
+
+export async function requestReturnController(req, res, next) {
+    try {
+        const { requestReturn } = await import('../services/returns.service.js');
+        const result = await requestReturn(
+            req.user?.userId,
+            req.params.orderId,
+            req.body?.lines,
+            req.body?.images,
+        );
+        return sendResponse(res, 201, 'Return requested', { return: result });
+    } catch (err) {
+        next(err);
+    }
+}
+
+export async function listMyReturnsController(req, res, next) {
+    try {
+        const { listReturnsForUser } = await import('../services/returns.service.js');
+        const data = await listReturnsForUser(req.user?.userId, req.query || {});
+        return sendResponse(res, 200, 'Returns fetched', data);
+    } catch (err) {
+        next(err);
+    }
+}
+
+export async function listReturnsAdminController(req, res, next) {
+    try {
+        const { listReturnsForAdmin } = await import('../services/returns.service.js');
+        const data = await listReturnsForAdmin(req.query || {});
+        return sendResponse(res, 200, 'Returns fetched', data);
+    } catch (err) {
+        next(err);
+    }
+}
+
+export async function decideReturnAdminController(req, res, next) {
+    try {
+        const { decideReturn } = await import('../services/returns.service.js');
+        const approve = req.body?.approve === true;
+        const result = await decideReturn(req.params.returnId, req.user?.userId, {
+            approve,
+            rejectionReason: req.body?.rejectionReason,
+        });
+        return sendResponse(res, 200, approve ? 'Return approved' : 'Return rejected', {
+            return: result,
+        });
+    } catch (err) {
+        next(err);
+    }
+}
+
+export async function collectReturnAdminController(req, res, next) {
+    try {
+        const { markReturnCollected } = await import('../services/returns.service.js');
+        const result = await markReturnCollected(req.params.returnId);
+        return sendResponse(res, 200, 'Return collected and refunded', { return: result });
+    } catch (err) {
+        next(err);
+    }
+}

@@ -11,7 +11,9 @@ import {
     submitOrderRatingsController,
     getOrderDropOtpUserController,
     updateOrderInstructionsController,
-    getOrderRouteUserController
+    getOrderRouteUserController,
+    requestReturnController,
+    listMyReturnsController
 } from '../controllers/order.controller.js';
 
 const router = express.Router();
@@ -21,6 +23,10 @@ router.post('/', createOrderController);
 router.post('/verify-payment', verifyPaymentController);
 router.delete('/:orderId/pending-payment', abandonOnlinePaymentController);
 router.get('/', listOrdersUserController);
+// Returns. Registered ahead of the /:orderId patterns so a literal path can never be
+// captured as an order id by a route added later.
+router.get('/returns/mine', listMyReturnsController);
+router.post('/:orderId/returns', requestReturnController);
 router.get('/:orderId/payments', getOrderPaymentsUserController);
 router.get('/:orderId/drop-otp', getOrderDropOtpUserController);
 // Live route from the rider's current position to their next stop, for the tracking map.
