@@ -1644,6 +1644,24 @@ export const restaurantAPI = {
       orderStatus: "ready_for_pickup",
     }),
   /**
+   * Report what the seller could actually pick, line by line.
+   *
+   * The server reprices the order against these quantities, refunds the customer the
+   * difference and returns the unpicked units to stock. Lines are addressed by their
+   * INDEX in order.items — order lines carry no id of their own — so the array passed
+   * in must come from the same order object that was rendered.
+   *
+   * @param {string} orderId
+   * @param {Array<{ index: number, fulfilledQty: number }>} lines
+   * @param {string} note
+   */
+  reportPickedQuantities: (orderId, lines, note = "") =>
+    apiClient.post(
+      `/food/restaurant/orders/${String(orderId)}/picked-quantities`,
+      { lines, note },
+      { contextModule: "restaurant" },
+    ),
+  /**
    * Get a single order by id for restaurant screens.
    * Prefer direct endpoint; fallback to list+filter for backward compatibility.
    */

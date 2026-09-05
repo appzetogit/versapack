@@ -44,6 +44,12 @@ export default function OrderDetailPage({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
+  // Short-pick reporting. `picked` is parallel to order.items, because order lines
+  // carry no id of their own and the server addresses them by index too.
+  const [picking, setPicking] = useState(false)
+  const [picked, setPicked] = useState([])
+  const [submittingPick, setSubmittingPick] = useState(false)
+
   useEffect(() => {
     const fetchOrder = async () => {
       try {
@@ -143,6 +149,76 @@ export default function OrderDetailPage({
 
   const items = order.items || []
   const status = order.orderStatus || order.status || "Created"
+
+  // Mirrors PICKABLE_STATUSES on the server: before acceptance there is nothing to
+  // pick, and once a rider has the bag it is too late to change what is in it.
+  const PICKABLE = ["confirmed", "preparing", "ready_for_pickup"]
+  const alreadyReported = Boolean(order.fulfilment?.reportedAt)
+  const canReportPick = PICKABLE.includes(String(status)) && !alreadyReported
+
+  const pickedFor = (idx) => {
+    const value = picked[idx]
+    return Number.isFinite(value) ? value : toNumber(items[idx]?.quantity)
+  }
+
+  const setPickedFor = (idx, next) => {
+    const ordered = toNumber(items[idx]?.quantity)
+    const clamped = Math.max(0, Math.min(ordered, Math.floor(Number(next) || 0)))
+    setPicked((prev) => {
+      const copy = items.map((it, i) =>
+        Number.isFinite(prev[i]) ? prev[i] : toNumber(it?.quantity),
+      )
+      copy[idx] = clamped
+      return copy
+    })
+  }
+
+  // Exactly the server's `removedValue`: the sum of the line values not being
+  // delivered. Deliberately NOT a full refund preview — tax and the coupon also move,
+  // and duplicating that arithmetic here would only let the two drift apart. The real
+  // figure comes back from the server and is shown once it has been applied.
+  const removedValue = items.reduce(
+    (sum, item, idx) => sum + toNumber(item.price) * (toNumber(item.quantity) - pickedFor(idx)),
+    0,
+  )
+  const shortCount = items.filter((item, idx) => pickedFor(idx) < toNumber(item.quantity)).length
+
+  const submitPickedQuantities = async () => {
+    const lines = items.map((_, idx) => ({ index: idx, fulfilledQty: pickedFor(idx) }))
+
+    if (shortCount === 0) {
+      toast.info("Nothing is short — no need to report.")
+      return
+    }
+    if (lines.every((line) => line.fulfilledQty === 0)) {
+      const ok = window.confirm(
+        "None of the items can be packed. This will cancel the whole order and refund the customer in full. Continue?",
+      )
+      if (!ok) return
+    }
+
+    try {
+      setSubmittingPick(true)
+      const response = await restaurantAPI.reportPickedQuantities(id, lines)
+      const updated =
+        response.data?.data?.order || response.data?.order || response.data?.data
+      if (updated) setOrder(updated)
+      setPicking(false)
+      setPicked([])
+      const refunded = toNumber(updated?.fulfilment?.refundAmount)
+      toast.success(
+        refunded > 0
+          ? `Recorded. ${formatMoney(refunded)} is being refunded to the customer.`
+          : "Picked quantities recorded.",
+      )
+    } catch (err) {
+      toast.error(
+        err?.response?.data?.message || err?.message || "Could not record picked quantities",
+      )
+    } finally {
+      setSubmittingPick(false)
+    }
+  }
   const createdAt = order.createdAt ? new Date(order.createdAt).toLocaleString('en-GB', {
     day: 'numeric',
     month: 'short',
@@ -241,8 +317,40 @@ export default function OrderDetailPage({
               </div>
               <h3 className="text-sm font-black text-gray-900">Order Items</h3>
             </div>
-            <span className="px-3 py-1 bg-gray-100 rounded-full text-[10px] font-black text-gray-500">{items.length} Items</span>
+            <div className="flex items-center gap-2">
+              <span className="px-3 py-1 bg-gray-100 rounded-full text-[10px] font-black text-gray-500">{items.length} Items</span>
+              {canReportPick && !picking && (
+                <button
+                  onClick={() => setPicking(true)}
+                  className="px-3 py-1.5 bg-amber-50 text-amber-700 border border-amber-100 rounded-full text-[10px] font-black uppercase tracking-tighter hover:bg-amber-100 active:scale-95 transition-all"
+                >
+                  Something out of stock?
+                </button>
+              )}
+            </div>
           </div>
+
+          {picking && (
+            <div className="bg-amber-50/70 border border-amber-100 rounded-2xl p-4 space-y-1">
+              <p className="text-xs font-black text-amber-900">Set what you can actually pack</p>
+              <p className="text-[11px] font-bold text-amber-700/80 leading-relaxed">
+                The customer is refunded for whatever is short and the rest of the order
+                goes out as normal. Unpicked units go back into your stock. This can only
+                be submitted once.
+              </p>
+            </div>
+          )}
+
+          {alreadyReported && (
+            <div className="bg-blue-50/70 border border-blue-100 rounded-2xl p-4 space-y-1">
+              <p className="text-xs font-black text-blue-900">Short items already reported</p>
+              <p className="text-[11px] font-bold text-blue-700/80 leading-relaxed">
+                {toNumber(order.fulfilment?.refundAmount) > 0
+                  ? `${formatMoney(order.fulfilment.refundAmount)} was refunded to the customer.`
+                  : "No refund was needed."}
+              </p>
+            </div>
+          )}
 
           <div className="space-y-5">
             {items.map((item, idx) => (
@@ -264,6 +372,55 @@ export default function OrderDetailPage({
                   <p className="text-[11px] font-bold text-gray-400 mt-1 uppercase tracking-tighter">
                     {item.quantity} × {formatMoney(item.price)}
                   </p>
+
+                  {picking && (
+                    <div className="mt-3 flex items-center gap-3">
+                      <span className="text-[10px] font-black text-gray-500 uppercase tracking-tighter">
+                        Packing
+                      </span>
+                      <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-1 py-1">
+                        <button
+                          type="button"
+                          aria-label={`Reduce packed quantity for ${item.name}`}
+                          onClick={() => setPickedFor(idx, pickedFor(idx) - 1)}
+                          disabled={pickedFor(idx) <= 0}
+                          className="w-7 h-7 rounded-lg bg-gray-50 text-gray-600 font-black disabled:opacity-30 hover:bg-gray-100 active:scale-90 transition-all"
+                        >
+                          −
+                        </button>
+                        <span className="w-7 text-center text-sm font-black text-gray-900 tabular-nums">
+                          {pickedFor(idx)}
+                        </span>
+                        <button
+                          type="button"
+                          aria-label={`Increase packed quantity for ${item.name}`}
+                          onClick={() => setPickedFor(idx, pickedFor(idx) + 1)}
+                          disabled={pickedFor(idx) >= toNumber(item.quantity)}
+                          className="w-7 h-7 rounded-lg bg-gray-50 text-gray-600 font-black disabled:opacity-30 hover:bg-gray-100 active:scale-90 transition-all"
+                        >
+                          +
+                        </button>
+                      </div>
+                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">
+                        of {item.quantity}
+                      </span>
+                      {pickedFor(idx) < toNumber(item.quantity) && (
+                        <span className="text-[10px] font-black text-rose-600 uppercase tracking-tighter">
+                          −{formatMoney(toNumber(item.price) * (toNumber(item.quantity) - pickedFor(idx)))}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Already reported: show what actually went out. */}
+                  {!picking && alreadyReported && Number.isFinite(Number(item.fulfilledQty)) &&
+                    Number(item.fulfilledQty) < toNumber(item.quantity) && (
+                      <p className="text-[10px] font-black text-rose-600 mt-1.5 uppercase tracking-tighter">
+                        {Number(item.fulfilledQty) === 0
+                          ? "Out of stock — refunded"
+                          : `Only ${item.fulfilledQty} packed — ${toNumber(item.quantity) - Number(item.fulfilledQty)} refunded`}
+                      </p>
+                    )}
                   {item.addons && item.addons.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       {item.addons.map((addon, aIdx) => (
@@ -277,6 +434,45 @@ export default function OrderDetailPage({
               </div>
             ))}
           </div>
+
+          {picking && (
+            <div className="pt-4 border-t border-gray-100 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-black text-gray-500 uppercase tracking-tighter">
+                  {shortCount === 0
+                    ? "Nothing short"
+                    : `${shortCount} ${shortCount === 1 ? "item" : "items"} short`}
+                </span>
+                <span className="text-sm font-black text-rose-600 tabular-nums">
+                  −{formatMoney(removedValue)}
+                </span>
+              </div>
+              <p className="text-[10px] font-bold text-gray-400 leading-relaxed">
+                Item value shown. The final refund also adjusts tax and any coupon, and is
+                confirmed once you submit. Delivery and packaging fees are not charged again.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    setPicking(false)
+                    setPicked([])
+                  }}
+                  disabled={submittingPick}
+                  className="flex-1 py-3 rounded-2xl bg-gray-50 text-gray-600 text-xs font-black uppercase tracking-tighter border border-gray-100 hover:bg-gray-100 active:scale-95 transition-all disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={submitPickedQuantities}
+                  disabled={submittingPick || shortCount === 0}
+                  className="flex-1 py-3 rounded-2xl bg-gray-900 text-white text-xs font-black uppercase tracking-tighter hover:bg-black active:scale-95 transition-all disabled:opacity-40 flex items-center justify-center gap-2"
+                >
+                  {submittingPick && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {submittingPick ? "Saving" : "Confirm & refund"}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Earnings & Deductions */}

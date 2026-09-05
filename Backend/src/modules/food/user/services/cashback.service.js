@@ -186,7 +186,10 @@ export const getUserRefundHistory = async (userId, query = {}) => {
     const filter = {
         userId: oid,
         $or: [
-            { 'payment.refund.status': { $in: ['pending', 'processed', 'failed'] } },
+            // 'partial' belongs here: the customer had money returned for out-of-stock
+            // items and expects to find it in their refunds list, even though the order
+            // itself was delivered and is not in a refunded state.
+            { 'payment.refund.status': { $in: ['pending', 'processed', 'partial', 'failed'] } },
             { 'payment.status': 'refunded' }
         ]
     };

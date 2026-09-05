@@ -259,6 +259,95 @@ function buildCancellationRefundDescription(order, cancelledBy = 'system') {
   }
 }
 
+/**
+ * Sends money back by whichever route it arrived, and says nothing about the order.
+ *
+ * Split out of applyCancellationRefund so a partial refund can reuse the transport
+ * without inheriting the status changes that go with killing an order. Mutates only
+ * `payment.refund` on a razorpay failure, where the refund id is the only record.
+ */
+async function sendRefundToCustomer(order, amount, description, meta = {}) {
+  const paymentMethod = String(order.payment?.method || 'cash').toLowerCase();
+
+  if (paymentMethod === 'razorpay') {
+    const paymentId = String(order.payment?.razorpay?.paymentId || '').trim();
+    if (!paymentId) {
+      return { processed: false, reason: 'missing_razorpay_payment_id', method: paymentMethod };
+    }
+    const result = await initiateRazorpayRefund(paymentId, amount);
+    return result.success
+      ? { processed: true, method: paymentMethod, refundId: result.refundId }
+      : { processed: false, reason: result.error || 'razorpay_refund_failed', method: paymentMethod };
+  }
+
+  if (paymentMethod === 'wallet') {
+    await userWalletService.refundWalletBalance(order.userId, amount, description, {
+      orderId: order._id,
+      ...meta,
+    });
+    return { processed: true, method: paymentMethod };
+  }
+
+  return { processed: false, reason: `unsupported_method_${paymentMethod}`, method: paymentMethod };
+}
+
+/**
+ * Refunds part of an order that is still going to be delivered.
+ *
+ * Deliberately NOT applyCancellationRefund with a smaller number. That function sets
+ * `payment.status = 'refunded'`, which is right for an order that is over and wrong in
+ * three ways for one that is not: the order drops out of the admin's paid filter, the
+ * seller's list stops treating it as payable, and — the one that actually costs money —
+ * a later full cancellation hits its `already_refunded` guard and returns nothing, so
+ * the customer would lose everything still owed to them.
+ *
+ * The status stays 'paid' and the refunded total accumulates. Because the caller has
+ * already reduced `pricing.total` to what the customer is still buying, a subsequent
+ * cancellation refunds exactly the remainder with no special-casing.
+ */
+async function applyPartialRefund(order, { amount, description, cancelledBy = 'restaurant' } = {}) {
+  const value = Number(amount);
+  if (!order?.payment) return { attempted: false, processed: false, reason: 'missing_payment' };
+  if (!Number.isFinite(value) || value <= 0) {
+    return { attempted: false, processed: false, reason: 'invalid_amount' };
+  }
+
+  const paymentMethod = String(order.payment?.method || 'cash').toLowerCase();
+  const paymentStatus = String(order.payment?.status || '').toLowerCase();
+
+  // Cash collects less at the door instead; there is nothing held to send back.
+  if (paymentMethod === 'cash' || paymentMethod === 'cod') {
+    return { attempted: false, processed: false, reason: 'cash_payment' };
+  }
+  if (paymentStatus !== 'paid') {
+    return { attempted: false, processed: false, reason: `payment_status_${paymentStatus || 'unknown'}` };
+  }
+
+  const result = await sendRefundToCustomer(order, value, description, { cancelledBy, partial: true });
+
+  const alreadyRefunded = Number(order.payment.refund?.amount) || 0;
+  if (result.processed) {
+    order.payment.refund = {
+      // 'partial' rather than 'processed': the latter is what the cancellation guard
+      // reads to decide an order has already been made whole.
+      status: 'partial',
+      amount: round2Money(alreadyRefunded + value),
+      refundId: result.refundId || order.payment.refund?.refundId || '',
+      processedAt: new Date(),
+    };
+  } else {
+    order.payment.refund = {
+      status: 'failed',
+      amount: round2Money(alreadyRefunded + value),
+      refundId: order.payment.refund?.refundId || '',
+    };
+  }
+
+  return { attempted: true, ...result };
+}
+
+const round2Money = (value) => Math.round((Number(value) || 0) * 100) / 100;
+
 async function applyCancellationRefund(order, { cancelledBy = 'system', refundAmount } = {}) {
   if (!order?.payment) {
     return { attempted: false, processed: false, reason: 'missing_payment' };
@@ -300,7 +389,9 @@ async function applyCancellationRefund(order, { cancelledBy = 'system', refundAm
       order.payment.status = 'refunded';
       order.payment.refund = {
         status: 'processed',
-        amount,
+        // Added to whatever a partial refund already returned, so the field means
+        // "total sent back on this order" rather than "size of the last refund".
+        amount: round2Money((Number(order.payment.refund?.amount) || 0) + amount),
         refundId: refundResult.refundId,
         processedAt: new Date(),
       };
@@ -329,7 +420,7 @@ async function applyCancellationRefund(order, { cancelledBy = 'system', refundAm
     order.payment.status = 'refunded';
     order.payment.refund = {
       status: 'processed',
-      amount,
+      amount: round2Money((Number(order.payment.refund?.amount) || 0) + amount),
       processedAt: new Date(),
     };
     return { attempted: true, processed: true, method: paymentMethod };
@@ -1908,12 +1999,14 @@ export async function reportPickShortfall(orderId, restaurantId, lines = [], not
 
   await order.save();
 
-  // Only money already taken can be given back. A cash order simply collects less.
+  // Only money already taken can be given back. A cash order simply collects less,
+  // which the reduced payment.amountDue above already expresses.
   if (repriced.refundAmount > 0 && isPrepaidOrder(order)) {
     try {
-      await applyCancellationRefund(order, {
+      await applyPartialRefund(order, {
+        amount: repriced.refundAmount,
+        description: `Refund for out-of-stock items on order #${order.order_id || order._id}`,
         cancelledBy: 'restaurant',
-        refundAmount: repriced.refundAmount,
       });
       await order.save();
     } catch (err) {

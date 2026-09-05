@@ -163,10 +163,15 @@ const paymentSchema = new mongoose.Schema(
         },
         // ✅ NEW: Added refund object to track refund status without breaking existing flow
         refund: {
-            status: { 
-                type: String, 
-                enum: ['none', 'pending', 'processed', 'failed'], 
-                default: 'none' 
+            status: {
+                type: String,
+                // 'partial' is distinct from 'processed' on purpose: an order that has
+                // been partly refunded is still live and still owes the customer goods,
+                // and the cancellation path reads 'processed' to mean "already made
+                // whole" and skip refunding. Collapsing the two would let a partly
+                // refunded order be cancelled with nothing returned.
+                enum: ['none', 'pending', 'processed', 'partial', 'failed'],
+                default: 'none'
             },
             amount: { type: Number, default: 0 },
             refundId: { type: String, default: '' },
