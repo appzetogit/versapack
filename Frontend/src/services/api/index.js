@@ -2619,6 +2619,19 @@ export const userAPI = {
   syncCart: (body) =>
     apiClient.put("/food/user/cart", body ?? {}, { contextModule: "user" }),
   /**
+   * Re-points the basket at whichever dark store serves a new address.
+   *
+   * Returns the rewritten lines plus `unavailable` — what the new store does not
+   * carry, each with a reason, so the app can say which items were dropped and why
+   * rather than the basket quietly shrinking.
+   */
+  rebindCart: (lat, lng, items) =>
+    apiClient.post(
+      "/food/user/cart/rebind",
+      { lat, lng, items: items ?? [] },
+      { contextModule: "user" },
+    ),
+  /**
    * Legacy UI compatibility: update "current user location".
    * We already persist the user's selected location in localStorage in the UI.
    * Keep this as a no-op success so existing flows don't break.
@@ -2664,6 +2677,19 @@ export const zoneAPI = {
   /** Public: list active zones (for onboarding dropdowns). */
   getPublicZones: (params = {}, config = {}) =>
     apiClient.get("/food/zones/public", { params: params ?? {}, ...config }),
+};
+
+/** Which dark store serves a location, and what it can promise. */
+export const storeAPI = {
+  /**
+   * Public: resolve the serving dark store for a point.
+   *
+   * A null store with serviceable:false is a real answer — it means nothing
+   * reaches this address, which the app must say plainly rather than showing an
+   * empty catalogue.
+   */
+  getServingStore: (lat, lng, config = {}) =>
+    apiClient.get("/food/restaurant/stores/nearest", { params: { lat, lng }, ...config }),
 };
 export const uploadAPI = {
   /**
