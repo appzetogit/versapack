@@ -1,5 +1,7 @@
 import mongoose from 'mongoose';
 import { FoodItem } from '../../admin/models/food.model.js';
+import { FoodMasterProduct } from '../../admin/models/masterProduct.model.js';
+import { resolveTaxFields } from '../../shared/masterProduct.resolve.js';
 import { FoodAddon } from '../../restaurant/models/foodAddon.model.js';
 import { ValidationError } from '../../../../core/auth/errors.js';
 
@@ -76,6 +78,26 @@ export async function resolveOrderCartItems(restaurantId, rawItems = []) {
 
   const foodById = new Map(foodDocs.map((doc) => [String(doc._id), doc]));
   const addonById = new Map(addonDocs.map((doc) => [String(doc._id), doc]));
+
+  // Tax comes from the master product when the listing is linked to one.
+  //
+  // The GST slab and HSN code of a manufactured good are a property of the good, not
+  // of the shop selling it, so snapshotting whatever the seller happened to type would
+  // leave the master catalogue unable to fix the one thing it exists to fix. Only these
+  // two fields are resolved here: a checkout does not need the master's name or images,
+  // and loading it for them would be wasted work on the hottest path in the system.
+  const masterIds = [
+    ...new Set(foodDocs.map((d) => String(d.masterProductId || '')).filter(Boolean)),
+  ];
+  const masterById = masterIds.length
+    ? new Map(
+        (
+          await FoodMasterProduct.find({ _id: { $in: masterIds } })
+            .select('_id gstRate hsnCode')
+            .lean()
+        ).map((m) => [String(m._id), m]),
+      )
+    : new Map();
 
   // Add-ons attached to a line, rather than sent as their own line item.
   //
@@ -177,15 +199,22 @@ export async function resolveOrderCartItems(restaurantId, rawItems = []) {
         quantity,
         // Carried onto the line so tax is computed per product rather than at
         // one rate for the whole basket. null defers to the order-wide rate.
-        gstRate:
-          foodDoc.gstRate === null || foodDoc.gstRate === undefined
-            ? null
-            : Number(foodDoc.gstRate),
+        ...(() => {
+          const tax = resolveTaxFields(
+            foodDoc,
+            masterById.get(String(foodDoc.masterProductId || '')),
+          );
+          return {
+            gstRate:
+              tax.gstRate === null || tax.gstRate === undefined ? null : Number(tax.gstRate),
+            // Snapshotted alongside gstRate, and for the same reason: together they are
+            // what makes the line reproducible on a tax invoice after the catalogue
+            // moves on -- or after the listing is relinked to a different master.
+            hsnCode: String(tax.hsnCode || ''),
+          };
+        })(),
         brand: String(foodDoc.brand || ''),
         packSize: String(foodDoc.packSize || ''),
-        // Snapshotted alongside gstRate, and for the same reason: together they are
-        // what makes the line reproducible on a tax invoice after the catalogue moves on.
-        hsnCode: String(foodDoc.hsnCode || ''),
         // Snapshotted so category reporting survives a rename or a delete.
         categoryId: foodDoc.categoryId || null,
         categoryName: String(foodDoc.categoryName || ''),

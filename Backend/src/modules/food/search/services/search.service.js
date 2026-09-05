@@ -2,6 +2,8 @@ import { FoodRestaurant } from '../../restaurant/models/restaurant.model.js';
 import { FoodItem } from '../../admin/models/food.model.js';
 import { FoodCategory } from '../../admin/models/category.model.js';
 import { unitPriceForProduct } from '../../shared/unitPrice.util.js';
+import { FoodMasterProduct } from '../../admin/models/masterProduct.model.js';
+import { resolveListingWithMaster } from '../../shared/masterProduct.resolve.js';
 import mongoose from 'mongoose';
 
 const RESTAURANT_SEARCH_SELECT = [
@@ -243,11 +245,17 @@ export const searchUnified = async (query = {}, options = {}) => {
 // exactly where price-per-unit is compared, and packSize alone is free text that
 // cannot be divided by.
 const PRODUCT_SEARCH_SELECT =
-    '_id restaurantId name brand packSize netQuantity netQuantityUnit image images price otherPrice mrp categoryId categoryName foodType rating totalRatings isAvailable stockQty maxQtyPerOrder variants';
+    '_id restaurantId masterProductId name brand packSize netQuantity netQuantityUnit image images price otherPrice mrp categoryId categoryName foodType rating totalRatings isAvailable stockQty maxQtyPerOrder variants';
 
-const PRODUCT_SEARCH_PROJECTION = Object.fromEntries(
-    PRODUCT_SEARCH_SELECT.split(' ').filter(Boolean).map((field) => [field, 1]),
-);
+const PRODUCT_SEARCH_PROJECTION = {
+    ...Object.fromEntries(
+        PRODUCT_SEARCH_SELECT.split(' ').filter(Boolean).map((field) => [field, 1]),
+    ),
+    // Computed by the $group stage rather than read off the document, so they have to
+    // be named here or the projection derived from the field list above drops them.
+    sellerCount: 1,
+    lowestPrice: 1,
+};
 
 /**
  * Product search: a grid of things you can buy.
@@ -353,7 +361,46 @@ export const searchProducts = async (query = {}) => {
                 },
             },
         },
+        // Narrowed before the sort and group below, not after.
+        //
+        // $group carries whole documents through `$first: '$$ROOT'`, and an
+        // aggregation stage has 100MB to work in. Dropping to the fields the response
+        // actually returns keeps both the sort and the group working on rows a
+        // fraction of the size, which is the difference between this scaling with the
+        // catalogue and falling over on a large zone.
+        { $project: { ...PRODUCT_SEARCH_PROJECTION, _score: 1 } },
         // _id breaks ties so paging cannot repeat or skip a row between requests.
+        { $sort: { _score: -1, _id: 1 } },
+        // One row per PRODUCT, not per seller's listing of it.
+        //
+        // On a marketplace a dozen sellers stock the same tub of butter, and without
+        // this a search for it returned the same thing a dozen times and filled the
+        // first page with one product. Grouping on masterProductId collapses them to
+        // the best-ranked listing plus a count of who else has it and the cheapest
+        // price going, which is the comparison a shopper actually came to make.
+        //
+        // Unlinked listings group on their own _id, so anything not yet in the master
+        // catalogue — which is all of it until the backfill runs — stays exactly as it
+        // was. $first is meaningful because the $sort above already ran.
+        {
+            $group: {
+                _id: { $ifNull: ['$masterProductId', '$_id'] },
+                doc: { $first: '$$ROOT' },
+                sellerCount: { $sum: 1 },
+                lowestPrice: { $min: '$price' },
+            },
+        },
+        {
+            $replaceRoot: {
+                newRoot: {
+                    $mergeObjects: [
+                        '$doc',
+                        { sellerCount: '$sellerCount', lowestPrice: '$lowestPrice' },
+                    ],
+                },
+            },
+        },
+        // $group does not preserve order, so the ranking has to be reapplied.
         { $sort: { _score: -1, _id: 1 } },
         {
             $facet: {
@@ -364,6 +411,9 @@ export const searchProducts = async (query = {}) => {
                     // two cannot drift and the page stays small on mobile data.
                     { $project: PRODUCT_SEARCH_PROJECTION },
                 ],
+                // Counted after grouping, so `total` is the number of products a
+                // shopper can page through rather than the number of listings behind
+                // them — otherwise the last pages come back empty.
                 total: [{ $count: 'value' }],
             },
         },
@@ -372,7 +422,26 @@ export const searchProducts = async (query = {}) => {
     const products = agg?.items || [];
     const total = agg?.total?.[0]?.value || 0;
 
-    const pageItems = products.map((product) => {
+    // Master rows for the page only — at most `limit` of them, fetched in one query
+    // rather than joined in the pipeline, so an unlinked catalogue costs nothing.
+    const masterIds = [
+        ...new Set(products.map((p) => String(p.masterProductId || '')).filter(Boolean)),
+    ];
+    const masterById = masterIds.length
+        ? new Map(
+            (await FoodMasterProduct.find({ _id: { $in: masterIds } }).lean()).map((m) => [
+                String(m._id),
+                m,
+            ]),
+        )
+        : new Map();
+
+    const pageItems = products.map((row) => {
+        // Identity from the master, price and stock from this seller's listing.
+        const product = resolveListingWithMaster(
+            row,
+            masterById.get(String(row.masterProductId || '')),
+        );
         const seller = sellerById.get(String(product.restaurantId));
         return {
             ...product,
@@ -380,6 +449,10 @@ export const searchProducts = async (query = {}) => {
             // null for anything without a recorded net quantity, which the grid must
             // render as absent rather than as a zero price.
             unitPrice: unitPriceForProduct(product),
+            // How many sellers carry this product, and the best price among them. 1
+            // for a standalone listing, so the grid can simply hide the comparison.
+            sellerCount: Number(row.sellerCount) || 1,
+            lowestPrice: Number.isFinite(Number(row.lowestPrice)) ? Number(row.lowestPrice) : null,
             seller: seller
                 ? {
                     _id: seller._id,

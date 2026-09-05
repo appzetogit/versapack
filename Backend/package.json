@@ -13,6 +13,7 @@
     "worker:tracking": "node src/queues/workers/tracking.worker.js",
     "worker:payment": "node src/queues/workers/payment.worker.js",
     "worker:maintenance": "node src/queues/workers/maintenance.worker.js",
+    "migrate:master-products": "node scripts/backfill-master-products.js",
     "migrate:fcm-tokens": "node scripts/migrate-fcm-tokens-to-profile-models.js",
     "migrate:order-payments": "node scripts/migrate-orders-to-transactions.js",
     "migrate:outlet-timings-from-opening-closing": "node scripts/sync-outlet-timings-from-opening-closing.js",

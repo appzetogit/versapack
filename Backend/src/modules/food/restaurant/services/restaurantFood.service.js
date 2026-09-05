@@ -1,5 +1,7 @@
 import mongoose from 'mongoose';
 import { ValidationError } from '../../../../core/auth/errors.js';
+import { FoodMasterProduct } from '../../admin/models/masterProduct.model.js';
+import { findMasterByBarcode } from '../../shared/masterProduct.resolve.js';
 import { FoodItem } from '../../admin/models/food.model.js';
 import { FoodCategory } from '../../admin/models/category.model.js';
 import { normalizeFoodImages } from '../../admin/services/foodImages.util.js';
@@ -227,6 +229,14 @@ const buildCatalogUpdate = (body = {}) => {
     }
 
     if (body.isReturnable !== undefined) update.isReturnable = body.isReturnable === true;
+
+    // A seller may point a listing at a master, or detach it, but the linking itself is
+    // resolved from the barcode below rather than trusted from the request — a seller
+    // naming an arbitrary master could otherwise attach their listing to a product they
+    // do not stock and inherit its name, images and tax code.
+    if (body.masterProductId === null || body.masterProductId === '') {
+        update.masterProductId = null;
+    }
 
     if (body.returnWindowHours !== undefined) {
         if (body.returnWindowHours === null || body.returnWindowHours === '') {
@@ -505,6 +515,10 @@ export async function createRestaurantFood(restaurantId, body = {}) {
     const catalogFields = buildCatalogUpdate(body);
     assertPriceWithinMrp(price, catalogFields.mrp, variants);
 
+    // Scanned barcode links the listing to the shared product automatically. Null when
+    // there is no barcode or no master carries it, which leaves a standalone listing.
+    const masterProductId = await findMasterByBarcode(FoodMasterProduct, catalogFields.barcode);
+
     const description = toStr(body.description);
     const isAvailable = body.isAvailable !== false;
     const foodType = normalizeFoodType(body.foodType);
@@ -527,6 +541,7 @@ export async function createRestaurantFood(restaurantId, body = {}) {
         isAvailable,
         // Undefined leaves the schema default (null = untracked), so a seller
         // who never enters a count keeps the old always-in-stock behaviour.
+        masterProductId,
         stockQty: parseStockNumber(body.stockQty) ?? undefined,
         lowStockThreshold: parseStockNumber(body.lowStockThreshold) ?? undefined,
         maxQtyPerOrder: parseStockNumber(body.maxQtyPerOrder, { min: 1 }) ?? undefined,
@@ -582,6 +597,11 @@ export async function updateRestaurantFood(restaurantId, foodId, body = {}) {
     Object.assign(update, getUpdatedFoodPricing(existing, body));
     const catalogUpdate = buildCatalogUpdate(body);
     Object.assign(update, catalogUpdate);
+    // Re-resolved only when the barcode itself changed, so an unrelated edit never
+    // silently re-points a listing an admin has linked by hand.
+    if ('barcode' in catalogUpdate) {
+        update.masterProductId = await findMasterByBarcode(FoodMasterProduct, catalogUpdate.barcode);
+    }
     // Checked against whichever MRP and price end up on the document, so an edit
     // to either one alone cannot leave the item priced above its MRP.
     assertPriceWithinMrp(

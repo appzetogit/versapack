@@ -12,6 +12,23 @@ const foodVariantSchema = new mongoose.Schema(
 const foodSchema = new mongoose.Schema(
     {
         restaurantId: { type: mongoose.Schema.Types.ObjectId, ref: 'FoodRestaurant', required: true, index: true },
+        /**
+         * The manufactured product this listing is an offer of, when it is one.
+         *
+         * null means a standalone listing, which is every product that predates the
+         * master catalogue and every genuinely one-off item. Nothing about an unlinked
+         * listing changes, which is what makes this safe to roll out gradually rather
+         * than behind a migration that has to succeed for everything at once.
+         *
+         * Search groups on this, so it is indexed alongside restaurantId: the query
+         * that matters is "other sellers of the same product", not "all listings ever".
+         */
+        masterProductId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'FoodMasterProduct',
+            default: null,
+            index: true
+        },
         categoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'FoodCategory', index: true },
         categoryName: { type: String, trim: true, default: '' },
         name: { type: String, required: true, trim: true, index: true },
