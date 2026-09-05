@@ -22,7 +22,11 @@ export const searchAPI = {
     apiClient.get("/food/search/unified", { params }),
   /**
    * Product search — returns items, not the sellers that stock them.
-   * Params: q, zoneId, categoryId, isVeg, inStockOnly, page, limit.
+   * Params: q, zoneId, storeId, categoryId, isVeg, inStockOnly, page, limit.
+   *
+   * Pass storeId to shop one dark store's shelf, which is what the customer is
+   * assigned. Rows carry `inStockNearby`: whether a store that can reach this
+   * customer has it right now.
    * Unlike unifiedSearch this never widens to other zones: a cart built from
    * sellers who cannot reach the address is one checkout will refuse.
    */
@@ -466,16 +470,7 @@ export const adminAPI = {
       contextModule: "admin",
     }),
   /** List delivery withdrawal requests (admin). */
-  getDeliveryWithdrawals: (params = {}) =>
-    apiClient.get("/food/admin/delivery/withdrawals", {
-      params,
-      contextModule: "admin",
-    }),
   /** Update status of a delivery withdrawal request. */
-  updateDeliveryWithdrawalStatus: (id, body) =>
-    apiClient.patch(`/food/admin/delivery/withdrawals/${id}`, body, {
-      contextModule: "admin",
-    }),
   /** Delivery withdrawal aliases */
   getDeliveryWithdrawalRequests: (params) => adminAPI.getDeliveryWithdrawals(params),
   approveDeliveryWithdrawal: (id) => adminAPI.updateDeliveryWithdrawalStatus(id, { status: "approved" }),
@@ -675,6 +670,42 @@ export const adminAPI = {
     }),
   deleteFood: (id) =>
     apiClient.delete(`/food/admin/foods/${id}`, { contextModule: "admin" }),
+
+  /**
+   * Master products — the shared catalogue every seller listing points at.
+   *
+   * A master holds what the product IS (name, brand, pack, barcode, tax class);
+   * the seller's listing keeps price, MRP and stock. Linking is admin-only,
+   * because it rewrites which product a seller is selling under.
+   */
+  getMasterProducts: (params = {}) =>
+    apiClient.get("/food/admin/master-products", { params, contextModule: "admin" }),
+  getMasterProduct: (id) =>
+    apiClient.get(`/food/admin/master-products/${String(id)}`, {
+      contextModule: "admin",
+    }),
+  createMasterProduct: (body) =>
+    apiClient.post("/food/admin/master-products", body ?? {}, {
+      contextModule: "admin",
+    }),
+  updateMasterProduct: (id, body) =>
+    apiClient.patch(`/food/admin/master-products/${String(id)}`, body ?? {}, {
+      contextModule: "admin",
+    }),
+  /** Seller listings attached to one master — what a merge is checked against. */
+  getMasterProductListings: (id, params = {}) =>
+    apiClient.get(`/food/admin/master-products/${String(id)}/listings`, {
+      params,
+      contextModule: "admin",
+    }),
+  /** Pass masterProductId: null to detach a listing. */
+  linkListingToMaster: (listingId, masterProductId) =>
+    apiClient.patch(
+      `/food/admin/foods/${String(listingId)}/master-product`,
+      { masterProductId: masterProductId ?? null },
+      { contextModule: "admin" },
+    ),
+
   /** Food approvals (admin) - pending items created by restaurants */
   getPendingFoodApprovals: (params = {}) =>
     apiClient.get("/food/admin/foods/pending-approvals", {
@@ -1347,7 +1378,6 @@ export const restaurantAPI = {
   deleteMyOffer: (id) => apiClient.delete(`/food/restaurant/my-offers/${id}`, { contextModule: "restaurant" }),
   updateMyOfferStatus: (id, status) => apiClient.patch(`/food/restaurant/my-offers/${id}/status`, { status }, { contextModule: "restaurant" }),
   /** Public Offers for users (global/selected restaurant) */
-  getPublicOffers: (params = {}) => apiClient.get("/food/restaurant/offers", { params }),
   /** Backward-compat helper used by Cart: returns coupons array for an item by adapting public offers */
   getCouponsByItemIdPublic: (restaurantId, _itemId, subtotal) =>
     apiClient.get("/food/restaurant/offers", { params: { restaurantId, subtotal } }).then((res) => {
@@ -1425,11 +1455,6 @@ export const restaurantAPI = {
       contextModule: "restaurant",
     }),
   /** Orders (restaurant dashboard) */
-  getOrders: (params = {}) =>
-    apiClient.get("/food/restaurant/orders", {
-      params: { limit: 50, page: 1, ...params },
-      contextModule: "restaurant",
-    }),
   getPendingPhone: (phone) =>
     apiClient.get(`/food/restaurant/auth/pending-phone?phone=${phone}`),
   getSubscriptionSettings: () =>
@@ -1440,10 +1465,6 @@ export const restaurantAPI = {
     publicConfigGetOnce("/food/admin/feature-settings/public", {
       contextModule: "restaurant",
       ...config,
-    }),
-  getOrderById: (orderId) =>
-    apiClient.get(`/food/restaurant/orders/${String(orderId)}`, {
-      contextModule: "restaurant",
     }),
   updateMenu: (body) =>
     apiClient.patch("/food/restaurant/menu", body ?? {}, {
@@ -1643,6 +1664,24 @@ export const restaurantAPI = {
     restaurantAPI.updateOrderStatus(orderId, {
       orderStatus: "ready_for_pickup",
     }),
+  /**
+   * Report what the seller could actually pick, line by line.
+   *
+   * The server reprices the order against these quantities, refunds the customer the
+   * difference and returns the unpicked units to stock. Lines are addressed by their
+   * INDEX in order.items — order lines carry no id of their own — so the array passed
+   * in must come from the same order object that was rendered.
+   *
+   * @param {string} orderId
+   * @param {Array<{ index: number, fulfilledQty: number }>} lines
+   * @param {string} note
+   */
+  reportPickedQuantities: (orderId, lines, note = "") =>
+    apiClient.post(
+      `/food/restaurant/orders/${String(orderId)}/picked-quantities`,
+      { lines, note },
+      { contextModule: "restaurant" },
+    ),
   /**
    * Get a single order by id for restaurant screens.
    * Prefer direct endpoint; fallback to list+filter for backward compatibility.
@@ -1985,7 +2024,6 @@ const getDeliveryMeOnce = () => {
 /** Delivery API - OTP login + registration via new backend. */
 export const deliveryAPI = {
   deleteAccount: () => apiClient.delete('/food/delivery/profile/account', { contextModule: 'delivery' }),
-  getWallet: () => apiClient.get('/food/delivery/wallet', { contextModule: 'delivery' }),
   sendOTP: (phone, _purpose = "login") => {
     if (!phone) return Promise.reject(new Error("Phone is required"));
     return authService.requestDeliveryOtp(phone);
@@ -2565,6 +2603,19 @@ export const userAPI = {
   syncCart: (body) =>
     apiClient.put("/food/user/cart", body ?? {}, { contextModule: "user" }),
   /**
+   * Re-points the basket at whichever dark store serves a new address.
+   *
+   * Returns the rewritten lines plus `unavailable` — what the new store does not
+   * carry, each with a reason, so the app can say which items were dropped and why
+   * rather than the basket quietly shrinking.
+   */
+  rebindCart: (lat, lng, items) =>
+    apiClient.post(
+      "/food/user/cart/rebind",
+      { lat, lng, items: items ?? [] },
+      { contextModule: "user" },
+    ),
+  /**
    * Legacy UI compatibility: update "current user location".
    * We already persist the user's selected location in localStorage in the UI.
    * Keep this as a no-op success so existing flows don't break.
@@ -2610,6 +2661,19 @@ export const zoneAPI = {
   /** Public: list active zones (for onboarding dropdowns). */
   getPublicZones: (params = {}, config = {}) =>
     apiClient.get("/food/zones/public", { params: params ?? {}, ...config }),
+};
+
+/** Which dark store serves a location, and what it can promise. */
+export const storeAPI = {
+  /**
+   * Public: resolve the serving dark store for a point.
+   *
+   * A null store with serviceable:false is a real answer — it means nothing
+   * reaches this address, which the app must say plainly rather than showing an
+   * empty catalogue.
+   */
+  getServingStore: (lat, lng, config = {}) =>
+    apiClient.get("/food/restaurant/stores/nearest", { params: { lat, lng }, ...config }),
 };
 export const uploadAPI = {
   /**

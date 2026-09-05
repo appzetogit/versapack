@@ -4,7 +4,22 @@ const foodVariantSchema = new mongoose.Schema(
     {
         name: { type: String, required: true, trim: true },
         price: { type: Number, required: true, min: 0 },
-        otherPrice: { type: Number, min: 0, default: 0 }
+        otherPrice: { type: Number, min: 0, default: 0 },
+        /**
+         * Units of THIS variant on hand.
+         *
+         * A restaurant variant is a portion of one dish -- half and full plate come
+         * off the same pot, so counting the dish was right. A grocery variant is a
+         * different pack: 500 g and 1 kg are separate things on separate shelves that
+         * run out independently, and counting them together oversells whichever one
+         * the customer actually wanted.
+         *
+         * null means this variant is not counted separately and the item-level
+         * stockQty governs, which is exactly how every existing product behaves.
+         */
+        stockQty: { type: Number, default: null, min: 0 },
+        /** Per-order cap for this pack specifically. null falls back to the item's. */
+        maxQtyPerOrder: { type: Number, default: null, min: 1 }
     },
     { _id: true }
 );
@@ -12,6 +27,23 @@ const foodVariantSchema = new mongoose.Schema(
 const foodSchema = new mongoose.Schema(
     {
         restaurantId: { type: mongoose.Schema.Types.ObjectId, ref: 'FoodRestaurant', required: true, index: true },
+        /**
+         * The manufactured product this listing is an offer of, when it is one.
+         *
+         * null means a standalone listing, which is every product that predates the
+         * master catalogue and every genuinely one-off item. Nothing about an unlinked
+         * listing changes, which is what makes this safe to roll out gradually rather
+         * than behind a migration that has to succeed for everything at once.
+         *
+         * Search groups on this, so it is indexed alongside restaurantId: the query
+         * that matters is "other sellers of the same product", not "all listings ever".
+         */
+        masterProductId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'FoodMasterProduct',
+            default: null,
+            index: true
+        },
         categoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'FoodCategory', index: true },
         categoryName: { type: String, trim: true, default: '' },
         name: { type: String, required: true, trim: true, index: true },
@@ -37,7 +69,63 @@ const foodSchema = new mongoose.Schema(
          * `image` rather than assuming this is populated.
          */
         images: { type: [String], default: [] },
-        foodType: { type: String, enum: ['Veg', 'Non-Veg'], default: 'Non-Veg' },
+        /**
+         * Veg marking.
+         *
+         * 'None' is for products the veg/non-veg question does not apply to at all —
+         * detergent, batteries, a phone charger. It is a third value rather than
+         * making the field nullable because `foodType` feeds category resolution,
+         * the pure-veg store check and the `isVeg` flag snapshotted onto every order
+         * line; null would have to be interpreted at each of those sites, and the
+         * one that guesses wrong labels a non-food product as non-veg in the app.
+         *
+         * The default stays 'Non-Veg' so nothing already catalogued changes meaning.
+         */
+        foodType: { type: String, enum: ['Veg', 'Non-Veg', 'None'], default: 'Non-Veg' },
+        /**
+         * HSN code for this product.
+         *
+         * A GST invoice for goods must carry one per line — a restaurant bill did
+         * not, which is why nothing here had it. Kept as a string: codes are 4, 6 or
+         * 8 digits and leading zeros are significant, so a Number would corrupt them.
+         */
+        hsnCode: { type: String, trim: true, default: '' },
+        /**
+         * Net quantity as a number plus its unit, alongside the free-text `packSize`.
+         *
+         * `packSize` stays because it is what the label actually says ("pack of 6",
+         * "500 g + 20% extra") and it is what the app prints. But free text cannot be
+         * compared, so it cannot answer "which of these is cheaper per 100 g" —
+         * the question a grocery shopper is actually asking. These two fields are
+         * what a price-per-unit sort reads.
+         *
+         * Null means unspecified, which is every product created before this.
+         */
+        netQuantity: { type: Number, default: null, min: 0 },
+        netQuantityUnit: {
+            type: String,
+            enum: ['g', 'kg', 'ml', 'l', 'piece', null],
+            default: null
+        },
+        /**
+         * Legal Metrology (Packaged Commodities) Rules require an e-commerce listing
+         * for a packaged good to show the manufacturer/packer, the country of origin
+         * and the net quantity. None of it applied to a restaurant dish.
+         */
+        countryOfOrigin: { type: String, trim: true, default: '' },
+        manufacturerName: { type: String, trim: true, default: '' },
+        marketedByName: { type: String, trim: true, default: '' },
+        /**
+         * Whether this product can come back after delivery, and for how long.
+         *
+         * Defaults to false because that is the behaviour today — there is no return
+         * flow at all — so every existing product keeps it. Perishables stay false;
+         * sealed packaged goods and electronics are the ones a seller opts in.
+         * `returnWindowHours` null means "use the platform default" once a platform
+         * default exists.
+         */
+        isReturnable: { type: Boolean, default: false },
+        returnWindowHours: { type: Number, default: null, min: 0 },
         /** Manufacturer, for the grocery listing where two sellers stock the same product. */
         brand: { type: String, trim: true, default: '' },
         /** What one unit is: "500 g", "1 L", "pack of 6". Free text, since packs are not standard. */

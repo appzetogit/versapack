@@ -6,8 +6,6 @@ import {
     sendTestNotification,
     upsertFirebaseDeviceToken
 } from './firebase.service.js';
-import { FoodUser } from '../users/user.model.js';
-import { FoodRestaurant } from '../../modules/food/restaurant/models/restaurant.model.js';
 import { normalizePlatform } from '../../utils/platform.js';
 
 const router = express.Router();
@@ -19,56 +17,24 @@ const getOwnerContext = (req) => ({
 
 // Public health check for fcm-tokens service
 router.get('/check', (req, res) => {
-    res.status(200).json({ 
-        success: true, 
+    res.status(200).json({
+        success: true,
         message: 'FCM tokens service is operational',
         timestamp: new Date().toISOString(),
-        endpoints: ['/save', '/mobile/save', '/remove', '/test', '/test-set-token/:phone/:token']
+        endpoints: ['/save', '/mobile/save', '/remove', '/test']
     });
 });
 
-// Temporary administrative test route to set token by phone
-router.get('/test-set-token/:phone/:token', async (req, res, next) => {
-    try {
-        const { phone, token } = req.params;
-        const user = await FoodUser.findOne({ phone: phone.trim() });
-        if (!user) return res.status(404).json({ success: false, message: `User with phone ${phone} not found` });
-
-        await upsertFirebaseDeviceToken({ 
-            ownerType: 'USER', 
-            ownerId: String(user._id), 
-            token, 
-            platform: 'mobile' 
-        });
-
-        return res.status(200).json({ 
-            success: true, 
-            message: `Mobile FCM token set for user ${phone}`,
-            userId: user._id
-        });
-    } catch (error) {
-        next(error);
-    }
-});
-
-// Temporary administrative test route to get tokens by phone
-router.get('/test-get-token/:phone', async (req, res, next) => {
-    try {
-        const { phone } = req.params;
-        const user = await FoodUser.findOne({ phone: phone.trim() }).select('fcmTokens fcmTokenMobile');
-        if (!user) return res.status(404).json({ success: false, message: `User with phone ${phone} not found` });
-
-        return res.status(200).json({ 
-            success: true, 
-            data: {
-                web: user.fcmTokens || [],
-                mobile: user.fcmTokenMobile || []
-            }
-        });
-    } catch (error) {
-        next(error);
-    }
-});
+// The two `/test-set-token/:phone/:token` and `/test-get-token/:phone` debug routes
+// that used to sit here were removed.
+//
+// Both were unauthenticated and keyed on a phone number, so anyone who could guess
+// a customer's number could bind their own device token to that account and start
+// receiving its push notifications — which carry order ids and delivery links — or
+// read back the tokens already registered on it. The /check endpoint above even
+// advertised the path. Nothing in the apps called either route; they were left over
+// from manual testing, and the authenticated /save, /mobile/save and /test routes
+// below already cover every legitimate use.
 
 router.post('/save', authMiddleware, async (req, res, next) => {
     try {

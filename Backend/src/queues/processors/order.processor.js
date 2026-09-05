@@ -19,7 +19,7 @@ export const processOrderJob = async (job) => {
     // Handle Smart Dispatch Timeout
     if (action === 'DISPATCH_TIMEOUT_CHECK') {
         try {
-            const { processDispatchTimeout } = await import('../../../modules/food/orders/services/order.service.js');
+            const { processDispatchTimeout } = await import('../../modules/food/orders/services/order.service.js');
             // Pass full data object to allow attempt count and other options
             await processDispatchTimeout(orderMongoId, data.partnerId, data);
         } catch (err) {
@@ -29,7 +29,7 @@ export const processOrderJob = async (job) => {
 
     if (action === 'ORDER_ACCEPTANCE_TIMEOUT_CHECK') {
         try {
-            const { expireUnacceptedOrderById } = await import('../../../modules/food/orders/services/order.service.js');
+            const { expireUnacceptedOrderById } = await import('../../modules/food/orders/services/order.service.js');
             await expireUnacceptedOrderById(orderMongoId);
         } catch (err) {
             logger.error(`[BullMQ:order] ORDER_ACCEPTANCE_TIMEOUT_CHECK failed: ${err.message}`);

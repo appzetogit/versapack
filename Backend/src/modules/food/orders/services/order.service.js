@@ -8,7 +8,12 @@ import { FoodRestaurant } from '../../restaurant/models/restaurant.model.js';
 import { FoodDeliveryPartner } from '../../delivery/models/deliveryPartner.model.js';
 import { FoodZone } from '../../admin/models/zone.model.js';
 import { ValidationError, ForbiddenError, NotFoundError } from '../../../../core/auth/errors.js';
-import { reserveStockForItems, releaseReservations, restoreOrderStock } from './inventory.service.js';
+import {
+  reserveStockForItems,
+  releaseReservations,
+  restoreOrderStock,
+  releaseUnfulfilledStock,
+} from './inventory.service.js';
 import { findZoneForPoint, readAddressPoint } from '../../shared/zoneServiceability.js';
 import { buildPaginationOptions, buildPaginatedResult } from '../../../../utils/helpers.js';
 import { FoodOffer } from '../../admin/models/offer.model.js';
@@ -38,10 +43,12 @@ import {
   calculateRiderEarning,
   getDeliveryDistanceKm,
   loadActiveFeeSettings,
+  repriceForFulfilledItems,
   loadRestaurantForOrdering,
   assertRestaurantOpenForOrdering,
 } from './order-pricing.service.js';
-import { normalizeDeliveryAddress } from '../../shared/geo.utils.js';
+import { calculateDistanceKm, normalizeDeliveryAddress } from '../../shared/geo.utils.js';
+import { buildTaxBreakdown } from './gstSplit.util.js';
 import * as dispatchService from './order-dispatch.service.js';
 import * as deliveryService from './order-delivery.service.js';
 import * as paymentService from './order-payment.service.js';
@@ -201,7 +208,45 @@ async function resolveServiceableZone(restaurant, deliveryAddress) {
     throw new ValidationError('This seller does not deliver to the selected address');
   }
 
+  assertWithinDarkStoreRadius(restaurant, deliveryAddress);
+
   return zone;
+}
+
+/**
+ * A dark store's hard delivery edge.
+ *
+ * The zone test above is necessary and nowhere near sufficient here. A zone is drawn
+ * by hand and routinely covers a whole city, so an order placed to an address 8 km
+ * from the store passes it — and is then quoted ten minutes, which nothing on a bike
+ * can honour. The radius is what actually makes the promise true, so it is enforced
+ * where the order is created rather than trusted from whichever store the client
+ * happened to send.
+ *
+ * Straight-line, matching store assignment: the two must agree about who is
+ * serviceable or a customer is offered a store at browse time and refused at
+ * checkout. Marketplace sellers are untouched — they make no such promise and stay
+ * governed by their zone.
+ */
+function assertWithinDarkStoreRadius(restaurant, deliveryAddress) {
+  if (restaurant?.storeType !== 'dark_store') return;
+
+  const radiusKm = Number(restaurant.serviceRadiusKm);
+  if (!Number.isFinite(radiusKm) || radiusKm <= 0) return;
+
+  // The same helper the pricing path uses for store ↔ customer, so the distance
+  // enforced here and the distance the fee and promise are built from are the same
+  // number. It returns null for a store or address with no usable coordinates,
+  // which cannot be distance-checked: refusing those outright would block real
+  // customers over missing data an admin never entered, and the zone test that
+  // already passed still stands.
+  const distanceKm = calculateDistanceKm(restaurant, deliveryAddress);
+
+  if (Number.isFinite(distanceKm) && distanceKm > radiusKm) {
+    throw new ValidationError(
+      "This address is outside the delivery range of the store your cart is from. Please pick a nearer address, or start a new cart.",
+    );
+  }
 }
 
 async function expireStalePendingPaymentOrders() {
@@ -253,6 +298,133 @@ function buildCancellationRefundDescription(order, cancelledBy = 'system') {
   }
 }
 
+/**
+ * Sends money back by whichever route it arrived, and says nothing about the order.
+ *
+ * Split out of applyCancellationRefund so a partial refund can reuse the transport
+ * without inheriting the status changes that go with killing an order. Mutates only
+ * `payment.refund` on a razorpay failure, where the refund id is the only record.
+ */
+async function sendRefundToCustomer(order, amount, description, meta = {}) {
+  const paymentMethod = String(order.payment?.method || 'cash').toLowerCase();
+
+  if (paymentMethod === 'razorpay') {
+    const paymentId = String(order.payment?.razorpay?.paymentId || '').trim();
+    if (!paymentId) {
+      return { processed: false, reason: 'missing_razorpay_payment_id', method: paymentMethod };
+    }
+    const result = await initiateRazorpayRefund(paymentId, amount);
+    return result.success
+      ? { processed: true, method: paymentMethod, refundId: result.refundId }
+      : { processed: false, reason: result.error || 'razorpay_refund_failed', method: paymentMethod };
+  }
+
+  if (paymentMethod === 'wallet') {
+    await userWalletService.refundWalletBalance(order.userId, amount, description, {
+      orderId: order._id,
+      ...meta,
+    });
+    return { processed: true, method: paymentMethod };
+  }
+
+  return { processed: false, reason: `unsupported_method_${paymentMethod}`, method: paymentMethod };
+}
+
+/**
+ * Refunds part of an order that is still going to be delivered.
+ *
+ * Deliberately NOT applyCancellationRefund with a smaller number. That function sets
+ * `payment.status = 'refunded'`, which is right for an order that is over and wrong in
+ * three ways for one that is not: the order drops out of the admin's paid filter, the
+ * seller's list stops treating it as payable, and — the one that actually costs money —
+ * a later full cancellation hits its `already_refunded` guard and returns nothing, so
+ * the customer would lose everything still owed to them.
+ *
+ * The status stays 'paid' and the refunded total accumulates. Because the caller has
+ * already reduced `pricing.total` to what the customer is still buying, a subsequent
+ * cancellation refunds exactly the remainder with no special-casing.
+ */
+async function applyPartialRefund(order, { amount, description, cancelledBy = 'restaurant' } = {}) {
+  const value = Number(amount);
+  if (!order?.payment) return { attempted: false, processed: false, reason: 'missing_payment' };
+  if (!Number.isFinite(value) || value <= 0) {
+    return { attempted: false, processed: false, reason: 'invalid_amount' };
+  }
+
+  const paymentMethod = String(order.payment?.method || 'cash').toLowerCase();
+  const paymentStatus = String(order.payment?.status || '').toLowerCase();
+
+  // Cash collects less at the door instead; there is nothing held to send back.
+  if (paymentMethod === 'cash' || paymentMethod === 'cod') {
+    return { attempted: false, processed: false, reason: 'cash_payment' };
+  }
+  if (paymentStatus !== 'paid') {
+    return { attempted: false, processed: false, reason: `payment_status_${paymentStatus || 'unknown'}` };
+  }
+
+  const result = await sendRefundToCustomer(order, value, description, { cancelledBy, partial: true });
+
+  const alreadyRefunded = Number(order.payment.refund?.amount) || 0;
+  if (result.processed) {
+    order.payment.refund = {
+      // 'partial' rather than 'processed': the latter is what the cancellation guard
+      // reads to decide an order has already been made whole.
+      status: 'partial',
+      amount: round2Money(alreadyRefunded + value),
+      refundId: result.refundId || order.payment.refund?.refundId || '',
+      processedAt: new Date(),
+    };
+  } else {
+    order.payment.refund = {
+      status: 'failed',
+      amount: round2Money(alreadyRefunded + value),
+      refundId: order.payment.refund?.refundId || '',
+    };
+  }
+
+  return { attempted: true, ...result };
+}
+
+const round2Money = (value) => Math.round((Number(value) || 0) * 100) / 100;
+
+/**
+ * Pays a customer back for goods returned after delivery.
+ *
+ * Reuses applyPartialRefund rather than applyCancellationRefund for the same reason
+ * short-picking does: the order was delivered and is not being undone, so its payment
+ * must not be flipped to 'refunded'. A delivered order marked fully refunded drops out
+ * of the paid reporting it belongs in, and would let a later refund path decide it had
+ * already been made whole.
+ */
+export async function applyReturnRefund(order, amount, returnId) {
+  if (!order) throw new ValidationError('Order not found for refund');
+
+  const result = await applyPartialRefund(order, {
+    amount,
+    description: `Refund for returned items on order #${order.order_id || order._id}`,
+    cancelledBy: 'admin',
+  });
+  await order.save();
+
+  if (!result.processed) {
+    // Cash orders reach here: the money was collected at the door and there is no
+    // instrument to send it back through, so it becomes a wallet credit instead of
+    // silently succeeding.
+    if (result.reason === 'cash_payment') {
+      await userWalletService.refundWalletBalance(
+        order.userId,
+        amount,
+        `Refund for returned items on order #${order.order_id || order._id}`,
+        { orderId: order._id, returnId: String(returnId), source: 'return' },
+      );
+      return { processed: true, method: 'wallet_credit' };
+    }
+    throw new Error(result.reason || 'refund_failed');
+  }
+
+  return result;
+}
+
 async function applyCancellationRefund(order, { cancelledBy = 'system', refundAmount } = {}) {
   if (!order?.payment) {
     return { attempted: false, processed: false, reason: 'missing_payment' };
@@ -294,7 +466,9 @@ async function applyCancellationRefund(order, { cancelledBy = 'system', refundAm
       order.payment.status = 'refunded';
       order.payment.refund = {
         status: 'processed',
-        amount,
+        // Added to whatever a partial refund already returned, so the field means
+        // "total sent back on this order" rather than "size of the last refund".
+        amount: round2Money((Number(order.payment.refund?.amount) || 0) + amount),
         refundId: refundResult.refundId,
         processedAt: new Date(),
       };
@@ -323,7 +497,7 @@ async function applyCancellationRefund(order, { cancelledBy = 'system', refundAm
     order.payment.status = 'refunded';
     order.payment.refund = {
       status: 'processed',
-      amount,
+      amount: round2Money((Number(order.payment.refund?.amount) || 0) + amount),
       processedAt: new Date(),
     };
     return { attempted: true, processed: true, method: paymentMethod };
@@ -545,6 +719,12 @@ export async function createOrder(userId, dto) {
         : null,
       total: Number(pricingResult.pricing?.total) || 0,
       currency: String(pricingResult.pricing?.currency || "INR"),
+      // What the customer was actually shown. Left out of this list, it never
+      // reached the document, and everything downstream that reads the promise --
+      // batching above all -- saw an order that had never made one.
+      deliveryPromiseMinutes: Number.isFinite(Number(pricingResult.pricing?.deliveryPromiseMinutes))
+        ? Number(pricingResult.pricing.deliveryPromiseMinutes)
+        : null,
       // Same road distance source as cart preview / delivery Rest→User.
       distanceKm: Number.isFinite(Number(pricingResult.pricing?.distanceKm))
         ? Number(pricingResult.pricing.distanceKm)
@@ -567,7 +747,16 @@ export async function createOrder(userId, dto) {
 
     const payment = {
       method: paymentMethod,
-      status: isCash ? "cod_pending" : isWallet ? "paid" : "created",
+      // A wallet order is written as 'created', NOT 'paid', and is promoted to 'paid'
+      // only once the debit below actually succeeds.
+      //
+      // It used to be saved as 'paid' before a rupee had moved, on the assumption
+      // that the debit that follows would either work or be undone by deleting the
+      // order. When that delete failed — and it is the one step with no retry — the
+      // customer was left holding a fully paid order that had never been paid for.
+      // Writing the truthful status first makes the bad outcome an unpaid order that
+      // nothing downstream will dispatch, instead of a free one.
+      status: isCash ? "cod_pending" : "created",
       amountDue: normalizedPricing.total || 0,
       razorpay: {},
       qr: {},
@@ -603,6 +792,17 @@ export async function createOrder(userId, dto) {
     }
 
     normalizedPricing.restaurantCommission = restaurantCommission;
+
+    // The invoice components for the tax already computed above. Charges nothing
+    // extra -- the customer pays the same figure either way -- but a tax invoice for
+    // goods has to state whether it was CGST+SGST or IGST, and a single `tax` number
+    // cannot. Place of supply for delivered goods is the delivery address, so it is
+    // the store's state that is compared against, not the platform's.
+    normalizedPricing.taxBreakdown = buildTaxBreakdown(
+      normalizedPricing.tax,
+      restaurant,
+      deliveryAddress,
+    );
 
     // Provisional value; synced to the transaction's platformNetProfit (which also
     // accounts for the admin discount share) once the initial transaction is created.
@@ -730,11 +930,39 @@ export async function createOrder(userId, dto) {
 
     if (isWallet) {
       try {
-        await userWalletService.deductWalletBalance(userId, order.pricing.total, `Payment for order #${order.order_id || order._id}`, { orderId: order._id });
+        // Atomic: the balance check and the debit are one conditional update, so two
+        // orders placed at the same instant cannot both spend the same money.
+        await userWalletService.deductWalletBalance(
+          userId,
+          order.pricing.total,
+          `Payment for order #${order.order_id || order._id}`,
+          { orderId: order._id },
+        );
       } catch (err) {
         await restoreOrderStock(order);
         await FoodOrder.deleteOne({ _id: order._id });
         throw err;
+      }
+
+      // Money has moved; the order may now say so.
+      //
+      // Kept as its own conditional update rather than folded into the save above:
+      // `payment.status` must not read 'paid' during the window where the debit is
+      // still in flight. The `$ne` guard makes a retry a no-op instead of a second
+      // promotion.
+      const promoted = await FoodOrder.updateOne(
+        { _id: order._id, "payment.status": { $ne: "paid" } },
+        { $set: { "payment.status": "paid" } },
+      );
+      if (promoted.modifiedCount === 1) {
+        order.payment.status = "paid";
+      } else {
+        // The debit succeeded but the order could not be marked paid. The customer
+        // has been charged, so the order is NOT rolled back — the wallet transaction
+        // carries this orderId in its metadata, which is what reconciliation needs.
+        logger.error(
+          `[CRITICAL] wallet debited but order ${order._id} not marked paid; reconcile manually`,
+        );
       }
     }
 
@@ -1748,6 +1976,236 @@ export async function listOrdersRestaurant(restaurantId, query) {
       pages: paginated.meta.totalPages,
     },
   };
+}
+
+/**
+ * Statuses during which a seller is still holding the goods and can report a shortfall.
+ *
+ * Before acceptance there is nothing to pick; from the moment a rider has the bag it is
+ * too late to change what is in it, and refunding then would be refunding an order that
+ * is already on its way.
+ */
+const PICKABLE_STATUSES = new Set(['confirmed', 'preparing', 'ready_for_pickup']);
+
+/**
+ * A seller reports the quantities they could actually pick.
+ *
+ * Groceries run out between the customer tapping "order" and the picker reaching the
+ * shelf. Until this existed the only available answer was to cancel the whole order —
+ * at realistic grocery pick rates, that means cancelling a large share of them over one
+ * missing item. Here the order survives, the customer is refunded for exactly what they
+ * did not get, and the units nobody took go back on the shelf.
+ *
+ * Deliberately NOT a substitution flow. Offering a replacement means waiting on a
+ * customer who may be nowhere near their phone, which needs a hold state, a timeout and
+ * a way to release the rider — none of which exist. Refunding the difference is what
+ * the customer would have chosen anyway in most cases, and it needs nobody's attention.
+ *
+ * @param {string} orderId
+ * @param {string} restaurantId The seller from the token, never from the request body.
+ * @param {Array<{ index: number, fulfilledQty: number }>} lines
+ * @param {string} note
+ */
+export async function reportPickShortfall(orderId, restaurantId, lines = [], note = "") {
+  const identity = buildOrderIdentityFilter(orderId);
+  if (!identity) throw new ValidationError("Order id required");
+
+  const order = await FoodOrder.findOne({
+    ...identity,
+    restaurantId: new mongoose.Types.ObjectId(String(restaurantId)),
+  });
+  if (!order) throw new NotFoundError("Order not found");
+
+  if (!canExposeOrderToRestaurant(order)) {
+    throw new ValidationError("This order is not payable yet and cannot be updated");
+  }
+  if (!PICKABLE_STATUSES.has(String(order.orderStatus || ""))) {
+    throw new ValidationError(
+      `An order that is '${order.orderStatus}' can no longer be re-picked`,
+    );
+  }
+  // The claim that makes the refund and the restock happen exactly once. A seller who
+  // double-taps, or resubmits the same stock-take, must not be able to refund twice.
+  if (order.fulfilment?.reportedAt) {
+    throw new ValidationError("This order's picked quantities were already reported");
+  }
+
+  const items = Array.isArray(order.items) ? order.items : [];
+  const fulfilled = items.map((item) => Number(item?.quantity) || 0);
+
+  for (const line of Array.isArray(lines) ? lines : []) {
+    const index = Number(line?.index);
+    if (!Number.isInteger(index) || index < 0 || index >= items.length) {
+      throw new ValidationError(`No such line on this order: ${line?.index}`);
+    }
+    const ordered = Number(items[index]?.quantity) || 0;
+    const picked = Number(line?.fulfilledQty);
+    if (!Number.isFinite(picked) || picked < 0 || picked > ordered) {
+      throw new ValidationError(
+        `Picked quantity for "${items[index]?.name}" must be between 0 and ${ordered}`,
+      );
+    }
+    fulfilled[index] = Math.floor(picked);
+  }
+
+  const feeSettings = await loadActiveFeeSettings();
+  const repriced = repriceForFulfilledItems(order, fulfilled, Number(feeSettings?.gstRate) || 0);
+
+  // Nothing picked is not a partial fulfilment. There is no order left to deliver, and
+  // billing the delivery fee for a journey nobody will make would be indefensible, so
+  // this becomes an ordinary seller cancellation with a full refund and a full restock.
+  if (repriced.nothingFulfilled) {
+    return cancelOrderRestaurantForEmptyPick(order, restaurantId, note);
+  }
+
+  // Put the shortfall back on the shelf BEFORE the order records it as picked, so a
+  // failure here cannot leave stock written off against an order that never held it.
+  await releaseUnfulfilledStock(items, fulfilled);
+
+  const originalTotal = Number(order.pricing?.total) || 0;
+
+  items.forEach((item, index) => {
+    const ordered = Number(item.quantity) || 0;
+    item.fulfilledQty = fulfilled[index];
+    item.pickStatus =
+      fulfilled[index] === ordered ? 'picked' : fulfilled[index] === 0 ? 'unavailable' : 'short';
+  });
+
+  order.pricing = { ...order.pricing, ...repriced.pricing };
+  order.fulfilment = {
+    reportedAt: new Date(),
+    originalTotal,
+    refundAmount: repriced.refundAmount,
+    note: String(note || ""),
+  };
+
+  // What is still owed on a cash order is the reduced figure; the rider must not be
+  // sent to collect for items nobody is delivering.
+  if (order.payment) order.payment.amountDue = repriced.pricing.total;
+
+  pushStatusHistory(order, {
+    byRole: 'RESTAURANT',
+    byId: restaurantId,
+    from: order.orderStatus,
+    to: order.orderStatus,
+    note: `Short-picked: refund ₹${repriced.refundAmount}. ${note || ''}`.trim(),
+  });
+
+  await order.save();
+
+  // Only money already taken can be given back. A cash order simply collects less,
+  // which the reduced payment.amountDue above already expresses.
+  if (repriced.refundAmount > 0 && isPrepaidOrder(order)) {
+    try {
+      await applyPartialRefund(order, {
+        amount: repriced.refundAmount,
+        description: `Refund for out-of-stock items on order #${order.order_id || order._id}`,
+        cancelledBy: 'restaurant',
+      });
+      await order.save();
+    } catch (err) {
+      // The customer is owed money and did not get it. Loud, and left for
+      // reconciliation rather than rolled back — the goods are already short.
+      logger.error(
+        `[CRITICAL] partial-fulfilment refund of ${repriced.refundAmount} failed for order ${order._id}: ${err?.message || err}`,
+      );
+    }
+  }
+
+  const shortLines = items
+    .filter((item) => item.pickStatus !== 'picked')
+    .map((item) => item.name)
+    .filter(Boolean);
+
+  await notifyOwnersSafely([{ ownerType: "USER", ownerId: order.userId }], {
+    title: "Some items were unavailable",
+    body:
+      `${shortLines.slice(0, 3).join(', ')}${shortLines.length > 3 ? ' and more' : ''} ` +
+      `could not be packed. ₹${repriced.refundAmount} is being refunded; the rest of your order is on its way.`,
+    image: "https://i.ibb.co/5GzXz7r/VersaPack-Brand-Image.png",
+    data: {
+      type: "order_partially_fulfilled",
+      orderId: String(order._id),
+      orderMongoId: String(order._id),
+      refundAmount: String(repriced.refundAmount),
+    },
+  });
+
+  try {
+    await foodTransactionService.updateTransactionStatus(order._id, 'partially_fulfilled', {
+      status: 'captured',
+      recordedByRole: 'RESTAURANT',
+      recordedById: restaurantId,
+      note: `Short-picked. Refunded ${repriced.refundAmount} of ${originalTotal}.`,
+    });
+  } catch (err) {
+    logger.warn(`reportPickShortfall transaction sync failed: ${err?.message || err}`);
+  }
+
+  enqueueOrderEvent('order_partially_fulfilled', {
+    orderMongoId: order._id?.toString?.(),
+    orderId: order._id.toString(),
+    restaurantId: String(restaurantId),
+    refundAmount: repriced.refundAmount,
+  });
+
+  return sanitizeOrderForExternal(order);
+}
+
+/** Only these have money sitting with us that can actually be sent back. */
+function isPrepaidOrder(order) {
+  const method = String(order?.payment?.method || '').toLowerCase();
+  const status = String(order?.payment?.status || '').toLowerCase();
+  if (method === 'cash') return false;
+  return status === 'paid' || status === 'authorized';
+}
+
+/** A stock-take that found nothing is a cancellation, handled as the seller's. */
+async function cancelOrderRestaurantForEmptyPick(order, restaurantId, note) {
+  order.orderStatus = 'cancelled_by_restaurant';
+  pushStatusHistory(order, {
+    byRole: 'RESTAURANT',
+    byId: restaurantId,
+    from: order.orderStatus,
+    to: 'cancelled_by_restaurant',
+    note: note || 'No items could be picked',
+  });
+
+  await restoreOrderStock(order);
+  try {
+    await applyCancellationRefund(order, { cancelledBy: 'restaurant' });
+  } catch (err) {
+    logger.error(
+      `[CRITICAL] empty-pick refund failed for order ${order._id}: ${err?.message || err}`,
+    );
+  }
+
+  order.fulfilment = {
+    reportedAt: new Date(),
+    originalTotal: Number(order.pricing?.total) || 0,
+    refundAmount: Number(order.pricing?.total) || 0,
+    note: String(note || ''),
+  };
+  await order.save();
+
+  await notifyOwnersSafely([{ ownerType: 'USER', ownerId: order.userId }], {
+    title: 'Order Cancelled ❌',
+    body: `Order #${order.order_id || order._id} was cancelled because none of the items were in stock. Your refund is being processed.`,
+    image: 'https://i.ibb.co/5GzXz7r/VersaPack-Brand-Image.png',
+    data: {
+      type: 'order_cancelled',
+      orderId: String(order._id),
+      orderMongoId: String(order._id),
+    },
+  });
+
+  enqueueOrderEvent('order_cancelled_by_restaurant', {
+    orderMongoId: order._id?.toString?.(),
+    orderId: order._id.toString(),
+    restaurantId: String(restaurantId),
+  });
+
+  return sanitizeOrderForExternal(order);
 }
 
 export async function updateOrderStatusRestaurant(

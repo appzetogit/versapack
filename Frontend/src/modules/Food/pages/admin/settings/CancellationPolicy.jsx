@@ -4,6 +4,7 @@ import api from "@food/api"
 import { API_ENDPOINTS } from "@food/api/config"
 import { Textarea } from "@food/components/ui/textarea"
 import { legalHtmlToPlainText, plainTextToLegalHtml } from "@food/utils/legalContentFormat"
+import { safeHtml } from "@food/utils/sanitizeHtml"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
@@ -146,7 +147,7 @@ export default function CancellationPolicy() {
                   prose-ul:text-slate-700
                   prose-li:my-1
                   leading-relaxed"
-                dangerouslySetInnerHTML={{ __html: plainTextToLegalHtml(cancellationData.content) }}
+                dangerouslySetInnerHTML={safeHtml(plainTextToLegalHtml(cancellationData.content))}
               />
             </div>
           )}

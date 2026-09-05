@@ -1259,39 +1259,6 @@ export const updateCurrentRestaurantDiningSettings = async (restaurantId, body =
         }
     ).lean();
 
-    // Sync with FoodDiningRestaurant for public visibility (Dining Section)
-    try {
-        const { FoodDiningRestaurant } = await import('../../dining/models/diningRestaurant.model.js');
-        const { FoodDiningCategory } = await import('../../dining/models/diningCategory.model.js');
-
-        const isEnabled = parseBoolean(body.isEnabled, currentDiningSettings.isEnabled);
-
-        let primaryCategoryId = null;
-        if (diningType) {
-            // Find category by slug (diningType) to link correctly
-            const category = await FoodDiningCategory.findOne({ slug: diningType }).select('_id').lean();
-            if (category) {
-                primaryCategoryId = category._id;
-            }
-        }
-
-        await FoodDiningRestaurant.findOneAndUpdate(
-            { restaurantId },
-            {
-                $set: {
-                    isEnabled,
-                    maxGuests,
-                    primaryCategoryId,
-                    categoryIds: primaryCategoryId ? [primaryCategoryId] : [],
-                    pureVegRestaurant: doc.pureVegRestaurant === true
-                }
-            },
-            { upsert: true }
-        );
-    } catch (syncError) {
-        console.error('[DINING_SYNC_ERROR] Failed to sync with FoodDiningRestaurant:', syncError);
-    }
-
     return toRestaurantProfile(doc);
 
 };

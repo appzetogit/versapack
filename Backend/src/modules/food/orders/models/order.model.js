@@ -7,10 +7,32 @@ const orderItemSchema = new mongoose.Schema(
         variantId: { type: String, trim: true, default: '' },
         variantName: { type: String, trim: true, default: '' },
         variantPrice: { type: Number, min: 0, default: 0 },
+        /**
+         * Whether this line draws down the VARIANT's own stock rather than the
+         * product's. Stored, not recomputed: the reservation was made against one
+         * specific shelf, and a seller adding a per-variant count later must not
+         * change which shelf an existing order gets restocked to on cancellation.
+         */
+        variantTracked: { type: Boolean, default: false },
         price: { type: Number, required: true, min: 0 },
         /** Compare-at / other-platform unit price snapshot at order time. */
         otherPrice: { type: Number, min: 0, default: 0 },
         quantity: { type: Number, required: true, min: 1 },
+        /**
+         * Units the seller actually picked, once they have reported.
+         *
+         * `quantity` stays exactly what the customer ordered — the receipt has to keep
+         * saying that — so the shortfall is `quantity - fulfilledQty`. null means not
+         * yet reported, which is every line on every order placed before this existed
+         * and every line on an order still being picked. That distinction matters:
+         * null is "we do not know yet", 0 is "the seller could not find any".
+         */
+        fulfilledQty: { type: Number, default: null, min: 0 },
+        pickStatus: {
+            type: String,
+            enum: ['pending', 'picked', 'short', 'unavailable'],
+            default: 'pending'
+        },
         isVeg: { type: Boolean, default: true },
         /**
          * Rate this line was taxed at, snapshotted like the price is: a
@@ -20,6 +42,13 @@ const orderItemSchema = new mongoose.Schema(
         gstRate: { type: Number, min: 0, max: 100, default: null },
         brand: { type: String, trim: true, default: '' },
         packSize: { type: String, trim: true, default: '' },
+        /**
+         * HSN code this line was invoiced under, snapshotted for the same reason
+         * `gstRate` is: a product can be reclassified, and a tax invoice has to keep
+         * saying what it actually said when it was issued. Empty means the product
+         * had no code recorded at order time.
+         */
+        hsnCode: { type: String, trim: true, default: '' },
         /**
          * Category this line belonged to, snapshotted at order time.
          *
@@ -84,6 +113,23 @@ const pricingSchema = new mongoose.Schema(
     {
         subtotal: { type: Number, required: true, min: 0 },
         tax: { type: Number, default: 0, min: 0 },
+        /**
+         * The same tax, split the way an invoice for goods has to show it.
+         *
+         * A single figure charges the right amount and cannot be printed on a lawful
+         * invoice: GST is CGST plus SGST within a state and IGST across one, and the
+         * document must say which. The customer pays the same either way, so this is
+         * a record of what was charged rather than a change to it. Snapshotted for
+         * the same reason gstRate and hsnCode are -- a store re-registered in another
+         * state must not retroactively alter an invoice already issued.
+         */
+        taxBreakdown: {
+            cgst: { type: Number, default: 0, min: 0 },
+            sgst: { type: Number, default: 0, min: 0 },
+            igst: { type: Number, default: 0, min: 0 },
+            placeOfSupply: { type: String, trim: true, default: '' },
+            isIntraState: { type: Boolean, default: true },
+        },
         packagingFee: { type: Number, default: 0, min: 0 },
         deliveryFee: { type: Number, default: 0, min: 0 },
         deliveryFeeGst: { type: Number, default: 0, min: 0 },
@@ -91,6 +137,17 @@ const pricingSchema = new mongoose.Schema(
         /** Extra surcharge when user selects Quick Mode (also included in platformFee). */
         quickDeliveryFee: { type: Number, default: 0, min: 0 },
         deliveryMode: { type: String, enum: ['basic', 'quick'], default: 'basic' },
+        /**
+         * The delivery time quoted to the customer, in minutes, at the moment they
+         * committed. Stored because it is the commitment -- batching reads it to
+         * refuse any trip that would make an existing order late, and recomputing it
+         * later from distance would measure something the customer never agreed to.
+         *
+         * It was previously computed, returned to the client, and then dropped on
+         * save because this field did not exist, so every stored order looked like it
+         * had no promise at all and the batching guard had nothing to enforce.
+         */
+        deliveryPromiseMinutes: { type: Number, default: null, min: 0 },
         restaurantCommission: { type: Number, default: 0, min: 0 },
         discount: { type: Number, default: 0, min: 0 },
         couponCode: { type: String, default: null, trim: true, uppercase: true },
@@ -141,10 +198,15 @@ const paymentSchema = new mongoose.Schema(
         },
         // ✅ NEW: Added refund object to track refund status without breaking existing flow
         refund: {
-            status: { 
-                type: String, 
-                enum: ['none', 'pending', 'processed', 'failed'], 
-                default: 'none' 
+            status: {
+                type: String,
+                // 'partial' is distinct from 'processed' on purpose: an order that has
+                // been partly refunded is still live and still owes the customer goods,
+                // and the cancellation path reads 'processed' to mean "already made
+                // whole" and skip refunding. Collapsing the two would let a partly
+                // refunded order be cancelled with nothing returned.
+                enum: ['none', 'pending', 'processed', 'partial', 'failed'],
+                default: 'none'
             },
             amount: { type: Number, default: 0 },
             refundId: { type: String, default: '' },
@@ -341,6 +403,20 @@ const orderSchema = new mongoose.Schema(
         statusHistory: {
             type: [statusHistorySchema],
             default: []
+        },
+        /**
+         * Record of a seller reporting what they could actually pick.
+         *
+         * `reportedAt` doubles as the idempotency claim: the shortfall is refunded and
+         * restocked exactly once, and a seller who submits the same stock-take twice —
+         * or double-taps — cannot refund the customer a second time.
+         */
+        fulfilment: {
+            reportedAt: { type: Date, default: null },
+            /** What the customer was charged before the shortfall, for reconciliation. */
+            originalTotal: { type: Number, default: null },
+            refundAmount: { type: Number, default: null },
+            note: { type: String, trim: true, default: '' }
         },
         ratings: {
             type: orderRatingsSchema,

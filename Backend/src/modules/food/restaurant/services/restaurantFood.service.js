@@ -1,5 +1,7 @@
 import mongoose from 'mongoose';
 import { ValidationError } from '../../../../core/auth/errors.js';
+import { FoodMasterProduct } from '../../admin/models/masterProduct.model.js';
+import { findMasterByBarcode } from '../../shared/masterProduct.resolve.js';
 import { FoodItem } from '../../admin/models/food.model.js';
 import { FoodCategory } from '../../admin/models/category.model.js';
 import { normalizeFoodImages } from '../../admin/services/foodImages.util.js';
@@ -29,8 +31,14 @@ const normalizeFoodType = (v) => {
     if (t === 'Veg') return 'Veg';
     if (t === 'Non-Veg') return 'Non-Veg';
     if (t === 'Egg') return 'Non-Veg';
+    // Products the veg question does not apply to. Only honoured when asked for
+    // explicitly -- an unrecognised value still falls back to 'Non-Veg', because
+    // silently marking an unknown food as veg is the one wrong answer here.
+    if (t === 'None') return 'None';
     return 'Non-Veg';
 };
+
+const NET_QUANTITY_UNITS = new Set(['g', 'kg', 'ml', 'l', 'piece']);
 
 const getCreateFoodPricing = (body = {}) => {
     const variants = normalizeFoodVariantsInput(extractRawFoodVariants(body));
@@ -174,6 +182,71 @@ const buildCatalogUpdate = (body = {}) => {
                 throw new ValidationError('GST rate must be between 0 and 100');
             }
             update.gstRate = rate;
+        }
+    }
+
+    if (body.hsnCode !== undefined) update.hsnCode = toStr(body.hsnCode);
+    if (body.countryOfOrigin !== undefined) update.countryOfOrigin = toStr(body.countryOfOrigin);
+    if (body.manufacturerName !== undefined) update.manufacturerName = toStr(body.manufacturerName);
+    if (body.marketedByName !== undefined) update.marketedByName = toStr(body.marketedByName);
+
+    if (body.netQuantity !== undefined) {
+        if (body.netQuantity === null || body.netQuantity === '') {
+            update.netQuantity = null;
+        } else {
+            const qty = Number(body.netQuantity);
+            if (!Number.isFinite(qty) || qty < 0) throw new ValidationError('Net quantity is invalid');
+            update.netQuantity = qty;
+        }
+    }
+
+    if (body.netQuantityUnit !== undefined) {
+        const unit = toStr(body.netQuantityUnit).toLowerCase();
+        if (!unit) {
+            update.netQuantityUnit = null;
+        } else if (!NET_QUANTITY_UNITS.has(unit)) {
+            throw new ValidationError(
+                `Net quantity unit must be one of ${[...NET_QUANTITY_UNITS].join(', ')}`,
+            );
+        } else {
+            update.netQuantityUnit = unit;
+        }
+    }
+
+    // A number with no unit is not a quantity, and a unit with no number is not
+    // either. Rejecting the half-filled pair here keeps every price-per-unit
+    // consumer from having to decide what "500" on its own is supposed to mean.
+    const nextQty = update.netQuantity !== undefined ? update.netQuantity : undefined;
+    const nextUnit = update.netQuantityUnit !== undefined ? update.netQuantityUnit : undefined;
+    if (nextQty !== undefined || nextUnit !== undefined) {
+        const qtySet = nextQty !== undefined ? nextQty !== null : null;
+        const unitSet = nextUnit !== undefined ? nextUnit !== null : null;
+        // Only judge when both sides of the pair are present in this request;
+        // a partial edit is resolved against the stored document by the caller.
+        if (qtySet !== null && unitSet !== null && qtySet !== unitSet) {
+            throw new ValidationError('Net quantity and its unit must be set together');
+        }
+    }
+
+    if (body.isReturnable !== undefined) update.isReturnable = body.isReturnable === true;
+
+    // A seller may point a listing at a master, or detach it, but the linking itself is
+    // resolved from the barcode below rather than trusted from the request — a seller
+    // naming an arbitrary master could otherwise attach their listing to a product they
+    // do not stock and inherit its name, images and tax code.
+    if (body.masterProductId === null || body.masterProductId === '') {
+        update.masterProductId = null;
+    }
+
+    if (body.returnWindowHours !== undefined) {
+        if (body.returnWindowHours === null || body.returnWindowHours === '') {
+            update.returnWindowHours = null;
+        } else {
+            const hours = Number(body.returnWindowHours);
+            if (!Number.isFinite(hours) || hours < 0) {
+                throw new ValidationError('Return window must be zero or more hours');
+            }
+            update.returnWindowHours = hours;
         }
     }
 
@@ -442,6 +515,10 @@ export async function createRestaurantFood(restaurantId, body = {}) {
     const catalogFields = buildCatalogUpdate(body);
     assertPriceWithinMrp(price, catalogFields.mrp, variants);
 
+    // Scanned barcode links the listing to the shared product automatically. Null when
+    // there is no barcode or no master carries it, which leaves a standalone listing.
+    const masterProductId = await findMasterByBarcode(FoodMasterProduct, catalogFields.barcode);
+
     const description = toStr(body.description);
     const isAvailable = body.isAvailable !== false;
     const foodType = normalizeFoodType(body.foodType);
@@ -464,6 +541,7 @@ export async function createRestaurantFood(restaurantId, body = {}) {
         isAvailable,
         // Undefined leaves the schema default (null = untracked), so a seller
         // who never enters a count keeps the old always-in-stock behaviour.
+        masterProductId,
         stockQty: parseStockNumber(body.stockQty) ?? undefined,
         lowStockThreshold: parseStockNumber(body.lowStockThreshold) ?? undefined,
         maxQtyPerOrder: parseStockNumber(body.maxQtyPerOrder, { min: 1 }) ?? undefined,
@@ -519,6 +597,11 @@ export async function updateRestaurantFood(restaurantId, foodId, body = {}) {
     Object.assign(update, getUpdatedFoodPricing(existing, body));
     const catalogUpdate = buildCatalogUpdate(body);
     Object.assign(update, catalogUpdate);
+    // Re-resolved only when the barcode itself changed, so an unrelated edit never
+    // silently re-points a listing an admin has linked by hand.
+    if ('barcode' in catalogUpdate) {
+        update.masterProductId = await findMasterByBarcode(FoodMasterProduct, catalogUpdate.barcode);
+    }
     // Checked against whichever MRP and price end up on the document, so an edit
     // to either one alone cannot leave the item priced above its MRP.
     assertPriceWithinMrp(
@@ -555,7 +638,43 @@ export async function updateRestaurantFood(restaurantId, foodId, body = {}) {
         'name', 'description', 'image', 'images', 'price', 'variants',
         'foodType', 'categoryId', 'categoryName', 'preparationTime'
     ];
-    const shouldResubmitForApproval = Object.keys(update).some(key => CRITICAL_APPROVAL_FIELDS.includes(key));
+    /**
+     * Whether a field is genuinely different from what is already stored.
+     *
+     * The seller form posts the entire item on every save, so the critical fields
+     * are always present in `update` even when the seller only touched the stock
+     * count. Testing for presence therefore sent the product back to pending on
+     * every edit -- it vanished from the storefront until an admin re-approved it,
+     * which for a store correcting its shelf counts through the day is the whole
+     * catalogue going dark. Approval should turn on what actually changed.
+     */
+    const differsFromStored = (key) => {
+        const normalise = (value) => {
+            if (value === null || value === undefined) return null;
+            if (Array.isArray(value)) return JSON.stringify(value.map(normalise));
+            if (typeof value === 'object') {
+                // Subdocuments and ObjectIds both compare correctly by their
+                // canonical string form.
+                if (typeof value.toHexString === 'function') return value.toHexString();
+                const plain = value.toObject ? value.toObject() : value;
+                if (plain instanceof Date) return plain.toISOString();
+                return JSON.stringify(
+                    Object.keys(plain).sort().reduce((acc, k) => {
+                        if (k === '_id' || k === '__v') return acc;
+                        acc[k] = normalise(plain[k]);
+                        return acc;
+                    }, {}),
+                );
+            }
+            if (typeof value === 'number') return String(value);
+            return String(value).trim();
+        };
+        return normalise(update[key]) !== normalise(existing?.[key]);
+    };
+
+    const shouldResubmitForApproval = Object.keys(update)
+        .filter((key) => CRITICAL_APPROVAL_FIELDS.includes(key))
+        .some(differsFromStored);
 
     if (shouldResubmitForApproval) {
         update.approvalStatus = 'pending';

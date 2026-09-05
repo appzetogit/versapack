@@ -2,7 +2,6 @@ import { Outlet, useLocation, useNavigate } from "react-router-dom"
 import { useEffect, useState, createContext, useContext, useRef, useCallback } from "react"
 import { ProfileProvider } from "@food/context/ProfileContext"
 import { DeliveryLocationProvider } from "@food/context/DeliveryLocationContext"
-import LocationPrompt from "./LocationPrompt"
 import { CartProvider } from "@food/context/CartContext"
 import AutoCouponController from "@food/components/user/AutoCouponController"
 import { OrdersProvider } from "@food/context/OrdersContext"
@@ -212,7 +211,6 @@ export default function UserLayout() {
                 <div className="hidden md:block">
                   {showBottomNav && <DesktopNavbar showLogo />}
                 </div>
-                {/* <LocationPrompt /> */}
                 <main className={showBottomNav ? "md:pt-40" : ""}>
                   <Outlet />
                 </main>

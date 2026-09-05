@@ -20,6 +20,7 @@ let server = null;
 let autoDeliverInterval = null;
 let expireOffersInterval = null;
 let fssaiExpiryInterval = null;
+let batchDispatchInterval = null;
 
 const gracefulShutdown = async (signal) => {
     logger.info(`${signal} received, starting graceful shutdown`);
@@ -35,6 +36,7 @@ const gracefulShutdown = async (signal) => {
             if (autoDeliverInterval) clearInterval(autoDeliverInterval);
             if (expireOffersInterval) clearInterval(expireOffersInterval);
             if (fssaiExpiryInterval) clearInterval(fssaiExpiryInterval);
+            if (batchDispatchInterval) clearInterval(batchDispatchInterval);
             logger.info('Graceful shutdown complete');
             process.exit(0);
         } catch (err) {
@@ -83,6 +85,26 @@ const startBackgroundJobs = async () => {
     };
     await runAutoDeliver();
     autoDeliverInterval = setInterval(runAutoDeliver, 60 * 60 * 1000);
+
+    // Rider batches leave when their window closes, so this has to tick faster than
+    // the window itself -- a two-minute batch swept once a minute would routinely sit
+    // for three. Cheap: it is one indexed query that finds nothing most of the time,
+    // and it returns immediately when batching is switched off.
+    const runBatchDispatch = async () => {
+        try {
+            const { dispatchReadyBatches } = await import(
+                './src/modules/food/orders/services/order-dispatch.service.js'
+            );
+            const result = await dispatchReadyBatches();
+            if (result?.dispatched > 0) {
+                logger.info(`Batch sweep: ${result.dispatched} dispatched, ${result.skipped} waiting`);
+            }
+        } catch (err) {
+            logger.error(`Batch dispatch sweep error: ${err.message}`);
+        }
+    };
+    await runBatchDispatch();
+    batchDispatchInterval = setInterval(runBatchDispatch, 20 * 1000);
 
     const runFssaiExpirySync = async () => {
         try {

@@ -1,5 +1,7 @@
 node_modules/
 .env
+.env.bak*
+.env.*.local
 *.log
 dist/
 coverage/
@@ -7,3 +9,5 @@ coverage/
 /backups/
 /uploads/
 /config/firebase-service-account.json
+.local-e2e.mjs
+.local-e2e-data/

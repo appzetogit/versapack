@@ -1,4 +1,4 @@
-import { sendResponse } from '../../utils/response.js';
+import { sendResponse, sendError } from '../../utils/response.js';
 import { getPaymentsByOrder } from './payment.service.js';
 import { getTransactionsByOrder } from './transaction.service.js';
 import { getWalletBalance, getWalletWithTransactions, getUserWalletForFrontend } from './wallet.service.js';
@@ -8,8 +8,67 @@ import { logger } from '../../utils/logger.js';
 
 // ─── User Endpoints ───
 
+/**
+ * True when the caller is a party to this order, or an admin.
+ *
+ * The three order-scoped endpoints below take an order id straight from the path
+ * and returned its payment trail, ledger and refunds to anyone holding any valid
+ * token. Order ids are sequential-ish (`FOD-…`) and appear in shared links, so
+ * walking another customer's payment history took no guesswork at all.
+ *
+ * Mirrors the participant test the tracking socket already applies in
+ * config/socket.js — same three roles, same comparison — so a single order has one
+ * definition of "yours" across HTTP and websocket.
+ *
+ * Imported dynamically to keep core/payments free of a static edge into the food
+ * order module, which is what config/socket.js does for the same reason.
+ */
+const assertOrderParticipant = async (req, res) => {
+    const role = String(req.user?.role || '').toUpperCase();
+    const me = String(req.user?.userId || '');
+    const rawOrderId = req.params?.orderId;
+
+    if (role === 'ADMIN') return true;
+    if (!me || !rawOrderId) {
+        sendError(res, 403, 'Forbidden: insufficient permissions');
+        return false;
+    }
+
+    const [{ FoodOrder }, { buildOrderIdentityFilter }] = await Promise.all([
+        import('../../modules/food/orders/models/order.model.js'),
+        import('../../modules/food/orders/services/order.helpers.js')
+    ]);
+
+    const identity = buildOrderIdentityFilter(rawOrderId);
+    if (!identity) {
+        sendError(res, 400, 'Invalid order id');
+        return false;
+    }
+
+    const order = await FoodOrder.findOne(identity)
+        .select('userId restaurantId dispatch.deliveryPartnerId')
+        .lean();
+
+    // A missing order and an order belonging to someone else answer identically,
+    // so this cannot be used to probe which ids exist.
+    const isParticipant =
+        !!order &&
+        ((role === 'USER' && String(order.userId || '') === me) ||
+            (role === 'RESTAURANT' && String(order.restaurantId || '') === me) ||
+            (role === 'DELIVERY_PARTNER' &&
+                String(order.dispatch?.deliveryPartnerId || '') === me));
+
+    if (!isParticipant) {
+        logger.warn(`payments: ${role}:${me} denied access to order ${rawOrderId}`);
+        sendError(res, 403, 'Forbidden: insufficient permissions');
+        return false;
+    }
+    return true;
+};
+
 export const getPaymentHistoryController = async (req, res, next) => {
     try {
+        if (!(await assertOrderParticipant(req, res))) return;
         const { orderId } = req.params;
         const payments = await getPaymentsByOrder(orderId);
         return sendResponse(res, 200, 'Payment history fetched', { payments });
@@ -20,6 +79,7 @@ export const getPaymentHistoryController = async (req, res, next) => {
 
 export const getOrderTransactionsController = async (req, res, next) => {
     try {
+        if (!(await assertOrderParticipant(req, res))) return;
         const { orderId } = req.params;
         const transactions = await getTransactionsByOrder(orderId);
         return sendResponse(res, 200, 'Transactions fetched', { transactions });
@@ -52,9 +112,40 @@ export const getUserWalletTransactionsController = async (req, res, next) => {
 
 // ─── Restaurant Endpoints ───
 
+/**
+ * Resolves which entity's wallet the caller is allowed to read.
+ *
+ * These two handlers used to read `req.user?.restaurantId || req.params.restaurantId`.
+ * authMiddleware only ever sets `userId`, `role` and `adminType` — `restaurantId` and
+ * `deliveryPartnerId` are never populated on req.user — so that expression ALWAYS fell
+ * through to the URL parameter. Any authenticated account could therefore read any
+ * seller's or rider's balance and full transaction history by changing the id in the
+ * path.
+ *
+ * A role's own id is its token subject (`userId` is the document _id for every role),
+ * so the owning role is pinned to itself and only ADMIN may name someone else.
+ */
+const resolveWalletOwnerId = (req, ownerRole, paramName) => {
+    const role = String(req.user?.role || '').toUpperCase();
+    const requested = String(req.params?.[paramName] || '').trim();
+
+    if (role === 'ADMIN') {
+        return requested || null;
+    }
+    if (role === ownerRole) {
+        // Ignore the path entirely rather than comparing it: a seller reading their
+        // own wallet through someone else's id is never a legitimate request.
+        return String(req.user.userId);
+    }
+    return null;
+};
+
 export const getRestaurantWalletController = async (req, res, next) => {
     try {
-        const restaurantId = req.user?.restaurantId || req.params.restaurantId;
+        const restaurantId = resolveWalletOwnerId(req, 'RESTAURANT', 'restaurantId');
+        if (!restaurantId) {
+            return sendError(res, 403, 'Forbidden: insufficient permissions');
+        }
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 20;
         const data = await getWalletWithTransactions('restaurant', restaurantId, { page, limit });
@@ -68,7 +159,10 @@ export const getRestaurantWalletController = async (req, res, next) => {
 
 export const getDeliveryWalletController = async (req, res, next) => {
     try {
-        const deliveryPartnerId = req.user?.deliveryPartnerId || req.params.deliveryPartnerId;
+        const deliveryPartnerId = resolveWalletOwnerId(req, 'DELIVERY_PARTNER', 'deliveryPartnerId');
+        if (!deliveryPartnerId) {
+            return sendError(res, 403, 'Forbidden: insufficient permissions');
+        }
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 20;
         const data = await getWalletWithTransactions('deliveryBoy', deliveryPartnerId, { page, limit });
@@ -165,6 +259,7 @@ export const listRefundsController = async (req, res, next) => {
 
 export const getRefundsByOrderController = async (req, res, next) => {
     try {
+        if (!(await assertOrderParticipant(req, res))) return;
         const { orderId } = req.params;
         const refunds = await getRefundsByOrder(orderId);
         return sendResponse(res, 200, 'Refunds fetched', { refunds });

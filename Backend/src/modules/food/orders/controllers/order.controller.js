@@ -1,4 +1,4 @@
-import { sendResponse } from '../../../../utils/response.js';
+import { sendResponse, sendError } from '../../../../utils/response.js';
 import * as orderService from '../services/order.service.js';
 import * as foodOrderPaymentService from '../services/foodOrderPayment.service.js';
 import {
@@ -200,6 +200,35 @@ export async function updateOrderStatusRestaurantController(req, res, next) {
         const dto = validateOrderStatusDto(req.body);
         const order = await orderService.updateOrderStatusRestaurant(orderId, restaurantId, dto.orderStatus, dto.note);
         return sendResponse(res, 200, 'Order status updated', { order });
+    } catch (err) {
+        next(err);
+    }
+}
+
+/**
+ * Seller reports what they could actually pick.
+ *
+ * restaurantId comes from the token, never the body: the service scopes its lookup by
+ * it, which is what stops one seller from repricing another's order.
+ */
+export async function reportPickShortfallController(req, res, next) {
+    try {
+        const restaurantId = req.user?.userId;
+        const orderId = req.params.orderId;
+        const body = req.body || {};
+        const lines = Array.isArray(body.lines) ? body.lines : body.items;
+
+        if (!Array.isArray(lines) || lines.length === 0) {
+            return sendError(res, 400, 'lines must be a non-empty array of { index, fulfilledQty }');
+        }
+
+        const order = await orderService.reportPickShortfall(
+            orderId,
+            restaurantId,
+            lines,
+            body.note
+        );
+        return sendResponse(res, 200, 'Picked quantities recorded', { order });
     } catch (err) {
         next(err);
     }
@@ -495,6 +524,69 @@ export async function getOrderRouteUserController(req, res, next) {
             req.query || {}
         );
         return sendResponse(res, 200, 'Route fetched', result);
+    } catch (err) {
+        next(err);
+    }
+}
+
+// ── Returns ──────────────────────────────────────────────────────────────────
+
+export async function requestReturnController(req, res, next) {
+    try {
+        const { requestReturn } = await import('../services/returns.service.js');
+        const result = await requestReturn(
+            req.user?.userId,
+            req.params.orderId,
+            req.body?.lines,
+            req.body?.images,
+        );
+        return sendResponse(res, 201, 'Return requested', { return: result });
+    } catch (err) {
+        next(err);
+    }
+}
+
+export async function listMyReturnsController(req, res, next) {
+    try {
+        const { listReturnsForUser } = await import('../services/returns.service.js');
+        const data = await listReturnsForUser(req.user?.userId, req.query || {});
+        return sendResponse(res, 200, 'Returns fetched', data);
+    } catch (err) {
+        next(err);
+    }
+}
+
+export async function listReturnsAdminController(req, res, next) {
+    try {
+        const { listReturnsForAdmin } = await import('../services/returns.service.js');
+        const data = await listReturnsForAdmin(req.query || {});
+        return sendResponse(res, 200, 'Returns fetched', data);
+    } catch (err) {
+        next(err);
+    }
+}
+
+export async function decideReturnAdminController(req, res, next) {
+    try {
+        const { decideReturn } = await import('../services/returns.service.js');
+        const approve = req.body?.approve === true;
+        const result = await decideReturn(req.params.returnId, req.user?.userId, {
+            approve,
+            rejectionReason: req.body?.rejectionReason,
+        });
+        return sendResponse(res, 200, approve ? 'Return approved' : 'Return rejected', {
+            return: result,
+        });
+    } catch (err) {
+        next(err);
+    }
+}
+
+export async function collectReturnAdminController(req, res, next) {
+    try {
+        const { markReturnCollected } = await import('../services/returns.service.js');
+        const result = await markReturnCollected(req.params.returnId);
+        return sendResponse(res, 200, 'Return collected and refunded', { return: result });
     } catch (err) {
         next(err);
     }

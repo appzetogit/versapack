@@ -162,8 +162,44 @@ function getModuleFromUrl(url = "") {
   return "user";
 }
 
+/**
+ * Endpoints that are shared by every panel, so their path says nothing about which
+ * login should pay for the call. /uploads/image is the whole list today.
+ */
+function isModuleAgnosticEndpoint(url = "") {
+  const u = typeof url === "string" ? url : (url?.url || "");
+  return u.toLowerCase().includes("/uploads/");
+}
+
+/**
+ * Which panel the browser is actually sitting in.
+ *
+ * Only consulted for the shared endpoints above, where the API path cannot say.
+ */
+function getModuleFromAppLocation() {
+  if (typeof window === "undefined") return null;
+  const path = String(window.location?.pathname || "").toLowerCase();
+  // Both the bare and the /food-prefixed forms: the routers canonicalise
+  // /delivery/* to /food/delivery/* and /food/restaurant/* to /seller/*, so a
+  // panel can be sitting on either while a request goes out.
+  if (path.startsWith("/admin")) return "admin";
+  if (path.startsWith("/seller") || path.startsWith("/food/restaurant")) return "restaurant";
+  if (path.startsWith("/delivery") || path.startsWith("/food/delivery")) return "delivery";
+  return null;
+}
+
 function getModuleFromConfig(config) {
   if (config?.contextModule) return config.contextModule;
+
+  // A shared endpoint resolves to "user" on path alone, so the seller panel's image
+  // upload went out looking for user_accessToken, found none, and fell back to the
+  // stale generic accessToken -- a 401 that blocked creating any product, because a
+  // new item requires an image. The panel the browser is in is what decides here.
+  if (isModuleAgnosticEndpoint(config?.url)) {
+    const fromLocation = getModuleFromAppLocation();
+    if (fromLocation) return fromLocation;
+  }
+
   return getModuleFromUrl(config?.url);
 }
 

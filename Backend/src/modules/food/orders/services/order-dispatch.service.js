@@ -6,6 +6,18 @@ import { FoodDeliveryWallet } from '../../delivery/models/deliveryWallet.model.j
 import { FoodDeliveryCashLimit } from '../../admin/models/deliveryCashLimit.model.js';
 import { ValidationError, NotFoundError } from '../../../../core/auth/errors.js';
 import { logger } from '../../../../utils/logger.js';
+import {
+  placeOrderInBatch,
+  listBatchesReadyToDispatch,
+  assignBatchToPartner,
+} from './batching.service.js';
+
+/**
+ * Batching holds an order for up to its batch window before a rider is sought, so it
+ * stays off until it is deliberately switched on. A delivery optimisation that changes
+ * when customers get their orders is not something to enable by accident.
+ */
+const BATCHING_ENABLED = String(process.env.BATCHING_ENABLED || 'false') === 'true';
 import { config } from '../../../../config/env.js';
 import { getIO, rooms } from '../../../../config/socket.js';
 import { addOrderJob } from '../../../../queues/producers/order.producer.js';
@@ -13,7 +25,6 @@ import {
   buildDeliverySocketPayload,
   buildOrderIdentityFilter,
   getBusyDeliveryPartnerIds,
-  haversineKm,
   notifyOwnerSafely,
   notifyOwnersActionableAlert,
   notifyOwnersSafely,
@@ -269,13 +280,6 @@ async function listNearbyOnlineDeliveryPartners(
   }
 
   const [rLng, rLat] = restaurant.location.coordinates;
-  const allOnline = await FoodDeliveryPartner.find({
-    availabilityStatus: "online",
-  })
-    .select("_id status lastLat lastLng lastLocationAt name")
-    .lean();
-
-  const scored = [];
   const allowedStatuses = process.env.NODE_ENV === 'production' ? ['approved'] : ['approved', 'pending'];
 
   // A rider is only dropped for staleness after this long WITHOUT any GPS ping.
@@ -292,37 +296,61 @@ async function listNearbyOnlineDeliveryPartners(
   // hour old and 3 km from the restaurant are still a far better candidate than
   // offering the order to nobody.
   const STALE_GPS_MS = Number(process.env.DISPATCH_STALE_GPS_MS) || 45 * 60 * 1000;
+  const freshSince = new Date(Date.now() - STALE_GPS_MS);
 
-  let droppedStale = 0;
-  for (const p of allOnline) {
-    if (!allowedStatuses.includes(p.status)) continue;
-
-    // No coordinates at all â†’ genuinely unplaceable, must skip (never score as 999).
-    if (p.lastLat == null || p.lastLng == null) {
-      droppedStale += 1;
-      continue;
-    }
-    if (!p.lastLocationAt || Date.now() - new Date(p.lastLocationAt).getTime() > STALE_GPS_MS) {
-      droppedStale += 1;
-      continue;
-    }
-
-    const d = haversineKm(rLat, rLng, p.lastLat, p.lastLng);
-    if (Number.isFinite(d) && d <= maxKm) {
-      scored.push({ partnerId: p._id, distanceKm: d, status: p.status });
-    }
-  }
+  // Nearest riders, chosen by the database.
+  //
+  // This used to read EVERY online rider and measure them in JavaScript, which is
+  // fine at twenty riders and a full collection scan at two thousand -- on the path
+  // that runs for every single order. $geoNear uses the 2dsphere index that already
+  // existed on lastLocation, applies the distance ceiling as part of the query, and
+  // returns them already sorted, so only the handful actually being offered the order
+  // ever leave the database.
+  //
+  // lastLocation is safe to key on: every write that sets lastLat/lastLng sets it in
+  // the same statement, and a rider with neither is excluded by the freshness filter
+  // below anyway -- which is exactly what the old JavaScript loop did.
+  const scored = (
+    await FoodDeliveryPartner.aggregate([
+      {
+        $geoNear: {
+          near: { type: 'Point', coordinates: [rLng, rLat] },
+          distanceField: 'distanceMeters',
+          maxDistance: maxKm * 1000,
+          spherical: true,
+          query: {
+            availabilityStatus: 'online',
+            status: { $in: allowedStatuses },
+            lastLocationAt: { $gte: freshSince },
+          },
+        },
+      },
+      { $limit: Math.max(1, limit) },
+      { $project: { _id: 1, status: 1, distanceMeters: 1 } },
+    ])
+  ).map((p) => ({
+    partnerId: p._id,
+    distanceKm: Number(p.distanceMeters) / 1000,
+    status: p.status,
+  }));
 
   // Without this, a starved dispatch is indistinguishable from "no riders online".
-  if (droppedStale > 0) {
-    logger.warn(
-      `[Dispatch] ${droppedStale}/${allOnline.length} online riders skipped for missing/stale GPS ` +
-        `(restaurant ${rId}, maxKm ${maxKm}). ${scored.length} eligible.`,
-    );
+  // Counted separately rather than as a by-product of the scan, because the scan is
+  // gone -- it is one indexed count and only runs when nothing came back.
+  if (scored.length === 0) {
+    const onlineCount = await FoodDeliveryPartner.countDocuments({
+      availabilityStatus: 'online',
+      status: { $in: allowedStatuses },
+    });
+    if (onlineCount > 0) {
+      logger.warn(
+        `[Dispatch] ${onlineCount} rider(s) online but none within ${maxKm}km of restaurant ${rId} ` +
+          `with GPS fresher than ${Math.round(STALE_GPS_MS / 60000)}m.`,
+      );
+    }
   }
 
-  scored.sort((a, b) => a.distanceKm - b.distanceKm);
-  const picked = scored.slice(0, Math.max(1, limit));
+  const picked = scored;
 
   if (picked.length === 0) {
     // Do NOT fall back to any online partner worldwide (cross-zone bug).
@@ -390,6 +418,33 @@ export async function tryAutoAssign(orderId, options = {}) {
   if (!DISPATCHABLE_STATUSES.includes(order.orderStatus)) {
     logger.info(`tryAutoAssign: Skip for ${orderId} (status ${order.orderStatus} not dispatchable yet).`);
     return order;
+  }
+
+  // Batching, when it is switched on and this is one of our own stores.
+  //
+  // An order that joins a still-open batch deliberately does NOT go hunting for a
+  // rider of its own: the point is to leave with company. dispatchReadyBatches picks
+  // it up when the window closes. The dispatching lock is released first, or the
+  // order would sit locked for the length of the window and the sweep would find
+  // nothing it could touch.
+  if (BATCHING_ENABLED) {
+    try {
+      const placement = await placeOrderInBatch(order._id);
+      if (placement?.batch?.status === 'open') {
+        await FoodOrder.updateOne(
+          { _id: order._id },
+          { $unset: { 'dispatch.dispatchingAt': '' } },
+        );
+        logger.info(
+          `tryAutoAssign: ${orderId} is waiting in batch ${placement.batch._id} until its window closes.`,
+        );
+        return order;
+      }
+    } catch (err) {
+      // Batching is an optimisation. If it fails the order must still be delivered,
+      // so this falls through to ordinary single-order dispatch.
+      logger.warn(`Batching skipped for ${orderId}: ${err?.message || err}`);
+    }
   }
 
   try {
@@ -634,6 +689,59 @@ export async function tryAutoAssign(orderId, options = {}) {
   }
 }
 
+
+/**
+ * Sends every batch whose window has closed to a rider.
+ *
+ * A batch leaves when its window expires, not when it is full: holding a trip open
+ * waiting for a third order that may never arrive spends the first customer's promise
+ * on a maybe. Each batch is offered to the nearest rider through the same path a
+ * single order uses, so accept, reject and timeout behave identically -- the rider
+ * simply receives a trip with more than one drop on it.
+ *
+ * Returns a summary rather than throwing: this runs on an interval and one bad batch
+ * must not stop the rest from going out.
+ */
+export async function dispatchReadyBatches() {
+  if (!BATCHING_ENABLED) return { dispatched: 0, skipped: 0 };
+
+  let dispatched = 0;
+  let skipped = 0;
+
+  const ready = await listBatchesReadyToDispatch();
+  for (const batch of ready) {
+    try {
+      const { partners } = await listNearbyOnlineDeliveryPartners(batch.storeId, {
+        limit: 10,
+      });
+      const busy = await getBusyDeliveryPartnerIds();
+      const candidate = partners.find((partner) => !busy.has(String(partner._id)));
+
+      if (!candidate) {
+        // Nobody free. The batch stays open and the next sweep tries again; its
+        // orders are already past their window so they are not waiting on it.
+        skipped += 1;
+        continue;
+      }
+
+      const assigned = await assignBatchToPartner(batch._id, candidate._id);
+      if (!assigned) {
+        skipped += 1;
+        continue;
+      }
+
+      dispatched += 1;
+      logger.info(
+        `Batch ${batch._id}: ${assigned.orders.length} drop(s) assigned to rider ${candidate._id}`,
+      );
+    } catch (err) {
+      skipped += 1;
+      logger.error(`Batch ${batch?._id} dispatch failed: ${err?.message || err}`);
+    }
+  }
+
+  return { dispatched, skipped };
+}
 
 export async function processDispatchTimeout(orderId, partnerId) {
   const order = await FoodOrder.findById(orderId);

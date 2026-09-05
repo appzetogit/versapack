@@ -8,7 +8,7 @@ import apiClient, { authAPI } from "@food/api"
 import { setAuthData as setUserAuthData } from "@food/utils/auth"
 import { resolveDeviceFcmToken, registerWebPushForCurrentModule } from "@food/utils/firebaseMessaging"
 import { motion, AnimatePresence } from "framer-motion"
-import loginBanner from "@food/assets/loginbanner.png"
+import loginBanner from "@food/assets/loginbanner.webp"
 
 const FULL_NAME_REGEX = /^[A-Za-z ]+$/
 

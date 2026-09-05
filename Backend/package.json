@@ -13,11 +13,15 @@
     "worker:tracking": "node src/queues/workers/tracking.worker.js",
     "worker:payment": "node src/queues/workers/payment.worker.js",
     "worker:maintenance": "node src/queues/workers/maintenance.worker.js",
+    "migrate:master-products": "node scripts/backfill-master-products.js",
     "migrate:fcm-tokens": "node scripts/migrate-fcm-tokens-to-profile-models.js",
     "migrate:order-payments": "node scripts/migrate-orders-to-transactions.js",
     "migrate:outlet-timings-from-opening-closing": "node scripts/sync-outlet-timings-from-opening-closing.js",
     "cleanup:legacy-collections": "node scripts/cleanup-legacy-collections.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node --test --import ./tests/test-env.mjs \"tests/**/*.test.js\"",
+    "test:unit": "node --test --import ./tests/test-env.mjs \"tests/*.test.js\"",
+    "test:int": "node --test --import ./tests/test-env.mjs \"tests/integration/*.test.js\"",
+    "test:watch": "node --test --watch --import ./tests/test-env.mjs \"tests/**/*.test.js\"",
     "start:scheduler": "node scripts/run-scheduled-jobs.js",
     "start:socket": "node socket-server.js"
   },
@@ -51,6 +55,8 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "nodemon": "^3.1.2"
+    "mongodb-memory-server": "^11.2.0",
+    "nodemon": "^3.1.2",
+    "redis-memory-server": "^0.17.1"
   }
 }

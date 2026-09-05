@@ -19,17 +19,27 @@ export const creditReferralReward = async (userId, amountInr, metadata = {}) => 
     if (!Number.isFinite(amount) || amount <= 0) {
         return { wallet: await getUserWallet(userId) };
     }
-    const wallet = await ensureWallet(userId);
-    wallet.transactions.unshift({
-        type: 'addition',
-        amount,
-        status: 'Completed',
-        description: 'Referral reward',
-        metadata: { source: 'referral_reward', ...(metadata || {}) }
-    });
-    wallet.balance = Number(wallet.balance || 0) + amount;
-    wallet.referralEarnings = Number(wallet.referralEarnings || 0) + amount;
-    await wallet.save();
+    await ensureWallet(userId);
+    await FoodUserWallet.updateOne(
+        { userId: new mongoose.Types.ObjectId(String(userId)) },
+        {
+            $inc: { balance: amount, referralEarnings: amount },
+            $push: {
+                transactions: {
+                    $each: [{
+                        type: 'addition',
+                        amount,
+                        status: 'Completed',
+                        description: 'Referral reward',
+                        metadata: { source: 'referral_reward', ...(metadata || {}) },
+                        createdAt: new Date(),
+                        updatedAt: new Date()
+                    }],
+                    $position: 0
+                }
+            }
+        }
+    );
     return { wallet: await getUserWallet(userId) };
 };
 
@@ -110,11 +120,7 @@ export const verifyWalletTopupPayment = async (userId, payload) => {
     if (!signature) throw new ValidationError('razorpaySignature is required');
     if (!Number.isFinite(amount) || amount <= 0) throw new ValidationError('amount is required');
 
-    const wallet = await ensureWallet(userId);
-    const existing = wallet.transactions.find((t) => String(t.razorpayOrderId || '') === orderId);
-    if (existing && String(existing.status).toLowerCase() === 'completed') {
-        return { wallet: await getUserWallet(userId) };
-    }
+    await ensureWallet(userId);
 
     // If razorpay not configured (dev), accept and credit wallet.
     const ok = isRazorpayConfigured()
@@ -124,20 +130,46 @@ export const verifyWalletTopupPayment = async (userId, payload) => {
         throw new ValidationError('Payment verification failed');
     }
 
-    // Store ONLY after payment is verified.
-    wallet.transactions.unshift({
-        type: 'addition',
-        amount,
-        status: 'Completed',
-        description: isRazorpayConfigured() ? 'Wallet top-up' : 'Wallet top-up (dev)',
-        metadata: { source: 'wallet_topup', mode: isRazorpayConfigured() ? 'razorpay' : 'dev' },
-        razorpayOrderId: orderId,
-        razorpayPaymentId: paymentId,
-        razorpaySignature: signature
-    });
+    // Credit ONLY after payment is verified, and only once per Razorpay order.
+    //
+    // The duplicate check used to be a `find` over the loaded array followed by a
+    // save, so two verifies of the same payment arriving together — a double tap, or
+    // the client retrying after a slow response — both saw no existing row and both
+    // credited. Folding the check into the filter as `$ne` makes the second one match
+    // nothing, so it credits nothing.
+    const updated = await FoodUserWallet.findOneAndUpdate(
+        {
+            userId: new mongoose.Types.ObjectId(String(userId)),
+            'transactions.razorpayOrderId': { $ne: orderId }
+        },
+        {
+            $inc: { balance: amount },
+            $push: {
+                transactions: {
+                    $each: [{
+                        type: 'addition',
+                        amount,
+                        status: 'Completed',
+                        description: isRazorpayConfigured() ? 'Wallet top-up' : 'Wallet top-up (dev)',
+                        metadata: { source: 'wallet_topup', mode: isRazorpayConfigured() ? 'razorpay' : 'dev' },
+                        razorpayOrderId: orderId,
+                        razorpayPaymentId: paymentId,
+                        razorpaySignature: signature,
+                        createdAt: new Date(),
+                        updatedAt: new Date()
+                    }],
+                    $position: 0
+                }
+            }
+        },
+        { new: true }
+    );
 
-    wallet.balance = Number(wallet.balance || 0) + amount;
-    await wallet.save();
+    // No match means this Razorpay order was already credited. That is the expected
+    // outcome of a retry, not a failure, so it answers exactly as the first call did.
+    if (!updated) {
+        return { wallet: await getUserWallet(userId) };
+    }
 
     return { wallet: await getUserWallet(userId) };
 };
@@ -148,21 +180,51 @@ export const deductWalletBalance = async (userId, amountInr, description = 'Orde
         throw new ValidationError('Invalid deduction amount');
     }
 
-    const wallet = await ensureWallet(userId);
-    if (wallet.balance < amount) {
+    // Create the row if it does not exist yet, so the conditional update below has
+    // something to match. Nothing is debited here.
+    await ensureWallet(userId);
+
+    // The balance check and the debit are ONE operation.
+    //
+    // This used to read the balance, compare it in JavaScript, subtract, and save.
+    // Two orders placed at the same moment both read the same balance, both passed
+    // the check, and both saved — the second `save()` wrote a balance computed from
+    // a value that was already stale, so a wallet holding enough for one order paid
+    // for two. Tapping "Place order" twice was enough to trigger it.
+    //
+    // `balance: { $gte: amount }` moves the check into the filter, so Mongo either
+    // matches a document that genuinely has the money and debits it, or matches
+    // nothing at all. A concurrent debit makes the second filter fail rather than
+    // overwrite the first.
+    const updated = await FoodUserWallet.findOneAndUpdate(
+        { userId: new mongoose.Types.ObjectId(String(userId)), balance: { $gte: amount } },
+        {
+            $inc: { balance: -amount },
+            $push: {
+                transactions: {
+                    // $position keeps the newest first, which is what unshift did.
+                    $each: [{
+                        type: 'deduction',
+                        amount,
+                        status: 'Completed',
+                        description,
+                        metadata: { source: 'order_payment', ...(metadata || {}) },
+                        createdAt: new Date(),
+                        updatedAt: new Date()
+                    }],
+                    $position: 0
+                }
+            }
+        },
+        { new: true }
+    );
+
+    if (!updated) {
+        // Only reachable when the filter did not match, and the only condition in it
+        // is the balance. Reporting it as "insufficient" is therefore accurate even
+        // when the cause was a race rather than a genuinely empty wallet.
         throw new ValidationError('Insufficient wallet balance');
     }
-
-    wallet.transactions.unshift({
-        type: 'deduction',
-        amount,
-        status: 'Completed',
-        description,
-        metadata: { source: 'order_payment', ...(metadata || {}) }
-    });
-
-    wallet.balance = Number(wallet.balance) - amount;
-    await wallet.save();
 
     return { wallet: await getUserWallet(userId) };
 };
@@ -173,17 +235,32 @@ export const refundWalletBalance = async (userId, amountInr, description = 'Orde
         return { wallet: await getUserWallet(userId) };
     }
 
-    const wallet = await ensureWallet(userId);
-    wallet.transactions.unshift({
-        type: 'refund',
-        amount,
-        status: 'Completed',
-        description,
-        metadata: { source: 'order_refund', ...(metadata || {}) }
-    });
+    await ensureWallet(userId);
 
-    wallet.balance = Number(wallet.balance) + amount;
-    await wallet.save();
+    // $inc rather than read-add-save for the same reason as the debit: a credit that
+    // recomputes the balance from a stale read silently erases whatever was debited
+    // in between. A refund landing at the same moment as an order payment used to be
+    // able to give the customer their money back AND their order for free.
+    await FoodUserWallet.updateOne(
+        { userId: new mongoose.Types.ObjectId(String(userId)) },
+        {
+            $inc: { balance: amount },
+            $push: {
+                transactions: {
+                    $each: [{
+                        type: 'refund',
+                        amount,
+                        status: 'Completed',
+                        description,
+                        metadata: { source: 'order_refund', ...(metadata || {}) },
+                        createdAt: new Date(),
+                        updatedAt: new Date()
+                    }],
+                    $position: 0
+                }
+            }
+        }
+    );
 
     return { wallet: await getUserWallet(userId) };
 };

@@ -20,6 +20,11 @@ export const normalizeCategoryFoodTypeScope = (value, fallback = 'Both') => {
 export const normalizeFoodTypeForCategory = (value) => {
     const normalized = String(value || '').trim();
     if (normalized === 'Veg') return 'Veg';
+    // Products the veg question does not apply to. Passing it through rather than
+    // folding it into 'Non-Veg' is what lets categoryAllowsFoodType below place it:
+    // a 'Both'-scoped category takes it, and a category explicitly scoped Veg or
+    // Non-Veg does not, because those scopes are a statement about food.
+    if (normalized === 'None') return 'None';
     return 'Non-Veg';
 };
 
@@ -66,6 +71,15 @@ const buildCategoryStatsMap = async (categoryIds = []) => {
                 vegFoods: {
                     $sum: {
                         $cond: [{ $eq: ['$foodType', 'Veg'] }, 1, 0]
+                    }
+                },
+                // Counted so the scope backfill below can tell a category of non-food
+                // stock apart from one of non-veg food. Without it a category holding
+                // only 'None' items would be backfilled to scope 'Non-Veg' and then
+                // start rejecting the very items it already contains.
+                noneFoods: {
+                    $sum: {
+                        $cond: [{ $eq: ['$foodType', 'None'] }, 1, 0]
                     }
                 },
                 approvedFoods: {
@@ -125,8 +139,12 @@ export const backfillLegacyCategoryWorkflow = async (categories = []) => {
 
         if (!CATEGORY_FOOD_TYPE_SCOPES.includes(currentFoodTypeScope)) {
             let foodTypeScope = 'Both';
-            if (Number(stats?.totalFoods || 0) > 0) {
-                foodTypeScope = Number(stats?.vegFoods || 0) === Number(stats?.totalFoods || 0) ? 'Veg' : 'Non-Veg';
+            const totalFoods = Number(stats?.totalFoods || 0);
+            const noneFoods = Number(stats?.noneFoods || 0);
+            // A category holding anything the veg question does not apply to stays
+            // 'Both'; narrowing it would lock out the stock already filed under it.
+            if (totalFoods > 0 && noneFoods === 0) {
+                foodTypeScope = Number(stats?.vegFoods || 0) === totalFoods ? 'Veg' : 'Non-Veg';
             }
             next.foodTypeScope = foodTypeScope;
         }

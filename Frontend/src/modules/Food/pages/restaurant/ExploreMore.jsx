@@ -506,10 +506,12 @@ export default function ExploreMore() {
       toast.success("Account deleted successfully");
 
       const { clearModuleAuth } = await import("@food/utils/auth");
+      // clearModuleAuth already removes the access token, the refresh token, the
+      // authenticated flag, the cached user and the FCM registration. The three
+      // removeItem calls that used to follow it were redundant, and one of them
+      // named "restaurant_refresh_token" -- an underscore where the real key has a
+      // capital R, so it had never removed anything at all.
       clearModuleAuth("restaurant");
-      localStorage.removeItem("restaurant_authenticated");
-      localStorage.removeItem("restaurant_refresh_token");
-      localStorage.removeItem("restaurant_user");
 
       navigate("/seller/login", { replace: true });
     } catch (error) {

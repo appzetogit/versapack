@@ -14,7 +14,7 @@ import {
 } from "@food/components/ui/select"
 import { deliveryAPI } from "@food/api"
 import { clearModuleAuth } from "@food/utils/auth"
-import loginBg from "@food/assets/deliveryloginbanner.png"
+import loginBg from "@food/assets/deliveryloginbanner.webp"
 import { useCompanyName } from "@food/hooks/useCompanyName"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}

@@ -4,6 +4,7 @@ import { ArrowLeft, Lock, Loader2, Mail, Phone, MessageSquare, Clock, ShieldChec
 import { motion } from "framer-motion"
 import { Button } from "@food/components/ui/button"
 import api from "@food/api"
+import { safeHtml } from "@food/utils/sanitizeHtml"
 
 export default function RestaurantCMSPage({ endpoint, title: defaultTitle, module = "RESTAURANT" }) {
   const navigate = useNavigate()
@@ -128,7 +129,7 @@ export default function RestaurantCMSPage({ endpoint, title: defaultTitle, modul
                 prose-strong:text-gray-900
                 prose-a:text-[#FA0272]
                 prose-li:text-gray-600"
-              dangerouslySetInnerHTML={{ __html: pageData.content }}
+              dangerouslySetInnerHTML={safeHtml(pageData.content)}
             />
           ) : (
             <div className="text-center py-20">

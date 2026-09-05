@@ -16,16 +16,102 @@ import { logger } from '../../../../utils/logger.js';
  * is every document that existed before this file.
  */
 
-/** Same item can appear on several lines (different variants); the shelf sees the sum. */
+/**
+ * The shelf a line draws down: the product, or one specific variant of it.
+ *
+ * A restaurant variant is a portion of one dish -- half and full plate come off the
+ * same pot -- so summing every variant into the item was right. A grocery variant is
+ * a different pack on a different shelf, and summing 500 g with 1 kg oversells
+ * whichever one the customer actually wanted. A variant is therefore counted
+ * separately once it has a stockQty of its own, and folded into the item when it does
+ * not, which is how every product that predates this behaves.
+ */
+export function stockKeyFor(item, variantHasOwnStock) {
+  const id = String(item?.itemId || '');
+  if (!id || !mongoose.Types.ObjectId.isValid(id)) return null;
+  const variantId = String(item?.variantId || '').trim();
+  return variantHasOwnStock && variantId ? `${id}::${variantId}` : id;
+}
+
+/** Splits a composite key back into its parts. */
+export function parseStockKey(key) {
+  const [itemId, variantId = ''] = String(key).split('::');
+  return { itemId, variantId };
+}
+
+/**
+ * Same item can appear on several lines (different variants); the shelf sees the sum.
+ *
+ * Counts `fulfilledQty` in preference to `quantity` once a seller has reported what
+ * they could pick, because from that moment the units still held against the order are
+ * the picked ones — the shortfall was already put back. Without this, cancelling a
+ * partially fulfilled order would restock what was ordered rather than what was taken
+ * and quietly invent the difference. null means not yet reported, so an order still
+ * being picked, and every order that predates partial fulfilment, falls through to
+ * `quantity` and behaves exactly as before.
+ */
 export function totalQuantityByItem(items = []) {
   const totals = new Map();
   for (const item of items) {
-    const id = String(item?.itemId || '');
-    if (!id || !mongoose.Types.ObjectId.isValid(id)) continue;
+    // `variantTracked` is set by the cart resolver, which is the only place that has
+    // seen the catalogue row and therefore knows whether this variant carries its own
+    // count. Absent on every order placed before per-variant stock, which keys those
+    // on the item exactly as they were reserved.
+    const id = stockKeyFor(item, item?.variantTracked === true);
+    if (!id) continue;
+
+    const reported = item?.fulfilledQty;
+    if (reported !== null && reported !== undefined && Number.isFinite(Number(reported))) {
+      const picked = Math.max(0, Number(reported));
+      // A line picked to zero holds nothing; it must not be floored up to 1 the way
+      // an absent quantity is.
+      if (picked === 0) continue;
+      totals.set(id, (totals.get(id) || 0) + picked);
+      continue;
+    }
+
     const qty = Math.max(1, Number(item?.quantity) || 1);
     totals.set(id, (totals.get(id) || 0) + qty);
   }
   return totals;
+}
+
+/**
+ * Returns the units a seller could not find, immediately.
+ *
+ * Separate from restoreOrderStock, which ends an order: this one runs on an order that
+ * is still alive and still holds its picked units, so it must NOT claim
+ * `stockRestoredAt` — doing so would make a later cancellation a no-op and strand the
+ * rest of the reservation.
+ *
+ * @param {object[]} items Order lines, in order.
+ * @param {number[]} fulfilledQuantities Parallel array of units actually picked.
+ */
+export async function releaseUnfulfilledStock(items = [], fulfilledQuantities = []) {
+  const shortfalls = new Map();
+
+  items.forEach((item, index) => {
+    const id = stockKeyFor(item, item?.variantTracked === true);
+    if (!id) return;
+
+    const ordered = Math.max(0, Number(item?.quantity) || 0);
+    const raw = Number(fulfilledQuantities[index]);
+    const picked = Number.isFinite(raw) ? Math.max(0, Math.min(ordered, Math.floor(raw))) : ordered;
+    const short = ordered - picked;
+    if (short > 0) shortfalls.set(id, (shortfalls.get(id) || 0) + short);
+  });
+
+  for (const [itemId, qty] of shortfalls) {
+    try {
+      await incrementStock(itemId, qty);
+    } catch (err) {
+      logger.error(
+        `[CRITICAL] partial restock failed for item ${itemId} (+${qty}): ${err?.message || err}`,
+      );
+    }
+  }
+
+  return shortfalls;
 }
 
 /**
@@ -42,40 +128,62 @@ export async function reserveStockForItems(items = []) {
 
   const taken = [];
 
-  for (const [itemId, qty] of totals) {
+  for (const [key, qty] of totals) {
+    const { itemId, variantId } = parseStockKey(key);
     const id = new mongoose.Types.ObjectId(itemId);
 
-    // `$gte` never matches null, so untracked items fall through to the check
-    // below rather than being silently decremented into negatives.
-    const res = await FoodItem.updateOne(
-      { _id: id, stockQty: { $gte: qty } },
-      { $inc: { stockQty: -qty } },
-    );
+    // A key naming a variant decrements THAT variant's own count; the positional
+    // filter is what keeps the conditional update atomic on an array element.
+    // `$gte` never matches null either way, so an untracked shelf falls through to
+    // the check below rather than being silently decremented into negatives.
+    const res = variantId
+      ? await FoodItem.updateOne(
+          { _id: id, variants: { $elemMatch: { _id: variantId, stockQty: { $gte: qty } } } },
+          { $inc: { 'variants.$.stockQty': -qty } },
+        )
+      : await FoodItem.updateOne(
+          { _id: id, stockQty: { $gte: qty } },
+          { $inc: { stockQty: -qty } },
+        );
 
     if (res.modifiedCount === 1) {
-      taken.push({ itemId, qty });
+      taken.push({ itemId: key, qty });
       // Hide it once empty so the existing listing/search filters, which all key
-      // off isAvailable, keep working without knowing inventory exists.
-      await FoodItem.updateOne(
-        { _id: id, stockQty: 0 },
-        { $set: { isAvailable: false } },
-      );
+      // off isAvailable, keep working without knowing inventory exists. A variant
+      // running out does not hide the product -- its other packs are still sellable.
+      if (!variantId) {
+        await FoodItem.updateOne(
+          { _id: id, stockQty: 0 },
+          { $set: { isAvailable: false } },
+        );
+      }
       continue;
     }
 
-    const doc = await FoodItem.findById(id).select('name stockQty').lean();
+    const doc = await FoodItem.findById(id).select('name stockQty variants').lean();
     if (!doc) {
       await releaseReservations(taken);
       throw new ValidationError('One or more items are no longer available');
     }
-    if (doc.stockQty === null || doc.stockQty === undefined) continue; // untracked
+
+    const shelf = variantId
+      ? (doc.variants || []).find((v) => String(v._id) === variantId)
+      : doc;
+    if (!shelf) {
+      await releaseReservations(taken);
+      throw new ValidationError(`${doc.name} is no longer available in the selected size`);
+    }
+    if (shelf.stockQty === null || shelf.stockQty === undefined) continue; // untracked
 
     await releaseReservations(taken);
-    const left = Number(doc.stockQty) || 0;
+    const left = Number(shelf.stockQty) || 0;
+    // Names the pack, not just the product: "Only 2 left of Amul Butter" is
+    // confusing when the 1 kg is fully stocked and only the 500 g ran out.
+    const label = variantId && shelf.name ? `${doc.name} (${shelf.name})` : doc.name;
     throw new ValidationError(
       left > 0
-        ? `Only ${left} left of ${doc.name}. Please reduce the quantity.`
-        : `${doc.name} just went out of stock`,
+        ? `Only ${left} left of ${label}. Please reduce the quantity.`
+        : `${label} just went out of stock`,
     );
   }
 
@@ -95,8 +203,20 @@ export async function releaseReservations(taken = []) {
   }
 }
 
-async function incrementStock(itemId, qty) {
+async function incrementStock(stockKey, qty) {
+  const { itemId, variantId } = parseStockKey(stockKey);
   const id = new mongoose.Types.ObjectId(String(itemId));
+
+  if (variantId) {
+    // Back onto the same shelf it came off. Nothing else to do: a variant running
+    // out never hid the product, so there is no availability flag to restore.
+    await FoodItem.updateOne(
+      { _id: id, variants: { $elemMatch: { _id: variantId, stockQty: { $ne: null } } } },
+      { $inc: { 'variants.$.stockQty': qty } },
+    );
+    return;
+  }
+
   await FoodItem.updateOne({ _id: id, stockQty: { $ne: null } }, { $inc: { stockQty: qty } });
   // Bring it back only if it went dark by running out. A seller who switched the
   // item off by hand set stockOffMode, and that decision outranks a restock.

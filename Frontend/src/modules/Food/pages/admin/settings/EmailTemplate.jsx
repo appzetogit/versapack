@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { safeHtml } from "@food/utils/sanitizeHtml"
 import { 
   Mail, 
   Info, 
@@ -326,7 +327,7 @@ export default function EmailTemplate() {
             </div>
 
             <div className="space-y-4 text-sm text-slate-700">
-              <div dangerouslySetInnerHTML={{ __html: getPreviewContent().split('\n').map(line => `<p>${line}</p>`).join('') }} />
+              <div dangerouslySetInnerHTML={safeHtml(getPreviewContent().split('\n').map(line => `<p>${line}</p>`).join(''))} />
             </div>
 
             <div className="mt-8 pt-6 border-t border-slate-200">

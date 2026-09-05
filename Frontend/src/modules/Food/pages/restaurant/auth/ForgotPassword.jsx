@@ -5,7 +5,7 @@ import { Button } from "@food/components/ui/button"
 import { Input } from "@food/components/ui/input"
 import { Label } from "@food/components/ui/label"
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@food/components/ui/card"
-import loginBg from "@food/assets/loginbanner.png"
+import loginBg from "@food/assets/loginbanner.webp"
 import { restaurantAPI } from "@food/api"
 
 export default function RestaurantForgotPassword() {

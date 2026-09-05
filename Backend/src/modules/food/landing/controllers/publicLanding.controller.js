@@ -1,8 +1,6 @@
-import { getPublicGourmetRestaurants } from '../services/gourmet.service.js';
 import { getLandingSettings } from '../services/landingSettings.service.js';
 import { FoodHeroBanner } from '../models/heroBanner.model.js';
 import { FoodUnder250Banner } from '../models/under250Banner.model.js';
-import { FoodDiningBanner } from '../models/diningBanner.model.js';
 import { FoodExploreIcon } from '../models/exploreIcon.model.js';
 import { HomePromotionBanner } from '../models/homePromotionBanner.model.js';
 import { FoodRestaurant } from '../../restaurant/models/restaurant.model.js';
@@ -54,15 +52,6 @@ export const getPublicUnder250BannersController = async (req, res, next) => {
     }
 };
 
-export const getPublicDiningBannersController = async (req, res, next) => {
-    try {
-        const docs = await FoodDiningBanner.find({ isActive: true }).sort({ sortOrder: 1, createdAt: -1 }).lean();
-        return sendResponse(res, 200, 'Dining banners fetched', { banners: docs });
-    } catch (error) {
-        next(error);
-    }
-};
-
 export const getPublicExploreIconsController = async (req, res, next) => {
     try {
         const docs = await FoodExploreIcon.find({ isActive: true }).sort({ sortOrder: 1, createdAt: -1 }).lean();
@@ -78,23 +67,6 @@ export const getPublicHomePromotionBannersController = async (req, res, next) =>
         const { zoneId } = req.query;
         const banners = await getPublicHomePromotionBanners(zoneId);
         return sendResponse(res, 200, 'Home promotion banners fetched', { banners });
-    } catch (error) {
-        next(error);
-    }
-};
-
-export const getPublicGourmetController = async (req, res, next) => {
-    try {
-        const { zoneId } = req.query;
-        const docs = await getPublicGourmetRestaurants(zoneId);
-        const restaurants = (docs || [])
-            .filter((d) => d.restaurant) // Only include if restaurant data is populated (matches zone)
-            .map((d) => ({
-                ...(d.restaurant || {}),
-                _id: d.restaurant?._id || d.restaurantId,
-                priority: d.priority
-            }));
-        return sendResponse(res, 200, 'Gourmet stores fetched', { restaurants });
     } catch (error) {
         next(error);
     }

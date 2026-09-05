@@ -433,4 +433,48 @@ export const getIO = () => {
     return io;
 };
 
+/**
+ * Gives a worker process a way to emit into the rooms the API server's clients
+ * are sitting in.
+ *
+ * A queue worker is its own process and never calls initSocket, so getIO()
+ * returned null there and every socket emit from a job was dropped on the floor.
+ * That is how a dispatch re-offer reached nobody: the job ran, logged that it had
+ * re-offered the order, and no rider's app ever heard about it.
+ *
+ * The server instance here is headless -- no HTTP server is attached, so nothing
+ * connects to it directly. It exists purely to hold the same Redis adapter the
+ * API server uses, which is what carries a broadcast across processes and lets
+ * the API server deliver it to its own connected sockets.
+ *
+ * Without Redis there is nothing to carry the message, so this stays null and
+ * emits go on being dropped -- a single-process deployment has to run its jobs
+ * in the API process to get them delivered.
+ */
+export const initSocketEmitter = async () => {
+    if (io) return io;
+    if (!config.redisEnabled || !config.redisUrl) {
+        logger.warn('Socket emitter needs Redis; job-side socket emits will be dropped.');
+        return null;
+    }
+    try {
+        const { createAdapter } = await import('@socket.io/redis-adapter');
+        const { createClient } = await import('redis');
+        const pubClient = createClient({ url: config.redisUrl });
+        const subClient = pubClient.duplicate();
+        pubClient.on('error', (err) => logger.error(`Socket emitter pub client: ${err.message}`));
+        subClient.on('error', (err) => logger.error(`Socket emitter sub client: ${err.message}`));
+        await Promise.all([pubClient.connect(), subClient.connect()]);
+
+        const emitter = new Server();
+        emitter.adapter(createAdapter(pubClient, subClient));
+        io = emitter;
+        logger.info('Socket.IO emitter attached (worker process)');
+        return io;
+    } catch (err) {
+        logger.warn(`Socket emitter unavailable: ${err.message}`);
+        return null;
+    }
+};
+
 export const rooms = roomNames;

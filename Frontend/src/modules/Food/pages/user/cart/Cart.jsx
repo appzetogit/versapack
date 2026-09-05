@@ -12,6 +12,7 @@ import { useProfile } from "@food/context/ProfileContext"
 import { useOrders } from "@food/context/OrdersContext"
 import { useLocation as useUserLocation } from "@food/hooks/useLocation"
 import { useZone } from "@food/hooks/useZone"
+import { useCartStoreRebind } from "@food/hooks/useCartStoreRebind"
 import { orderAPI, restaurantAPI, adminAPI, userAPI, API_ENDPOINTS } from "@food/api"
 import { API_BASE_URL } from "@food/api/config"
 import { initRazorpayPayment } from "@food/utils/razorpay"
@@ -692,6 +693,28 @@ export default function Cart() {
     }
     : currentLocation
   const { zoneId } = useZone(zoneLocation) // Prefer selected/saved address zone
+
+  // Keep the basket and the serving dark store in agreement.
+  //
+  // The customer never picked the store, so choosing a different address at checkout
+  // must not silently invalidate their basket. This re-points each line at the same
+  // product in whichever store reaches the new address, and surfaces whatever that
+  // store does not carry rather than letting the basket quietly shrink.
+  const {
+    rebindTo,
+    rebinding,
+    unavailable: unavailableAfterRebind,
+    movedStore,
+    notServiceable,
+    dismissNotice,
+  } = useCartStoreRebind({ cart, replaceCart })
+
+  useEffect(() => {
+    // Keyed on the resolved delivery coordinates, which is what actually decides
+    // the store -- not on which address row happens to be selected.
+    if (!zoneLocation?.latitude || !zoneLocation?.longitude) return
+    rebindTo(zoneLocation)
+  }, [zoneLocation?.latitude, zoneLocation?.longitude, rebindTo])
   const defaultPayment = getDefaultPaymentMethod()
 
   useEffect(() => {
@@ -2101,7 +2124,10 @@ export default function Cart() {
       // If restaurant names match but IDs differ, that's OK (same restaurant, different ID format)
       // But log a warning in development
       if (uniqueRestaurantIds.length > 1 && uniqueRestaurantNames.length === 1) {
-        if (process.env.NODE_ENV === 'development') {
+        // `process` does not exist in the browser and Vite defines no shim for it, so
+    // this threw a ReferenceError instead of logging. import.meta.env is the Vite
+    // idiom and is replaced at build time.
+    if (import.meta.env.DEV) {
           debugWarn('?? Cart items have different restaurant IDs but same name. This is OK if IDs are in different formats.', {
             restaurantIds: uniqueRestaurantIds,
             restaurantName: uniqueRestaurantNames[0]
@@ -2606,6 +2632,66 @@ export default function Cart() {
           <div className="max-w-3xl mx-auto">
             {/* Main Cart Content */}
             <div className="space-y-2 md:space-y-4">
+              {/*
+                What the store serving this address could not supply.
+                //
+                Shown because the alternative is a basket that silently shrinks when
+                the customer changes address -- they would reach the total, find it
+                lower than they expected, and have no way to know why.
+              */}
+              {unavailableAfterRebind.length > 0 && (
+                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 px-4 md:px-6 py-4 rounded-2xl md:rounded-3xl">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-amber-900 dark:text-amber-200">
+                        {unavailableAfterRebind.length === 1
+                          ? "1 item isn't available at this address"
+                          : `${unavailableAfterRebind.length} items aren't available at this address`}
+                      </p>
+                      <p className="text-xs text-amber-800/80 dark:text-amber-300/80 mt-1">
+                        {movedStore?.name
+                          ? `We've moved your basket to ${movedStore.name}, the store that delivers here.`
+                          : "We've moved your basket to the store that delivers here."}
+                      </p>
+                      <ul className="mt-2 space-y-1">
+                        {unavailableAfterRebind.map((entry) => (
+                          <li
+                            key={entry.itemId}
+                            className="text-xs font-medium text-amber-900 dark:text-amber-200"
+                          >
+                            {entry.name}
+                            <span className="font-normal text-amber-700/70 dark:text-amber-300/70">
+                              {entry.reason === "out_of_stock_here"
+                                ? " — out of stock here"
+                                : entry.reason === "store_specific_item"
+                                  ? " — only sold by the previous store"
+                                  : " — not stocked here"}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <button
+                      onClick={dismissNotice}
+                      className="text-xs font-bold text-amber-700 dark:text-amber-300 hover:underline shrink-0"
+                    >
+                      Got it
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {notServiceable && (
+                <div className="bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 px-4 md:px-6 py-4 rounded-2xl md:rounded-3xl">
+                  <p className="text-sm font-bold text-rose-900 dark:text-rose-200">
+                    We don't deliver to this address yet
+                  </p>
+                  <p className="text-xs text-rose-800/80 dark:text-rose-300/80 mt-1">
+                    Your basket is safe — pick another address to carry on.
+                  </p>
+                </div>
+              )}
+
               {/* Cart Items */}
               <div className="bg-white dark:bg-[#1a1a1a] px-4 md:px-6 py-4 md:py-5 rounded-2xl md:rounded-3xl shadow-sm border border-slate-100 dark:border-gray-800">
                 <div className="space-y-3 md:space-y-4">

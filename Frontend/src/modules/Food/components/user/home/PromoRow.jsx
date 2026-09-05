@@ -1,9 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import discountPromoIcon from "@food/assets/category-icons/discount_promo.png";
-import gourmetPromoIcon from "@food/assets/explore more icons/gourmet.png";
 import pricePromoIcon from "@food/assets/category-icons/price_promo.png";
-import collectionPromoIcon from "@food/assets/explore more icons/collection.png";
 
 export default function PromoRow({ handleVegModeChange, navigate, isVegMode, toggleRef }) {
   const promoCardsData = [
@@ -13,18 +11,6 @@ export default function PromoRow({ handleVegModeChange, navigate, isVegMode, tog
       value: "Offers",
       icon: discountPromoIcon,
     },
-    {
-      id: 'gourmet',
-      title: "Premium",
-      value: "Gourmet",
-      icon: gourmetPromoIcon,
-    },
-    {
-      id: 'collections',
-      title: "Favorites",
-      value: "Collections",
-      icon: collectionPromoIcon,
-    },
   ];
 
   return (
@@ -32,7 +18,11 @@ export default function PromoRow({ handleVegModeChange, navigate, isVegMode, tog
       {promoCardsData.map((promo, idx) => (
         <motion.div
           key={idx}
-          ref={promo.id === 'gourmet' ? toggleRef : null}
+          // Anchors the veg-mode popup. It used to hang off the gourmet tile;
+          // with that gone it attaches to whatever the first tile is, so the
+          // popup still points at something rather than falling back to a
+          // default position the caller never intended.
+          ref={idx === 0 ? toggleRef : null}
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: idx * 0.05, duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
@@ -40,9 +30,7 @@ export default function PromoRow({ handleVegModeChange, navigate, isVegMode, tog
           whileTap={{ scale: 0.95 }}
           className="flex flex-col items-center gap-1.5 group cursor-pointer w-full"
           onClick={() => {
-            if (promo.id === 'gourmet') navigate('/food/user/gourmet');
-            else if (promo.id === 'offers') navigate('/food/user/offers');
-            else if (promo.id === 'collections') navigate('/food/user/profile/favorites');
+            if (promo.id === 'offers') navigate('/food/user/offers');
           }}
         >
           {/* Floating Minimalist Image */}

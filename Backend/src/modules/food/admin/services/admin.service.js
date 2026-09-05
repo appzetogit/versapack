@@ -3957,6 +3957,34 @@ const getAdminFoodUpdatedPricing = (existing = {}, body = {}) => {
     return update;
 };
 
+/**
+ * Veg marking as the admin panel may set it.
+ *
+ * Matches normalizeFoodType in restaurantFood.service.js: anything unrecognised
+ * becomes 'Non-Veg', because the failure that matters is labelling an unknown food
+ * as vegetarian. 'None' is only ever produced when it is asked for by name.
+ */
+function normalizeAdminFoodType(value, fallback = 'Non-Veg') {
+    if (value === undefined) return fallback;
+    const raw = String(value || '').trim();
+    if (raw === 'Veg') return 'Veg';
+    if (raw === 'None') return 'None';
+    return 'Non-Veg';
+}
+
+/**
+ * A pure-veg store may still stock things that are not food.
+ *
+ * The check used to be `foodType !== 'Veg'`, which is right for anything edible and
+ * wrong for washing powder — it left a pure-veg seller unable to list non-food at
+ * all. 'None' is exempt; 'Non-Veg' is still refused.
+ */
+function assertFoodTypeAllowedForStore(foodType, restaurant) {
+    if (restaurant?.pureVegRestaurant !== true) return;
+    if (foodType === 'Veg' || foodType === 'None') return;
+    throw new ValidationError('Pure veg stores can only use veg foods');
+}
+
 export async function createFood(body) {
     const restaurantId = body.restaurantId;
     if (!restaurantId || !mongoose.Types.ObjectId.isValid(restaurantId)) {
@@ -3970,10 +3998,8 @@ export async function createFood(body) {
     }
     const name = typeof body.name === 'string' ? body.name.trim() : '';
     if (!name) throw new ValidationError('Food name is required');
-    const foodType = body.foodType === 'Veg' ? 'Veg' : 'Non-Veg';
-    if (restaurant.pureVegRestaurant === true && foodType !== 'Veg') {
-        throw new ValidationError('Pure veg stores can only use veg foods');
-    }
+    const foodType = normalizeAdminFoodType(body.foodType);
+    assertFoodTypeAllowedForStore(foodType, restaurant);
     const { price, otherPrice, variants } = getAdminFoodCreatePricing(body);
 
     let categoryName = typeof body.categoryName === 'string' ? body.categoryName.trim() : '';
@@ -4023,14 +4049,34 @@ function buildAdminCatalogFields(body = {}) {
         throw new ValidationError(`Price cannot be above the MRP of ${mrp}`);
     }
 
+    const str = (value) => (typeof value === 'string' ? value.trim() : undefined);
+
+    // Mirrors the seller-side allowlist in restaurantFood.service.js. Both panels
+    // write the same catalogue, so a field accepted by one and dropped by the other
+    // produces products whose completeness depends on who happened to create them.
+    const netQuantityUnit = (() => {
+        const unit = str(body.netQuantityUnit)?.toLowerCase();
+        if (unit === undefined) return undefined;
+        if (!unit) return null;
+        return ['g', 'kg', 'ml', 'l', 'piece'].includes(unit) ? unit : undefined;
+    })();
+
     return {
-        brand: typeof body.brand === 'string' ? body.brand.trim() : undefined,
-        packSize: typeof body.packSize === 'string' ? body.packSize.trim() : undefined,
+        brand: str(body.brand),
+        packSize: str(body.packSize),
         mrp,
         gstRate: num(body.gstRate, { max: 100 }),
         stockQty: num(body.stockQty),
         lowStockThreshold: num(body.lowStockThreshold),
-        maxQtyPerOrder: num(body.maxQtyPerOrder, { min: 1 })
+        maxQtyPerOrder: num(body.maxQtyPerOrder, { min: 1 }),
+        hsnCode: str(body.hsnCode),
+        countryOfOrigin: str(body.countryOfOrigin),
+        manufacturerName: str(body.manufacturerName),
+        marketedByName: str(body.marketedByName),
+        netQuantity: num(body.netQuantity),
+        netQuantityUnit,
+        isReturnable: body.isReturnable === undefined ? undefined : body.isReturnable === true,
+        returnWindowHours: num(body.returnWindowHours)
     };
 }
 
@@ -4046,10 +4092,14 @@ export async function updateFood(id, body) {
     }
     if (body.name !== undefined) doc.name = String(body.name || '').trim();
     if (body.description !== undefined) doc.description = String(body.description || '').trim();
-    const targetFoodType = body.foodType !== undefined ? (body.foodType === 'Veg' ? 'Veg' : 'Non-Veg') : (doc.foodType === 'Veg' ? 'Veg' : 'Non-Veg');
-    if (restaurant.pureVegRestaurant === true && targetFoodType !== 'Veg') {
-        throw new ValidationError('Pure veg stores can only use veg foods');
-    }
+    // Falls back to what the document already says, so an edit that does not mention
+    // foodType cannot silently reclassify a 'None' product as non-veg when the value
+    // is handed to resolveAdminFoodCategory below.
+    const targetFoodType = normalizeAdminFoodType(
+        body.foodType,
+        normalizeAdminFoodType(doc.foodType)
+    );
+    assertFoodTypeAllowedForStore(targetFoodType, restaurant);
     const pricingUpdate = getAdminFoodUpdatedPricing(doc.toObject(), body);
     if (pricingUpdate.price !== undefined) doc.price = pricingUpdate.price;
     if (pricingUpdate.otherPrice !== undefined) doc.otherPrice = pricingUpdate.otherPrice;

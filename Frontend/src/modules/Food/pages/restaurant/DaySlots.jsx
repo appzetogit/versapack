@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react"
+import { restaurantAPI } from "@food/api"
 import { useNavigate, useParams } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import { ArrowLeft, Clock, Edit2, Trash2, ChevronDown, AlertTriangle, X } from "lucide-react"
@@ -530,28 +531,62 @@ export default function DaySlots() {
     }
   }
 
-  const handleSave = () => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY)
-      let allDays = saved ? JSON.parse(saved) : {}
+  /** "09:30" + "pm" -> "21:30", which is what the API stores. */
+  const toApiTime = (time, period) => {
+    if (!time || !time.includes(":")) return ""
+    const [h, m] = time.split(":")
+    let hour = parseInt(h, 10) || 0
+    if (period === "pm" && hour !== 12) hour += 12
+    if (period === "am" && hour === 12) hour = 0
+    return `${String(hour).padStart(2, "0")}:${String(parseInt(m, 10) || 0).padStart(2, "0")}`
+  }
 
+  /**
+   * Saves the day's hours through the outlet-timings API.
+   *
+   * This used to read and write localStorage under a STORAGE_KEY that was never
+   * declared anywhere, so every save threw a ReferenceError, landed in the catch,
+   * and told the seller to try again. It could never have worked, and nothing read
+   * that key either -- OutletTimings has been on the API the whole time.
+   *
+   * Only the first slot is sent, because one opening and one closing time per day
+   * is all the server stores. This screen offers up to three, so a seller who adds
+   * more is told plainly rather than having them silently dropped. Supporting
+   * genuine split shifts needs the timings model to change first.
+   */
+  const handleSave = async () => {
+    if (dayData.slots.length > 1) {
+      alert(
+        "Only the first time slot can be saved — the store's hours support one opening and closing time per day. Remove the extra slots to continue.",
+      )
+      return
+    }
+
+    const slot = dayData.slots[0]
+    const entry = {
+      isOpen: dayData.isOpen,
+      openingTime: dayData.isOpen ? toApiTime(slot?.start, slot?.startPeriod) : "",
+      closingTime: dayData.isOpen ? toApiTime(slot?.end, slot?.endPeriod) : "",
+    }
+
+    try {
+      const res = await restaurantAPI.getOutletTimings()
+      const current = res?.data?.data?.outletTimings || res?.data?.outletTimings || {}
+
+      const dayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+      const next = { ...current }
       if (copyToAllDays) {
-        // Copy to all days
-        const dayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-        dayNames.forEach(d => {
-          allDays[d] = { ...dayData }
-        })
+        dayNames.forEach((d) => { next[d] = { ...entry } })
       } else {
-        // Update only current day
-        allDays[dayName] = dayData
+        next[dayName] = entry
       }
 
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(allDays))
+      await restaurantAPI.saveOutletTimings(next)
       window.dispatchEvent(new Event("outletTimingsUpdated"))
       navigate("/seller/outlet-timings")
     } catch (error) {
       debugError("Error saving day slots:", error)
-      alert("Error saving slots. Please try again.")
+      alert(error?.response?.data?.message || "Error saving slots. Please try again.")
     }
   }
 

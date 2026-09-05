@@ -100,31 +100,70 @@ export const handleRazorpayWebhook = async (req, res) => {
             const rzRefundId = refundObj.id;
             const refundAmount = refundObj.amount / 100; // to major unit
 
-            // Sync refund fields in the order
-            const order = await FoodOrder.findOneAndUpdate(
-                { 
-                    "payment.razorpay.paymentId": rzPaymentId,
-                    "payment.refund.status": { $ne: 'processed' }
-                },
-                { 
-                    $set: { 
-                        "payment.status": 'refunded',
-                        "payment.refund": {
-                            status: 'processed',
-                            amount: refundAmount,
-                            refundId: rzRefundId,
-                            processedAt: new Date()
-                        }
-                    } 
-                },
-                { new: true }
-            );
+            // Razorpay fires refund.processed for a PARTIAL refund too.
+            //
+            // This used to set payment.status 'refunded' and refund.status 'processed'
+            // unconditionally, which is wrong for an order that is still being
+            // delivered with some items refunded: it drops the order out of the paid
+            // filters, and — the part that costs real money — 'processed' is what
+            // applyCancellationRefund reads to decide an order has already been made
+            // whole, so cancelling afterwards would return nothing and silently keep
+            // the balance.
+            //
+            // So the amount decides. Only a refund that covers what was charged closes
+            // the order out; anything less is recorded as partial and leaves the
+            // payment where it is.
+            const existing = await FoodOrder.findOne({
+                "payment.razorpay.paymentId": rzPaymentId
+            }).select('order_id orderId pricing payment fulfilment');
 
-            if (order) {
-                logger.info(`Webhook [refund.processed]: Synced Order ${order.orderId} (Refunded)`);
+            if (!existing) {
+                logger.warn(`Webhook [refund.processed]: Order not found for RZ-Payment: ${rzPaymentId}`);
+            } else if (String(existing.payment?.refund?.refundId || '') === String(rzRefundId)) {
+                // Razorpay retries webhooks; this exact refund is already recorded.
+                logger.info(`Webhook [refund.processed]: Refund ${rzRefundId} already applied`);
+            } else if (String(existing.payment?.refund?.status || '') === 'processed') {
+                logger.info(`Webhook [refund.processed]: Order ${existing.orderId} already fully refunded`);
             } else {
-                // ✅ ADDED: Log warn if order not found for refund
-                logger.warn(`Webhook [refund.processed]: Order not found or already refunded for RZ-Payment: ${rzPaymentId}`);
+                // What the customer was originally charged. After a short-pick,
+                // pricing.total has already been reduced to what they are still
+                // buying, so the pre-reduction figure is the one to compare against.
+                const charged =
+                    Number(existing.fulfilment?.originalTotal) ||
+                    Number(existing.pricing?.total) ||
+                    0;
+                const alreadyRefunded = Number(existing.payment?.refund?.amount) || 0;
+                const totalRefunded = Math.round((alreadyRefunded + refundAmount) * 100) / 100;
+                // A rupee of tolerance: Razorpay works in paise and rounding either
+                // side must not leave a fully refunded order looking partial forever.
+                const isFullyRefunded = charged <= 0 || totalRefunded >= charged - 1;
+
+                const order = await FoodOrder.findOneAndUpdate(
+                    {
+                        _id: existing._id,
+                        "payment.refund.refundId": { $ne: rzRefundId }
+                    },
+                    {
+                        $set: {
+                            ...(isFullyRefunded ? { "payment.status": 'refunded' } : {}),
+                            "payment.refund": {
+                                status: isFullyRefunded ? 'processed' : 'partial',
+                                amount: totalRefunded,
+                                refundId: rzRefundId,
+                                processedAt: new Date()
+                            }
+                        }
+                    },
+                    { new: true }
+                );
+
+                if (order) {
+                    logger.info(
+                        `Webhook [refund.processed]: Synced Order ${order.orderId} (${isFullyRefunded ? 'fully refunded' : `partial, ${totalRefunded} of ${charged}`})`
+                    );
+                } else {
+                    logger.info(`Webhook [refund.processed]: Refund ${rzRefundId} applied concurrently`);
+                }
             }
         }
 

@@ -3,6 +3,7 @@ import { useState, useEffect } from "react"
 import { ArrowLeft, Lock, Loader2, Mail, Phone, MessageSquare, Clock, ShieldCheck } from "lucide-react"
 import { motion } from "framer-motion"
 import api from "@food/api"
+import { safeHtml } from "@food/utils/sanitizeHtml"
 
 export default function DeliveryCMSPage({ endpoint, title: defaultTitle, module = "DELIVERY" }) {
   const navigate = useNavigate()
@@ -109,7 +110,7 @@ export default function DeliveryCMSPage({ endpoint, title: defaultTitle, module 
             {pageData.content ? (
               <div
                 className="prose prose-sm prose-orange dark:prose-invert max-w-none text-gray-700 dark:text-gray-300"
-                dangerouslySetInnerHTML={{ __html: pageData.content }}
+                dangerouslySetInnerHTML={safeHtml(pageData.content)}
               />
             ) : (
               <div className="text-center py-20">

@@ -8,6 +8,7 @@ import {
 } from "react"
 import { useLocation } from "@food/hooks/useLocation"
 import { useZone } from "@food/hooks/useZone"
+import { useServingStore } from "@food/hooks/useServingStore"
 import { useProfile } from "@food/context/ProfileContext"
 import {
   buildDisplayAddressText,
@@ -35,6 +36,15 @@ const defaultDeliveryLocationContext = {
   zoneLoading: true,
   zoneError: null,
   refreshZone: () => {},
+  // Which dark store actually serves this location. servingStore is null and
+  // serviceable is null until it has been resolved -- distinct from serviceable
+  // false, which means nothing reaches here.
+  servingStore: null,
+  servingStoreId: null,
+  serviceable: null,
+  promiseMinutes: null,
+  storeLoading: false,
+  refreshServingStore: () => {},
 }
 
 const DeliveryLocationContext = createContext(defaultDeliveryLocationContext)
@@ -112,6 +122,18 @@ export function DeliveryLocationProvider({ children }) {
     refreshZone,
   } = useZone(effectiveLocation)
 
+  // Resolved from the same effectiveLocation the zone is, so the store the customer
+  // browses and the zone their order is priced in can never disagree about where
+  // they are.
+  const {
+    store: servingStore,
+    storeId: servingStoreId,
+    serviceable,
+    promiseMinutes,
+    loading: storeLoading,
+    refreshServingStore,
+  } = useServingStore(effectiveLocation)
+
   useEffect(() => {
     if (
       !Number.isFinite(effectiveLocation?.latitude) ||
@@ -155,6 +177,12 @@ export function DeliveryLocationProvider({ children }) {
       zoneLoading,
       zoneError,
       refreshZone,
+      servingStore,
+      servingStoreId,
+      serviceable,
+      promiseMinutes,
+      storeLoading,
+      refreshServingStore,
     }),
     [
       liveLocation,
@@ -174,6 +202,12 @@ export function DeliveryLocationProvider({ children }) {
       zoneLoading,
       zoneError,
       refreshZone,
+      servingStore,
+      servingStoreId,
+      serviceable,
+      promiseMinutes,
+      storeLoading,
+      refreshServingStore,
     ],
   )
 

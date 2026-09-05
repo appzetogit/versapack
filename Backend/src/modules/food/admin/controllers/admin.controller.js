@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { logger } from '../../../../utils/logger.js';
 import * as adminService from '../services/admin.service.js';
 import * as featureSettingsService from '../services/featureSettings.service.js';
 import { validateCategoryListQuery, validateCategoryRejectDto, validateCategoryUpsertDto } from '../validators/category.validator.js';
@@ -1591,21 +1592,30 @@ export async function processRefund(req, res, next) {
         // First we need to get the order to find the user ID
         const order = await mongoose.model('FoodOrder').findById(orderId).lean();
         
+        // The refund itself is already committed above. A push that cannot be sent
+        // must never surface as a failed refund: the admin would see a 500 on a
+        // refund that succeeded and retry it, paying the customer twice. The
+        // specifier here also used to point outside the tree, so this threw
+        // ERR_MODULE_NOT_FOUND on every single refund.
         if (order && order.userId) {
-            const { notifyOwnersSafely } = await import('../../notifications/firebase.service.js');
-            await notifyOwnersSafely(
-                [{ ownerType: 'USER', ownerId: order.userId }],
-                {
-                    title: 'Refund Processed! 💸',
-                    body: `Your refund of ₹${refundAmount || order.totalAmount || order.total || 0} for Order #${order.orderId} has been processed successfully.`,
-                    image: 'https://i.ibb.co/5GzXz7r/VersaPack-Brand-Image.png',
-                    data: {
-                        type: 'refund_processed',
-                        orderId: String(order.orderId),
-                        orderMongoId: String(order._id)
+            try {
+                const { notifyOwnersSafely } = await import('../../../../core/notifications/firebase.service.js');
+                await notifyOwnersSafely(
+                    [{ ownerType: 'USER', ownerId: order.userId }],
+                    {
+                        title: 'Refund Processed! 💸',
+                        body: `Your refund of ₹${refundAmount || order.totalAmount || order.total || 0} for Order #${order.orderId} has been processed successfully.`,
+                        image: 'https://i.ibb.co/5GzXz7r/VersaPack-Brand-Image.png',
+                        data: {
+                            type: 'refund_processed',
+                            orderId: String(order.orderId),
+                            orderMongoId: String(order._id)
+                        }
                     }
-                }
-            );
+                );
+            } catch (notifyErr) {
+                logger.warn(`Refund push failed for order ${orderId}: ${notifyErr?.message || notifyErr}`);
+            }
         }
         
         res.status(200).json({ success: true, message: 'Refund processed successfully', data: updated });

@@ -105,7 +105,10 @@ export default function Restaurants() {
     }
   }, [zoneId])
 
-  const hasRestaurants = useMemo(() => restaurants.length > 0, [sellers.length])
+  // `sellers` here was a leftover from the restaurant -> seller rename: the variable
+  // is still `restaurants`, so this dependency array threw a ReferenceError on every
+  // render of the page.
+  const hasRestaurants = useMemo(() => restaurants.length > 0, [restaurants.length])
 
   return (
     <AnimatedPage className="min-h-screen bg-gradient-to-b from-yellow-50/30 dark:from-[#0a0a0a] via-white dark:via-[#0a0a0a] to-orange-50/20 dark:to-[#0a0a0a]">

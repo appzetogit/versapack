@@ -6,7 +6,6 @@ import { FoodItem } from '../src/modules/food/admin/models/food.model.js';
 import { FoodHeroBanner } from '../src/modules/food/landing/models/heroBanner.model.js';
 import TopBanner from '../src/modules/food/landing/models/topBanner.model.js';
 import { FoodUnder250Banner } from '../src/modules/food/landing/models/under250Banner.model.js';
-import { FoodDiningBanner } from '../src/modules/food/landing/models/diningBanner.model.js';
 import { HomePromotionBanner } from '../src/modules/food/landing/models/homePromotionBanner.model.js';
 import { FoodExploreIcon } from '../src/modules/food/landing/models/exploreIcon.model.js';
 
@@ -210,19 +209,6 @@ const under250BannerSeeds = [
   }
 ];
 
-const diningBannerSeeds = [
-  {
-    imageUrl: `${seedBase}/banners/gourmetpagebanner.png`,
-    publicId: 'seed/dining-gourmet',
-    title: 'Family dining in Indore',
-    ctaText: 'Book a table',
-    ctaLink: '/food/user/dining',
-    diningType: 'family-dining',
-    sortOrder: 1,
-    isActive: true
-  }
-];
-
 const homePromotionSeeds = [
   {
     imageUrl: `${seedBase}/banners/offerpagebanner.png`,
@@ -404,16 +390,6 @@ async function upsertUnder250Banners() {
   }
 }
 
-async function upsertDiningBanners() {
-  for (const seed of diningBannerSeeds) {
-    await FoodDiningBanner.findOneAndUpdate(
-      { publicId: seed.publicId },
-      { $set: seed },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
-    );
-  }
-}
-
 async function upsertHomePromotionBanners() {
   for (const seed of homePromotionSeeds) {
     await HomePromotionBanner.findOneAndUpdate(
@@ -444,7 +420,6 @@ async function main() {
   await upsertTopBanners();
   await upsertHeroBanners();
   await upsertUnder250Banners();
-  await upsertDiningBanners();
   await upsertHomePromotionBanners();
   await upsertExploreIcons();
 

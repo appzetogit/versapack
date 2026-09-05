@@ -407,11 +407,7 @@ const PaymentModal = ({ order, otpString, onComplete, onClose }) => {
                 successLabel="Delivered! ✓"
                 disabled={!canComplete}
                 onConfirm={async () => {
-                    try {
-                        await onComplete(otpString);
-                    } catch (e) {
-                        throw e;
-                    }
+                    await onComplete(otpString);
                 }}
                 color={isPaid ? "bg-emerald-600" : isCashAccepted ? "bg-blue-600" : "bg-gray-400"}
               />

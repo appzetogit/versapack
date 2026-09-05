@@ -1,5 +1,7 @@
 import mongoose from 'mongoose';
 import { FoodItem } from '../../admin/models/food.model.js';
+import { FoodMasterProduct } from '../../admin/models/masterProduct.model.js';
+import { resolveTaxFields } from '../../shared/masterProduct.resolve.js';
 import { FoodAddon } from '../../restaurant/models/foodAddon.model.js';
 import { ValidationError } from '../../../../core/auth/errors.js';
 
@@ -77,6 +79,26 @@ export async function resolveOrderCartItems(restaurantId, rawItems = []) {
   const foodById = new Map(foodDocs.map((doc) => [String(doc._id), doc]));
   const addonById = new Map(addonDocs.map((doc) => [String(doc._id), doc]));
 
+  // Tax comes from the master product when the listing is linked to one.
+  //
+  // The GST slab and HSN code of a manufactured good are a property of the good, not
+  // of the shop selling it, so snapshotting whatever the seller happened to type would
+  // leave the master catalogue unable to fix the one thing it exists to fix. Only these
+  // two fields are resolved here: a checkout does not need the master's name or images,
+  // and loading it for them would be wasted work on the hottest path in the system.
+  const masterIds = [
+    ...new Set(foodDocs.map((d) => String(d.masterProductId || '')).filter(Boolean)),
+  ];
+  const masterById = masterIds.length
+    ? new Map(
+        (
+          await FoodMasterProduct.find({ _id: { $in: masterIds } })
+            .select('_id gstRate hsnCode')
+            .lean()
+        ).map((m) => [String(m._id), m]),
+      )
+    : new Map();
+
   // Add-ons attached to a line, rather than sent as their own line item.
   //
   // These were dropped entirely: resolveFoodItemPrice only ever looked at
@@ -148,17 +170,37 @@ export async function resolveOrderCartItems(restaurantId, rawItems = []) {
       // Cheap pre-checks so the customer is told at checkout rather than after
       // the reservation fails. Stock is still claimed atomically at order
       // creation -- this read is a courtesy, not the guard.
-      const cap = Number(foodDoc.maxQtyPerOrder);
+      // Which shelf this line actually draws down.
+      //
+      // A variant with a count of its own is a separate pack on a separate shelf --
+      // 500 g and 1 kg run out independently -- so the checks below, and the
+      // reservation later, have to look at the variant rather than the product.
+      // A variant without one is a portion of the same stock and keeps the old
+      // behaviour, which is every product that predates per-variant counts.
+      const selectedVariant = String(rawItem?.variantId || '').trim()
+        ? (foodDoc.variants || []).find((v) => String(v._id) === String(rawItem.variantId))
+        : null;
+      const variantTracked =
+        !!selectedVariant &&
+        selectedVariant.stockQty !== null &&
+        selectedVariant.stockQty !== undefined;
+      const shelf = variantTracked ? selectedVariant : foodDoc;
+      const shelfLabel =
+        variantTracked && selectedVariant.name
+          ? `${foodDoc.name} (${selectedVariant.name})`
+          : foodDoc.name;
+
+      const cap = Number(shelf.maxQtyPerOrder ?? foodDoc.maxQtyPerOrder);
       if (Number.isFinite(cap) && cap > 0 && quantity > cap) {
-        throw new ValidationError(`You can order at most ${cap} of ${foodDoc.name}`);
+        throw new ValidationError(`You can order at most ${cap} of ${shelfLabel}`);
       }
 
-      const onHand = foodDoc.stockQty;
+      const onHand = shelf.stockQty;
       if (onHand !== null && onHand !== undefined && Number(onHand) < quantity) {
         throw new ValidationError(
           Number(onHand) > 0
-            ? `Only ${Number(onHand)} left of ${foodDoc.name}. Please reduce the quantity.`
-            : `${foodDoc.name} just went out of stock`,
+            ? `Only ${Number(onHand)} left of ${shelfLabel}. Please reduce the quantity.`
+            : `${shelfLabel} just went out of stock`,
         );
       }
 
@@ -177,10 +219,24 @@ export async function resolveOrderCartItems(restaurantId, rawItems = []) {
         quantity,
         // Carried onto the line so tax is computed per product rather than at
         // one rate for the whole basket. null defers to the order-wide rate.
-        gstRate:
-          foodDoc.gstRate === null || foodDoc.gstRate === undefined
-            ? null
-            : Number(foodDoc.gstRate),
+        ...(() => {
+          const tax = resolveTaxFields(
+            foodDoc,
+            masterById.get(String(foodDoc.masterProductId || '')),
+          );
+          return {
+            gstRate:
+              tax.gstRate === null || tax.gstRate === undefined ? null : Number(tax.gstRate),
+            // Snapshotted alongside gstRate, and for the same reason: together they are
+            // what makes the line reproducible on a tax invoice after the catalogue
+            // moves on -- or after the listing is relinked to a different master.
+            hsnCode: String(tax.hsnCode || ''),
+          };
+        })(),
+        // Recorded so the reservation, the restock and a later cancellation all key
+        // on the shelf this line was actually checked against. Absent on every order
+        // placed before per-variant counts, which keys those on the product.
+        variantTracked,
         brand: String(foodDoc.brand || ''),
         packSize: String(foodDoc.packSize || ''),
         // Snapshotted so category reporting survives a rename or a delete.

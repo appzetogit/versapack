@@ -1,6 +1,9 @@
 import { FoodRestaurant } from '../../restaurant/models/restaurant.model.js';
 import { FoodItem } from '../../admin/models/food.model.js';
 import { FoodCategory } from '../../admin/models/category.model.js';
+import { unitPriceForProduct } from '../../shared/unitPrice.util.js';
+import { FoodMasterProduct } from '../../admin/models/masterProduct.model.js';
+import { resolveListingWithMaster } from '../../shared/masterProduct.resolve.js';
 import mongoose from 'mongoose';
 
 const RESTAURANT_SEARCH_SELECT = [
@@ -238,12 +241,20 @@ export const searchUnified = async (query = {}, options = {}) => {
     return finalResult;
 };
 
+// netQuantity/netQuantityUnit ride along with packSize because a results grid is
+// exactly where price-per-unit is compared, and packSize alone is free text that
+// cannot be divided by.
 const PRODUCT_SEARCH_SELECT =
-    '_id restaurantId name brand packSize image images price otherPrice mrp categoryId categoryName foodType rating totalRatings isAvailable stockQty maxQtyPerOrder variants';
+    '_id restaurantId masterProductId name brand packSize netQuantity netQuantityUnit image images price otherPrice mrp categoryId categoryName foodType rating totalRatings isAvailable stockQty maxQtyPerOrder variants';
 
-const PRODUCT_SEARCH_PROJECTION = Object.fromEntries(
-    PRODUCT_SEARCH_SELECT.split(' ').filter(Boolean).map((field) => [field, 1]),
-);
+const PRODUCT_SEARCH_PROJECTION = {
+    ...Object.fromEntries(
+        PRODUCT_SEARCH_SELECT.split(' ').filter(Boolean).map((field) => [field, 1]),
+    ),
+    // Computed by the $group stage rather than read off the document, so it has to
+    // be named here or the projection derived from the field list above drops it.
+    inStockNearby: 1,
+};
 
 /**
  * Product search: a grid of things you can buy.
@@ -260,7 +271,7 @@ const PRODUCT_SEARCH_PROJECTION = Object.fromEntries(
  * past the point where that scan is cheap.
  */
 export const searchProducts = async (query = {}) => {
-    const { q, categoryId, zoneId, isVeg, inStockOnly, page = 1, limit = 20 } = query;
+    const { q, categoryId, zoneId, storeId, isVeg, inStockOnly, page = 1, limit = 20 } = query;
 
     const pageNumber = Math.max(parseInt(page, 10) || 1, 1);
     const limitNumber = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 50);
@@ -288,8 +299,27 @@ export const searchProducts = async (query = {}) => {
 
     const sellerById = new Map(sellers.map((seller) => [String(seller._id), seller]));
 
+    // Scoped to one store when the caller names it, which is the quick-commerce path:
+    // the customer is assigned a dark store by distance and shops that shelf, so
+    // showing them a product another store carries is showing them something they
+    // cannot buy. Without storeId this falls back to every store serving the zone,
+    // which is what a marketplace seller's catalogue still needs.
+    //
+    // Honoured only when that store is among the ones already resolved for this zone.
+    // The id arrives from the client, so taking it at face value would let a caller
+    // read the catalogue of a store that is unapproved or serves somewhere else --
+    // the zone and status filters above would simply be skipped.
+    const requestedStoreId =
+        storeId && mongoose.Types.ObjectId.isValid(String(storeId)) ? String(storeId) : null;
+    const scopedStoreId =
+        requestedStoreId && sellerById.has(requestedStoreId)
+            ? new mongoose.Types.ObjectId(requestedStoreId)
+            : null;
+
     const productFilter = {
-        restaurantId: { $in: sellers.map((seller) => seller._id) },
+        restaurantId: scopedStoreId
+            ? scopedStoreId
+            : { $in: sellers.map((seller) => seller._id) },
         approvalStatus: 'approved'
     };
 
@@ -349,7 +379,72 @@ export const searchProducts = async (query = {}) => {
                 },
             },
         },
+        // Narrowed before the sort and group below, not after.
+        //
+        // $group carries whole documents through `$first: '$$ROOT'`, and an
+        // aggregation stage has 100MB to work in. Dropping to the fields the response
+        // actually returns keeps both the sort and the group working on rows a
+        // fraction of the size, which is the difference between this scaling with the
+        // catalogue and falling over on a large zone.
+        { $project: { ...PRODUCT_SEARCH_PROJECTION, _score: 1 } },
         // _id breaks ties so paging cannot repeat or skip a row between requests.
+        { $sort: { _score: -1, _id: 1 } },
+        // One row per PRODUCT, not per store's listing of it.
+        //
+        // The same tub of butter is a separate row in every dark store that carries
+        // it, so without this a search returns it once per store and one product
+        // fills the page. Grouping on masterProductId collapses them to the
+        // best-ranked listing.
+        //
+        // What comes out of the group is deliberately NOT a seller count and a
+        // cheapest price. That pair answers "who sells this and for how much", which
+        // is the question on a marketplace of independent shops. These stores are all
+        // ours and price the same, so the only thing a shopper can actually act on is
+        // whether it is on a shelf that can reach them in ten minutes.
+        //
+        // Unlinked listings group on their own _id, so anything not yet in the master
+        // catalogue stays exactly as it was. $first is meaningful because the $sort
+        // above already ran, and that sort scores in-stock listings above out-of-stock
+        // ones -- so where one nearby store has it and another does not, the row that
+        // survives is the one the customer can actually buy.
+        {
+            $group: {
+                _id: { $ifNull: ['$masterProductId', '$_id'] },
+                doc: { $first: '$$ROOT' },
+                // True when at least one store in range can sell it right now.
+                // stockQty null means untracked, which is sellable, not empty.
+                inStockNearby: {
+                    $max: {
+                        $cond: [
+                            {
+                                $and: [
+                                    { $ne: ['$isAvailable', false] },
+                                    {
+                                        $or: [
+                                            { $eq: ['$stockQty', null] },
+                                            { $gt: ['$stockQty', 0] },
+                                        ],
+                                    },
+                                ],
+                            },
+                            1,
+                            0,
+                        ],
+                    },
+                },
+            },
+        },
+        {
+            $replaceRoot: {
+                newRoot: {
+                    $mergeObjects: [
+                        '$doc',
+                        { inStockNearby: { $eq: ['$inStockNearby', 1] } },
+                    ],
+                },
+            },
+        },
+        // $group does not preserve order, so the ranking has to be reapplied.
         { $sort: { _score: -1, _id: 1 } },
         {
             $facet: {
@@ -360,6 +455,9 @@ export const searchProducts = async (query = {}) => {
                     // two cannot drift and the page stays small on mobile data.
                     { $project: PRODUCT_SEARCH_PROJECTION },
                 ],
+                // Counted after grouping, so `total` is the number of products a
+                // shopper can page through rather than the number of listings behind
+                // them — otherwise the last pages come back empty.
                 total: [{ $count: 'value' }],
             },
         },
@@ -368,11 +466,37 @@ export const searchProducts = async (query = {}) => {
     const products = agg?.items || [];
     const total = agg?.total?.[0]?.value || 0;
 
-    const pageItems = products.map((product) => {
+    // Master rows for the page only — at most `limit` of them, fetched in one query
+    // rather than joined in the pipeline, so an unlinked catalogue costs nothing.
+    const masterIds = [
+        ...new Set(products.map((p) => String(p.masterProductId || '')).filter(Boolean)),
+    ];
+    const masterById = masterIds.length
+        ? new Map(
+            (await FoodMasterProduct.find({ _id: { $in: masterIds } }).lean()).map((m) => [
+                String(m._id),
+                m,
+            ]),
+        )
+        : new Map();
+
+    const pageItems = products.map((row) => {
+        // Identity from the master, price and stock from this seller's listing.
+        const product = resolveListingWithMaster(
+            row,
+            masterById.get(String(row.masterProductId || '')),
+        );
         const seller = sellerById.get(String(product.restaurantId));
         return {
             ...product,
             inStock: product.isAvailable !== false,
+            // null for anything without a recorded net quantity, which the grid must
+            // render as absent rather than as a zero price.
+            unitPrice: unitPriceForProduct(product),
+            // Whether a store that can reach this customer has it on the shelf now.
+            // The row itself may still be the out-of-stock one if nothing nearby has
+            // it, which is why this is separate from `inStock` above.
+            inStockNearby: row.inStockNearby === true,
             seller: seller
                 ? {
                     _id: seller._id,

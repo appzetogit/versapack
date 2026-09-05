@@ -10,6 +10,9 @@ const debugError = (...args) => {}
 
 
 export default function RestaurantGoogleCallback() {
+  // Rendered below but never obtained: the JSX referenced `companyName` while
+  // nothing declared it, so this component threw a ReferenceError on render.
+  const companyName = useCompanyName()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const [status, setStatus] = useState("loading") // "loading", "success", "error"

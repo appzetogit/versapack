@@ -58,6 +58,62 @@ const isLegacyTemplateSampleRow = (data = {}) => {
     );
 };
 
+const NET_QUANTITY_UNITS = new Set(['g', 'kg', 'ml', 'l', 'piece']);
+
+/**
+ * The grocery half of a parsed row, as fields to $set.
+ *
+ * Only keys the sheet actually carried a value for are returned, so a row uploaded
+ * from the old fourteen-column template writes none of them and leaves whatever the
+ * product already has. Spreading an object of `undefined`s would not be safe here —
+ * the driver serialises undefined as null, which would blank a seller's MRP and
+ * stock on every re-upload of an old sheet.
+ */
+function buildGroceryUpdate(data = {}, rowNumber) {
+    const update = {};
+
+    if (data.mrp !== undefined) update.mrp = data.mrp;
+    if (data.gstRate !== undefined) update.gstRate = data.gstRate;
+    if (data.stockQty !== undefined) update.stockQty = data.stockQty;
+    if (data.brand !== undefined) update.brand = data.brand;
+    if (data.packSize !== undefined) update.packSize = data.packSize;
+    if (data.hsnCode !== undefined) update.hsnCode = data.hsnCode;
+    if (data.netQuantity !== undefined) update.netQuantity = data.netQuantity;
+    if (data.sku !== undefined) update.sku = data.sku;
+    if (data.barcode !== undefined) update.barcode = data.barcode;
+
+    if (data.netQuantityUnit !== undefined) {
+        const unit = String(data.netQuantityUnit).trim().toLowerCase();
+        if (!NET_QUANTITY_UNITS.has(unit)) {
+            throw new Error(
+                `Row ${rowNumber}: Net Quantity Unit must be one of ${[...NET_QUANTITY_UNITS].join(', ')}`
+            );
+        }
+        update.netQuantityUnit = unit;
+    }
+
+    // Selling above the printed MRP is illegal, so a sheet that does it is refused
+    // rather than partially imported -- the same rule the single-item paths enforce.
+    if (update.mrp !== undefined && update.mrp > 0) {
+        const highest = Math.max(
+            Number(data.price) || 0,
+            ...(Array.isArray(data.variants) ? data.variants.map((v) => Number(v?.price) || 0) : [])
+        );
+        if (highest > update.mrp) {
+            throw new Error(`Row ${rowNumber}: Price ${highest} is above the MRP of ${update.mrp}`);
+        }
+    }
+
+    // A stocked-out row must not stay visible; a restocked one must come back. Mirrors
+    // buildAvailabilityUpdate in restaurantFood.service.js.
+    if (update.stockQty !== undefined) {
+        if (update.stockQty === 0) update.isAvailable = false;
+        else if (update.stockQty > 0) update.isAvailable = true;
+    }
+
+    return update;
+}
+
 /**
  * Generates an Excel template for bulk menu upload.
  */
@@ -81,6 +137,25 @@ export async function generateBulkMenuTemplate() {
         { header: 'Variant 2 Price', key: 'v2Price', width: 15 },
         { header: 'Variant 3 Name', key: 'v3Name', width: 20 },
         { header: 'Variant 3 Price', key: 'v3Price', width: 15 },
+        // Grocery columns, appended after the original fourteen and all optional.
+        //
+        // Appended rather than slotted in beside the fields they belong with, because
+        // the row parser addresses cells by fixed index: inserting a column anywhere
+        // before position 15 would shift every later one and silently reparse a
+        // seller's existing sheet into the wrong fields. They are also deliberately
+        // absent from `requiredHeaders`, so a sheet saved from the old template still
+        // uploads — its missing cells read as empty and fall through to the schema
+        // defaults, which is the same untracked behaviour those products have today.
+        { header: 'MRP', key: 'mrp', width: 12 },
+        { header: 'GST Rate (%)', key: 'gstRate', width: 14 },
+        { header: 'Stock Qty', key: 'stockQty', width: 12 },
+        { header: 'Brand', key: 'brand', width: 20 },
+        { header: 'Pack Size', key: 'packSize', width: 18 },
+        { header: 'HSN Code', key: 'hsnCode', width: 14 },
+        { header: 'Net Quantity', key: 'netQuantity', width: 14 },
+        { header: 'Net Quantity Unit', key: 'netQuantityUnit', width: 18 },
+        { header: 'SKU', key: 'sku', width: 18 },
+        { header: 'Barcode', key: 'barcode', width: 20 },
     ];
 
     // Style headers
@@ -93,11 +168,20 @@ export async function generateBulkMenuTemplate() {
 
     // Add Data Validations for 500 rows
     for (let i = 2; i <= 501; i++) {
-        // Food Type Dropdown
+        // Food Type Dropdown. 'None' is for stock the veg question does not apply
+        // to at all -- detergent, batteries -- which a grocery catalogue is full of.
         sheet.getCell(`E${i}`).dataValidation = {
             type: 'list',
             allowBlank: false,
-            formulae: ['"Veg,Non-Veg"']
+            formulae: ['"Veg,Non-Veg,None"']
+        };
+
+        // Net Quantity Unit dropdown (column V), so the value stays one of the units
+        // the price-per-unit maths knows how to normalise.
+        sheet.getCell(`V${i}`).dataValidation = {
+            type: 'list',
+            allowBlank: true,
+            formulae: ['"g,kg,ml,l,piece"']
         };
 
         // Recommended Dropdown
@@ -196,6 +280,28 @@ export async function processBulkMenuUpload(restaurantId, fileBuffer, options = 
         return parseFloat(cell.value) || 0;
     };
 
+    /**
+     * A number, or undefined when the cell is genuinely blank.
+     *
+     * getNumericValue answers 0 for an empty cell, which is right for a price on a
+     * mandatory column and catastrophic for the optional grocery ones: an old sheet
+     * has no Stock Qty column at all, and reading it as 0 would mark the seller's
+     * entire catalogue out of stock on their next upload. Blank has to stay absent so
+     * it reaches the schema default (null = untracked).
+     */
+    const getOptionalNumber = (cell, { min = 0, max = Infinity } = {}) => {
+        if (!cell || cell.value === null || cell.value === undefined || cell.value === '') {
+            return undefined;
+        }
+        const raw = (typeof cell.value === 'object' && cell.value.result !== undefined)
+            ? cell.value.result
+            : cell.value;
+        if (raw === null || raw === undefined || String(raw).trim() === '') return undefined;
+        const parsed = Number(raw);
+        if (!Number.isFinite(parsed) || parsed < min || parsed > max) return undefined;
+        return parsed;
+    };
+
     const getTextValue = (cell) => {
         if (!cell || cell.value === null || cell.value === undefined) return '';
         
@@ -219,6 +325,12 @@ export async function processBulkMenuUpload(restaurantId, fileBuffer, options = 
         return String(cell.value).trim();
     };
 
+    /** Trimmed text, or undefined when blank, so an absent column never clears a field. */
+    const getOptionalText = (cell) => {
+        const value = getTextValue(cell);
+        return value === '' ? undefined : value;
+    };
+
     sheet.eachRow((row, rowNumber) => {
         if (rowNumber === 1) return; // Skip Header
         if (rowCount >= maxItems) return;
@@ -233,7 +345,19 @@ export async function processBulkMenuUpload(restaurantId, fileBuffer, options = 
                 isRecommended: String(row.getCell(6).value || '').toLowerCase() === 'yes',
                 prepTime: getTextValue(row.getCell(7)),
                 imageUrl: getTextValue(row.getCell(8)),
-                variants: []
+                variants: [],
+                // Columns 15-24. Every one is undefined on a sheet from the old
+                // template, and undefined is what keeps the field off the $set below.
+                mrp: getOptionalNumber(row.getCell(15)),
+                gstRate: getOptionalNumber(row.getCell(16), { max: 100 }),
+                stockQty: getOptionalNumber(row.getCell(17)),
+                brand: getOptionalText(row.getCell(18)),
+                packSize: getOptionalText(row.getCell(19)),
+                hsnCode: getOptionalText(row.getCell(20)),
+                netQuantity: getOptionalNumber(row.getCell(21)),
+                netQuantityUnit: getOptionalText(row.getCell(22)),
+                sku: getOptionalText(row.getCell(23)),
+                barcode: getOptionalText(row.getCell(24))
             };
 
             // Mandatory Field Check
@@ -374,6 +498,7 @@ export async function processBulkMenuUpload(restaurantId, fileBuffer, options = 
                                 foodType: normalizedFoodType,
                                 isRecommended: data.isRecommended,
                                 preparationTime: data.prepTime,
+                                ...buildGroceryUpdate(data, rowNumber),
                                 approvalStatus,
                                 ...(approvalStatus === 'pending'
                                     ? { requestedAt: new Date(), approvedAt: null }

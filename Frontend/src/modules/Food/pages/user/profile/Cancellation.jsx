@@ -7,6 +7,7 @@ import { Button } from "@food/components/ui/button"
 import api from "@food/api"
 import useAppBackNavigation from "@food/hooks/useAppBackNavigation"
 import { API_ENDPOINTS } from "@food/api/config"
+import { safeHtml } from "@food/utils/sanitizeHtml"
 
 export default function Cancellation() {
   const navigate = useNavigate()
@@ -90,7 +91,7 @@ export default function Cancellation() {
                 prose-strong:text-gray-900 dark:prose-strong:text-white
                 prose-a:text-[#FA0272] dark:prose-a:text-[#EB590E]
                 prose-li:text-gray-600 dark:prose-li:text-gray-400"
-              dangerouslySetInnerHTML={{ __html: cancellationData.content }}
+              dangerouslySetInnerHTML={safeHtml(cancellationData.content)}
             />
           ) : (
             <div className="text-center py-20">

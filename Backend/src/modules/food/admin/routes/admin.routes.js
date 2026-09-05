@@ -1,12 +1,12 @@
 import express from 'express';
 import { AuthError } from '../../../../core/auth/errors.js';
 import * as adminController from '../controllers/admin.controller.js';
+import * as masterProductController from '../controllers/masterProduct.controller.js';
 import * as foodApprovalController from '../controllers/foodApproval.controller.js';
 import * as addonsApprovalController from '../controllers/addonsApproval.controller.js';
 import * as businessSettingsController from '../controllers/businessSettings.controller.js';
 import * as feedbackExperienceController from '../controllers/feedbackExperience.controller.js';
 import * as notificationBroadcastController from '../controllers/notificationBroadcast.controller.js';
-import * as diningAdminController from '../../dining/controllers/diningAdmin.controller.js';
 import * as subscriptionBillingController from '../controllers/subscriptionBilling.controller.js';
 import * as orderController from '../../orders/controllers/order.controller.js';
 import { listUserCartsAdminController, getUserCartPricingAdminController } from '../controllers/userCartAdmin.controller.js';
@@ -288,6 +288,28 @@ const invalidatePublicMenus = async (_req, _res, next) => {
 router.post('/foods', invalidatePublicMenus, adminController.createFood);
 router.patch('/foods/:id', invalidatePublicMenus, adminController.updateFood);
 router.delete('/foods/:id', invalidatePublicMenus, adminController.deleteFood);
+
+// ----- Master products (the shared catalogue every seller listing points at) -----
+//
+// Placed after the /foods routes but sharing invalidatePublicMenus: editing a master
+// changes the name, images and tax class every linked listing is sold under, so the
+// cached customer menus are just as stale as they are after editing a listing.
+// ----- Returns -----
+// Approving a return moves money out, so it is admin-only and each decision is
+// claimed conditionally in the service -- two admins clicking at once must not be
+// able to refund the same request twice.
+router.get('/returns', orderController.listReturnsAdminController);
+router.patch('/returns/:returnId/decision', orderController.decideReturnAdminController);
+router.patch('/returns/:returnId/collected', orderController.collectReturnAdminController);
+
+router.get('/master-products', masterProductController.listMasterProductsController);
+router.post('/master-products', invalidatePublicMenus, masterProductController.createMasterProductController);
+router.get('/master-products/:id', masterProductController.getMasterProductController);
+router.patch('/master-products/:id', invalidatePublicMenus, masterProductController.updateMasterProductController);
+router.get('/master-products/:id/listings', masterProductController.listMasterListingsController);
+// Attach or detach one seller listing. Admin-only because linking rewrites which
+// product a seller is selling under.
+router.patch('/foods/:listingId/master-product', invalidatePublicMenus, masterProductController.linkListingToMasterController);
 // Food approval queue (pending items created by restaurants)
 router.get('/foods/pending-approvals', foodApprovalController.getPendingFoodApprovals);
 router.patch('/foods/:id/approve', foodApprovalController.approveFoodItemController);
@@ -438,13 +460,6 @@ router.post('/zones', adminController.createZone);
 router.patch('/zones/:id', adminController.updateZone);
 router.delete('/zones/:id', adminController.deleteZone);
 
-// ----- Dining -----
-router.get('/dining/categories', diningAdminController.getDiningCategories);
-router.post('/dining/categories', diningAdminController.createDiningCategory);
-router.patch('/dining/categories/:id', diningAdminController.updateDiningCategory);
-router.delete('/dining/categories/:id', diningAdminController.deleteDiningCategory);
-router.get('/dining/restaurants', diningAdminController.getDiningRestaurants);
-router.patch('/dining/restaurants/:restaurantId', diningAdminController.updateDiningRestaurant);
 
 // ----- Orders -----
 router.get(
