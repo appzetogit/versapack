@@ -212,8 +212,6 @@ export const adminSidebarMenu = [
     type: "section",
     label: "DINING MANAGEMENT",
     items: [
-      // { type: "link", label: "Dining Banners", path: "/admin/store/dining-management", icon: "UtensilsCrossed" },
-      // { type: "link", label: "Dining List", path: "/admin/store/dining-list", icon: "FileText" },
     ],
   },
   {
