@@ -29,6 +29,9 @@ const seoPages = [
 ]
 
 export default function PageMetaDataPageMetaData() {
+  // Rendered below but never obtained: the JSX referenced `companyName` while
+  // nothing declared it, so this component threw a ReferenceError on render.
+  const companyName = useCompanyName()
   const [searchQuery, setSearchQuery] = useState("")
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)

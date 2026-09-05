@@ -21,6 +21,9 @@ const countryCodes = [
 ]
 
 export default function RestaurantSignup() {
+  // Rendered below but never obtained: the JSX referenced `companyName` while
+  // nothing declared it, so this component threw a ReferenceError on render.
+  const companyName = useCompanyName()
   const navigate = useNavigate()
   const [formData, setFormData] = useState({
     phone: "",

@@ -34,14 +34,21 @@ function BottomNavOrders() {
   const tabs = useMemo(() => getOrdersTabs(basePath), [basePath])
 
   const isInternalPage = pathname.includes("/create-offers")
-  if (isInternalPage) {
-    return null
-  }
 
+  // Hooks run before the early return, not after it.
+  //
+  // This useMemo used to sit below `if (isInternalPage) return null`, so the
+  // component called a different number of hooks depending on the route. React
+  // matches hooks by call order, so navigating in or out of /create-offers shifted
+  // every hook by one and handed this component state belonging to another.
   const activeTab = useMemo(() => {
     const match = findActiveTab(tabs, pathname)
     return match?.id || "orders"
   }, [tabs, pathname])
+
+  if (isInternalPage) {
+    return null
+  }
 
   const handleTabClick = (tab) => {
     if (tab.route && tab.route !== pathname) {

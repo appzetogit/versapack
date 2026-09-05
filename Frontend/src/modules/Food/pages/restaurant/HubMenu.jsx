@@ -1077,29 +1077,30 @@ export default function HubMenu() {
       return
     }
 
-    // Update all foods in this category
-    const allFoods = getAllFoods()
-    const updatedFoods = allFoods.map(food => {
-      if (food.category === selectedCategory.name) {
-        return { ...food, category: newCategoryName }
+    // Renames the category record itself, through the API.
+    //
+    // This used to call getAllFoods() -- a localStorage store that was replaced by
+    // the menu API and left behind -- and rewrite the category *string* on every
+    // cached food. getAllFoods was never imported here, so the rename threw a
+    // ReferenceError, hit the catch, and told the seller it had failed. It had.
+    //
+    // Products reference their category by id, so renaming the record is the whole
+    // job; there is nothing to rewrite item by item.
+    ;(async () => {
+      try {
+        await restaurantAPI.updateCategory(selectedCategory.id, { name: newCategoryName })
+        window.dispatchEvent(new CustomEvent('foodsChanged'))
+        await fetchMenu(false)
+      } catch (error) {
+        debugError('Error updating category:', error)
+        alert(error?.response?.data?.message || 'Error updating category name')
+        return
       }
-      return food
-    })
 
-    // Save updated foods
-    try {
-      localStorage.setItem('restaurant_foods', JSON.stringify(updatedFoods))
-      window.dispatchEvent(new CustomEvent('foodsChanged'))
-      window.dispatchEvent(new Event('storage'))
-    } catch (error) {
-      debugError('Error updating category:', error)
-      alert('Error updating category name')
-      return
-    }
-
-    setIsEditCategoryOpen(false)
-    setSelectedCategory(null)
-    setEditCategoryName("")
+      setIsEditCategoryOpen(false)
+      setSelectedCategory(null)
+      setEditCategoryName("")
+    })()
   }
 
   // Sub-category handlers

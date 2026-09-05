@@ -1,4 +1,11 @@
 import { Link } from "react-router-dom"
+/**
+ * No-op debug logger, matching the convention used across this module. It was
+ * referenced here without ever being declared, so the catch block below threw a
+ * ReferenceError of its own and turned a handled error into an unhandled one.
+ */
+const debugError = (...args) => {};
+
 import { useState, useEffect, useRef, useMemo } from "react"
 import { ChevronDown, ShoppingCart, Wallet } from "lucide-react"
 import { Button } from "@food/components/ui/button"

@@ -5,7 +5,6 @@ import { motion } from 'framer-motion'
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
-import bikeLogo from '../../Food/assets/bikelogo.webp'
 
 
 /**
@@ -39,13 +38,10 @@ import bikeLogo from '../../Food/assets/bikelogo.webp'
 
 // Use direct public path which is more reliable in this setup
 const getDeliveryIconUrl = () => {
-  try {
-    // Try to use delivery icon from public assets
-    return '/assets/deliveryboy/deliveryIcon.png'
-  } catch {
-    // Fallback to bikelogo if delivery icon not found
-    return bikeLogo
-  }
+  // Returning a string literal cannot throw, so the try/catch that used to wrap
+  // this could never reach its bikeLogo fallback. A missing file is handled by the
+  // marker's own onerror, not here.
+  return '/assets/deliveryboy/deliveryIcon.png'
 }
 
 const mapContainerStyle = {

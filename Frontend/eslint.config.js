@@ -30,7 +30,10 @@ export default [
     {
         // Vite config and anything else that runs in Node, not the browser. Without
         // this `process` reads as undefined and the config lints itself as broken.
-        files: ['vite.config.js', '*.config.js'],
+        // Config files and the .mjs self-check scripts run in Node, not the browser.
+        // Without this `process` and `console` read as undefined and they lint as
+        // broken while being perfectly correct Node.
+        files: ['vite.config.js', '*.config.js', '**/*.selfcheck.mjs', '**/*.mjs'],
         languageOptions: { globals: { ...globals.node } },
     },
     {

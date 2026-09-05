@@ -1,4 +1,11 @@
 import { useState, useMemo, useRef, useEffect, startTransition, useDeferredValue } from "react"
+/**
+ * No-op debug logger, matching the convention used across this module. It was
+ * referenced here without ever being declared, so the catch block below threw a
+ * ReferenceError of its own and turned a handled error into an unhandled one.
+ */
+const debugError = (...args) => {};
+
 import { useParams, Link, useNavigate } from "react-router-dom"
 import { createPortal } from "react-dom"
 import { motion, AnimatePresence } from "framer-motion"
@@ -1093,7 +1100,7 @@ export default function CategoryPage() {
                                 }
                               }}
                             />
-                          ) : seller.image ? (
+                          ) : restaurant.image ? (
                             <img
                               src={restaurant.image}
                               alt={restaurant.name}
@@ -1202,7 +1209,7 @@ export default function CategoryPage() {
                               }
                             }}
                           />
-                        ) : seller.image ? (
+                        ) : restaurant.image ? (
                           <img
                             src={restaurant.image}
                             alt={restaurant.name}
