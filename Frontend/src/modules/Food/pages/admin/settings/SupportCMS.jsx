@@ -4,6 +4,7 @@ import api from "@food/api"
 import { API_ENDPOINTS } from "@food/api/config"
 import { Textarea } from "@food/components/ui/textarea"
 import { legalHtmlToPlainText, plainTextToLegalHtml } from "@food/utils/legalContentFormat"
+import { safeHtml } from "@food/utils/sanitizeHtml"
 const debugError = (...args) => {}
 const SUPPORT_EMAIL_REGEX = /^(?!.*\.\.)([A-Za-z0-9]+[._%+-]?)*[A-Za-z0-9]+@[A-Za-z0-9-]+\.[A-Za-z]{2,}$/
 const INDIAN_MOBILE_REGEX = /^[6-9]\d{9}$/
@@ -237,7 +238,7 @@ export default function SupportCMS() {
                   prose-ul:text-slate-700
                   prose-li:my-1
                   leading-relaxed"
-                dangerouslySetInnerHTML={{ __html: plainTextToLegalHtml(supportData.content) }}
+                dangerouslySetInnerHTML={safeHtml(plainTextToLegalHtml(supportData.content))}
               />
             </div>
           )}

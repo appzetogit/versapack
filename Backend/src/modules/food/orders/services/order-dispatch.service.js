@@ -25,7 +25,6 @@ import {
   buildDeliverySocketPayload,
   buildOrderIdentityFilter,
   getBusyDeliveryPartnerIds,
-  haversineKm,
   notifyOwnerSafely,
   notifyOwnersActionableAlert,
   notifyOwnersSafely,
@@ -281,13 +280,6 @@ async function listNearbyOnlineDeliveryPartners(
   }
 
   const [rLng, rLat] = restaurant.location.coordinates;
-  const allOnline = await FoodDeliveryPartner.find({
-    availabilityStatus: "online",
-  })
-    .select("_id status lastLat lastLng lastLocationAt name")
-    .lean();
-
-  const scored = [];
   const allowedStatuses = process.env.NODE_ENV === 'production' ? ['approved'] : ['approved', 'pending'];
 
   // A rider is only dropped for staleness after this long WITHOUT any GPS ping.
@@ -304,37 +296,61 @@ async function listNearbyOnlineDeliveryPartners(
   // hour old and 3 km from the restaurant are still a far better candidate than
   // offering the order to nobody.
   const STALE_GPS_MS = Number(process.env.DISPATCH_STALE_GPS_MS) || 45 * 60 * 1000;
+  const freshSince = new Date(Date.now() - STALE_GPS_MS);
 
-  let droppedStale = 0;
-  for (const p of allOnline) {
-    if (!allowedStatuses.includes(p.status)) continue;
-
-    // No coordinates at all â†’ genuinely unplaceable, must skip (never score as 999).
-    if (p.lastLat == null || p.lastLng == null) {
-      droppedStale += 1;
-      continue;
-    }
-    if (!p.lastLocationAt || Date.now() - new Date(p.lastLocationAt).getTime() > STALE_GPS_MS) {
-      droppedStale += 1;
-      continue;
-    }
-
-    const d = haversineKm(rLat, rLng, p.lastLat, p.lastLng);
-    if (Number.isFinite(d) && d <= maxKm) {
-      scored.push({ partnerId: p._id, distanceKm: d, status: p.status });
-    }
-  }
+  // Nearest riders, chosen by the database.
+  //
+  // This used to read EVERY online rider and measure them in JavaScript, which is
+  // fine at twenty riders and a full collection scan at two thousand -- on the path
+  // that runs for every single order. $geoNear uses the 2dsphere index that already
+  // existed on lastLocation, applies the distance ceiling as part of the query, and
+  // returns them already sorted, so only the handful actually being offered the order
+  // ever leave the database.
+  //
+  // lastLocation is safe to key on: every write that sets lastLat/lastLng sets it in
+  // the same statement, and a rider with neither is excluded by the freshness filter
+  // below anyway -- which is exactly what the old JavaScript loop did.
+  const scored = (
+    await FoodDeliveryPartner.aggregate([
+      {
+        $geoNear: {
+          near: { type: 'Point', coordinates: [rLng, rLat] },
+          distanceField: 'distanceMeters',
+          maxDistance: maxKm * 1000,
+          spherical: true,
+          query: {
+            availabilityStatus: 'online',
+            status: { $in: allowedStatuses },
+            lastLocationAt: { $gte: freshSince },
+          },
+        },
+      },
+      { $limit: Math.max(1, limit) },
+      { $project: { _id: 1, status: 1, distanceMeters: 1 } },
+    ])
+  ).map((p) => ({
+    partnerId: p._id,
+    distanceKm: Number(p.distanceMeters) / 1000,
+    status: p.status,
+  }));
 
   // Without this, a starved dispatch is indistinguishable from "no riders online".
-  if (droppedStale > 0) {
-    logger.warn(
-      `[Dispatch] ${droppedStale}/${allOnline.length} online riders skipped for missing/stale GPS ` +
-        `(restaurant ${rId}, maxKm ${maxKm}). ${scored.length} eligible.`,
-    );
+  // Counted separately rather than as a by-product of the scan, because the scan is
+  // gone -- it is one indexed count and only runs when nothing came back.
+  if (scored.length === 0) {
+    const onlineCount = await FoodDeliveryPartner.countDocuments({
+      availabilityStatus: 'online',
+      status: { $in: allowedStatuses },
+    });
+    if (onlineCount > 0) {
+      logger.warn(
+        `[Dispatch] ${onlineCount} rider(s) online but none within ${maxKm}km of restaurant ${rId} ` +
+          `with GPS fresher than ${Math.round(STALE_GPS_MS / 60000)}m.`,
+      );
+    }
   }
 
-  scored.sort((a, b) => a.distanceKm - b.distanceKm);
-  const picked = scored.slice(0, Math.max(1, limit));
+  const picked = scored;
 
   if (picked.length === 0) {
     // Do NOT fall back to any online partner worldwide (cross-zone bug).
