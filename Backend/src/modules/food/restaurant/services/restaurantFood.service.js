@@ -29,8 +29,14 @@ const normalizeFoodType = (v) => {
     if (t === 'Veg') return 'Veg';
     if (t === 'Non-Veg') return 'Non-Veg';
     if (t === 'Egg') return 'Non-Veg';
+    // Products the veg question does not apply to. Only honoured when asked for
+    // explicitly -- an unrecognised value still falls back to 'Non-Veg', because
+    // silently marking an unknown food as veg is the one wrong answer here.
+    if (t === 'None') return 'None';
     return 'Non-Veg';
 };
+
+const NET_QUANTITY_UNITS = new Set(['g', 'kg', 'ml', 'l', 'piece']);
 
 const getCreateFoodPricing = (body = {}) => {
     const variants = normalizeFoodVariantsInput(extractRawFoodVariants(body));
@@ -174,6 +180,63 @@ const buildCatalogUpdate = (body = {}) => {
                 throw new ValidationError('GST rate must be between 0 and 100');
             }
             update.gstRate = rate;
+        }
+    }
+
+    if (body.hsnCode !== undefined) update.hsnCode = toStr(body.hsnCode);
+    if (body.countryOfOrigin !== undefined) update.countryOfOrigin = toStr(body.countryOfOrigin);
+    if (body.manufacturerName !== undefined) update.manufacturerName = toStr(body.manufacturerName);
+    if (body.marketedByName !== undefined) update.marketedByName = toStr(body.marketedByName);
+
+    if (body.netQuantity !== undefined) {
+        if (body.netQuantity === null || body.netQuantity === '') {
+            update.netQuantity = null;
+        } else {
+            const qty = Number(body.netQuantity);
+            if (!Number.isFinite(qty) || qty < 0) throw new ValidationError('Net quantity is invalid');
+            update.netQuantity = qty;
+        }
+    }
+
+    if (body.netQuantityUnit !== undefined) {
+        const unit = toStr(body.netQuantityUnit).toLowerCase();
+        if (!unit) {
+            update.netQuantityUnit = null;
+        } else if (!NET_QUANTITY_UNITS.has(unit)) {
+            throw new ValidationError(
+                `Net quantity unit must be one of ${[...NET_QUANTITY_UNITS].join(', ')}`,
+            );
+        } else {
+            update.netQuantityUnit = unit;
+        }
+    }
+
+    // A number with no unit is not a quantity, and a unit with no number is not
+    // either. Rejecting the half-filled pair here keeps every price-per-unit
+    // consumer from having to decide what "500" on its own is supposed to mean.
+    const nextQty = update.netQuantity !== undefined ? update.netQuantity : undefined;
+    const nextUnit = update.netQuantityUnit !== undefined ? update.netQuantityUnit : undefined;
+    if (nextQty !== undefined || nextUnit !== undefined) {
+        const qtySet = nextQty !== undefined ? nextQty !== null : null;
+        const unitSet = nextUnit !== undefined ? nextUnit !== null : null;
+        // Only judge when both sides of the pair are present in this request;
+        // a partial edit is resolved against the stored document by the caller.
+        if (qtySet !== null && unitSet !== null && qtySet !== unitSet) {
+            throw new ValidationError('Net quantity and its unit must be set together');
+        }
+    }
+
+    if (body.isReturnable !== undefined) update.isReturnable = body.isReturnable === true;
+
+    if (body.returnWindowHours !== undefined) {
+        if (body.returnWindowHours === null || body.returnWindowHours === '') {
+            update.returnWindowHours = null;
+        } else {
+            const hours = Number(body.returnWindowHours);
+            if (!Number.isFinite(hours) || hours < 0) {
+                throw new ValidationError('Return window must be zero or more hours');
+            }
+            update.returnWindowHours = hours;
         }
     }
 

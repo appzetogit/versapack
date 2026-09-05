@@ -79,6 +79,17 @@ const buildMenuFromFoods = async (foods = []) => {
             barcode: food.barcode || '',
             expiryDate: food.expiryDate ?? null,
             mrp: food.mrp ?? null,
+            // Returned so the seller can read back what they set, and so the product
+            // detail screen can show the declarations a packaged good has to carry.
+            // null/'' throughout means unspecified, which is every pre-existing product.
+            hsnCode: food.hsnCode || '',
+            netQuantity: food.netQuantity ?? null,
+            netQuantityUnit: food.netQuantityUnit ?? null,
+            countryOfOrigin: food.countryOfOrigin || '',
+            manufacturerName: food.manufacturerName || '',
+            marketedByName: food.marketedByName || '',
+            isReturnable: food.isReturnable === true,
+            returnWindowHours: food.returnWindowHours ?? null,
             approvalStatus: food.approvalStatus || 'approved',
             rejectionReason: food.rejectionReason || '',
             requestedAt: food.requestedAt,

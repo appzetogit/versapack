@@ -37,7 +37,63 @@ const foodSchema = new mongoose.Schema(
          * `image` rather than assuming this is populated.
          */
         images: { type: [String], default: [] },
-        foodType: { type: String, enum: ['Veg', 'Non-Veg'], default: 'Non-Veg' },
+        /**
+         * Veg marking.
+         *
+         * 'None' is for products the veg/non-veg question does not apply to at all —
+         * detergent, batteries, a phone charger. It is a third value rather than
+         * making the field nullable because `foodType` feeds category resolution,
+         * the pure-veg store check and the `isVeg` flag snapshotted onto every order
+         * line; null would have to be interpreted at each of those sites, and the
+         * one that guesses wrong labels a non-food product as non-veg in the app.
+         *
+         * The default stays 'Non-Veg' so nothing already catalogued changes meaning.
+         */
+        foodType: { type: String, enum: ['Veg', 'Non-Veg', 'None'], default: 'Non-Veg' },
+        /**
+         * HSN code for this product.
+         *
+         * A GST invoice for goods must carry one per line — a restaurant bill did
+         * not, which is why nothing here had it. Kept as a string: codes are 4, 6 or
+         * 8 digits and leading zeros are significant, so a Number would corrupt them.
+         */
+        hsnCode: { type: String, trim: true, default: '' },
+        /**
+         * Net quantity as a number plus its unit, alongside the free-text `packSize`.
+         *
+         * `packSize` stays because it is what the label actually says ("pack of 6",
+         * "500 g + 20% extra") and it is what the app prints. But free text cannot be
+         * compared, so it cannot answer "which of these is cheaper per 100 g" —
+         * the question a grocery shopper is actually asking. These two fields are
+         * what a price-per-unit sort reads.
+         *
+         * Null means unspecified, which is every product created before this.
+         */
+        netQuantity: { type: Number, default: null, min: 0 },
+        netQuantityUnit: {
+            type: String,
+            enum: ['g', 'kg', 'ml', 'l', 'piece', null],
+            default: null
+        },
+        /**
+         * Legal Metrology (Packaged Commodities) Rules require an e-commerce listing
+         * for a packaged good to show the manufacturer/packer, the country of origin
+         * and the net quantity. None of it applied to a restaurant dish.
+         */
+        countryOfOrigin: { type: String, trim: true, default: '' },
+        manufacturerName: { type: String, trim: true, default: '' },
+        marketedByName: { type: String, trim: true, default: '' },
+        /**
+         * Whether this product can come back after delivery, and for how long.
+         *
+         * Defaults to false because that is the behaviour today — there is no return
+         * flow at all — so every existing product keeps it. Perishables stay false;
+         * sealed packaged goods and electronics are the ones a seller opts in.
+         * `returnWindowHours` null means "use the platform default" once a platform
+         * default exists.
+         */
+        isReturnable: { type: Boolean, default: false },
+        returnWindowHours: { type: Number, default: null, min: 0 },
         /** Manufacturer, for the grocery listing where two sellers stock the same product. */
         brand: { type: String, trim: true, default: '' },
         /** What one unit is: "500 g", "1 L", "pack of 6". Free text, since packs are not standard. */

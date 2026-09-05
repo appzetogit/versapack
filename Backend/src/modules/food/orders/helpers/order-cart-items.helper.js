@@ -183,6 +183,9 @@ export async function resolveOrderCartItems(restaurantId, rawItems = []) {
             : Number(foodDoc.gstRate),
         brand: String(foodDoc.brand || ''),
         packSize: String(foodDoc.packSize || ''),
+        // Snapshotted alongside gstRate, and for the same reason: together they are
+        // what makes the line reproducible on a tax invoice after the catalogue moves on.
+        hsnCode: String(foodDoc.hsnCode || ''),
         // Snapshotted so category reporting survives a rename or a delete.
         categoryId: foodDoc.categoryId || null,
         categoryName: String(foodDoc.categoryName || ''),

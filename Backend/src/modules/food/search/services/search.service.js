@@ -1,6 +1,7 @@
 import { FoodRestaurant } from '../../restaurant/models/restaurant.model.js';
 import { FoodItem } from '../../admin/models/food.model.js';
 import { FoodCategory } from '../../admin/models/category.model.js';
+import { unitPriceForProduct } from '../../shared/unitPrice.util.js';
 import mongoose from 'mongoose';
 
 const RESTAURANT_SEARCH_SELECT = [
@@ -238,8 +239,11 @@ export const searchUnified = async (query = {}, options = {}) => {
     return finalResult;
 };
 
+// netQuantity/netQuantityUnit ride along with packSize because a results grid is
+// exactly where price-per-unit is compared, and packSize alone is free text that
+// cannot be divided by.
 const PRODUCT_SEARCH_SELECT =
-    '_id restaurantId name brand packSize image images price otherPrice mrp categoryId categoryName foodType rating totalRatings isAvailable stockQty maxQtyPerOrder variants';
+    '_id restaurantId name brand packSize netQuantity netQuantityUnit image images price otherPrice mrp categoryId categoryName foodType rating totalRatings isAvailable stockQty maxQtyPerOrder variants';
 
 const PRODUCT_SEARCH_PROJECTION = Object.fromEntries(
     PRODUCT_SEARCH_SELECT.split(' ').filter(Boolean).map((field) => [field, 1]),
@@ -373,6 +377,9 @@ export const searchProducts = async (query = {}) => {
         return {
             ...product,
             inStock: product.isAvailable !== false,
+            // null for anything without a recorded net quantity, which the grid must
+            // render as absent rather than as a zero price.
+            unitPrice: unitPriceForProduct(product),
             seller: seller
                 ? {
                     _id: seller._id,

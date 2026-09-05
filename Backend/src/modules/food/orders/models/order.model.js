@@ -21,6 +21,13 @@ const orderItemSchema = new mongoose.Schema(
         brand: { type: String, trim: true, default: '' },
         packSize: { type: String, trim: true, default: '' },
         /**
+         * HSN code this line was invoiced under, snapshotted for the same reason
+         * `gstRate` is: a product can be reclassified, and a tax invoice has to keep
+         * saying what it actually said when it was issued. Empty means the product
+         * had no code recorded at order time.
+         */
+        hsnCode: { type: String, trim: true, default: '' },
+        /**
          * Category this line belonged to, snapshotted at order time.
          *
          * Without it, "top selling categories" had to join order lines back to
