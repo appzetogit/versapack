@@ -47,7 +47,7 @@ import {
   loadRestaurantForOrdering,
   assertRestaurantOpenForOrdering,
 } from './order-pricing.service.js';
-import { normalizeDeliveryAddress } from '../../shared/geo.utils.js';
+import { calculateDistanceKm, normalizeDeliveryAddress } from '../../shared/geo.utils.js';
 import * as dispatchService from './order-dispatch.service.js';
 import * as deliveryService from './order-delivery.service.js';
 import * as paymentService from './order-payment.service.js';
@@ -207,7 +207,45 @@ async function resolveServiceableZone(restaurant, deliveryAddress) {
     throw new ValidationError('This seller does not deliver to the selected address');
   }
 
+  assertWithinDarkStoreRadius(restaurant, deliveryAddress);
+
   return zone;
+}
+
+/**
+ * A dark store's hard delivery edge.
+ *
+ * The zone test above is necessary and nowhere near sufficient here. A zone is drawn
+ * by hand and routinely covers a whole city, so an order placed to an address 8 km
+ * from the store passes it — and is then quoted ten minutes, which nothing on a bike
+ * can honour. The radius is what actually makes the promise true, so it is enforced
+ * where the order is created rather than trusted from whichever store the client
+ * happened to send.
+ *
+ * Straight-line, matching store assignment: the two must agree about who is
+ * serviceable or a customer is offered a store at browse time and refused at
+ * checkout. Marketplace sellers are untouched — they make no such promise and stay
+ * governed by their zone.
+ */
+function assertWithinDarkStoreRadius(restaurant, deliveryAddress) {
+  if (restaurant?.storeType !== 'dark_store') return;
+
+  const radiusKm = Number(restaurant.serviceRadiusKm);
+  if (!Number.isFinite(radiusKm) || radiusKm <= 0) return;
+
+  // The same helper the pricing path uses for store ↔ customer, so the distance
+  // enforced here and the distance the fee and promise are built from are the same
+  // number. It returns null for a store or address with no usable coordinates,
+  // which cannot be distance-checked: refusing those outright would block real
+  // customers over missing data an admin never entered, and the zone test that
+  // already passed still stands.
+  const distanceKm = calculateDistanceKm(restaurant, deliveryAddress);
+
+  if (Number.isFinite(distanceKm) && distanceKm > radiusKm) {
+    throw new ValidationError(
+      "This address is outside the delivery range of the store your cart is from. Please pick a nearer address, or start a new cart.",
+    );
+  }
 }
 
 async function expireStalePendingPaymentOrders() {

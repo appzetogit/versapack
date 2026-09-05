@@ -60,7 +60,7 @@ export async function loadRestaurantForOrdering(restaurantId) {
       // autoAcceptOrders is read at order creation to decide whether the order
       // waits for a seller. Left out of this projection it is always undefined,
       // so the flag silently does nothing however it is set.
-      'status restaurantName zoneId location isAcceptingOrders autoAcceptOrders outsideHoursOverride openingTime closingTime openDays deliveryTimings isActive',
+      'status restaurantName zoneId location isAcceptingOrders autoAcceptOrders outsideHoursOverride openingTime closingTime openDays deliveryTimings isActive storeType serviceRadiusKm',
     )
     .lean();
 

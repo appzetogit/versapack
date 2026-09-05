@@ -30,7 +30,7 @@ import {
     createSupportTicketController,
     listMySupportTicketsController
 } from '../controllers/supportTicket.controller.js';
-import { syncUserCartController } from '../controllers/userCart.controller.js';
+import { syncUserCartController, rebindCartController } from '../controllers/userCart.controller.js';
 import {
     getFavoritesController,
     addFavoriteRestaurantController,
@@ -85,5 +85,8 @@ router.post('/favorites/foods/:foodId', addFavoriteFoodController);
 router.delete('/favorites/foods/:foodId', removeFavoriteFoodController);
 
 router.put('/cart', syncUserCartController);
+// Re-points the basket when the delivery address changes and a different dark
+// store now serves it. A POST because it returns a rewritten cart, not a read.
+router.post('/cart/rebind', rebindCartController);
 
 export default router;
