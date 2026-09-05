@@ -258,8 +258,17 @@ export function computeItemsTax(items = [], { subtotal = 0, discount = 0, fallba
  * }}
  */
 export function repriceForFulfilledItems(order, fulfilledQuantities = [], fallbackRate = 0) {
-  const items = Array.isArray(order?.items) ? order.items : [];
-  const original = order?.pricing || {};
+  // Flattened to plain objects first.
+  //
+  // A Mongoose subdocument keeps its fields in an internal store, so `{ ...item }`
+  // copies machinery and none of the data -- price and quantity come out undefined,
+  // every line values at zero, and the order reads as "nothing was fulfilled". That
+  // routed short-picked orders into the cancellation branch and cancelled them
+  // outright instead of repricing them. Invisible to a test that passes plain
+  // objects, which is exactly what the unit tests do.
+  const raw = Array.isArray(order?.items) ? order.items : [];
+  const items = raw.map((item) => (item?.toObject ? item.toObject() : item));
+  const original = order?.pricing?.toObject ? order.pricing.toObject() : (order?.pricing || {});
 
   const originalSubtotal = round2(
     items.reduce((sum, it) => sum + (Number(it?.price) || 0) * (Number(it?.quantity) || 0), 0),

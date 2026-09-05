@@ -8,7 +8,9 @@ import {
     totalQuantityByItem,
     reserveStockForItems,
     restoreOrderStock,
-    releaseUnfulfilledStock
+    releaseUnfulfilledStock,
+    stockKeyFor,
+    parseStockKey
 } from '../src/modules/food/orders/services/inventory.service.js';
 
 /**
@@ -313,5 +315,58 @@ test('partial fulfilment stock', async (t) => {
         const a = oid();
         assert.equal(totalQuantityByItem([{ itemId: a, quantity: 5, fulfilledQty: null }]).get(a), 5);
         assert.equal(totalQuantityByItem([{ itemId: a, quantity: 5 }]).get(a), 5);
+    });
+});
+
+test('per-variant stock keys', async (t) => {
+    const a = oid();
+
+    await t.test('a variant with its own count gets its own shelf', () => {
+        // 500 g and 1 kg are different packs that run out independently. Folding
+        // them into one count oversells whichever the customer actually wanted.
+        const key = stockKeyFor({ itemId: a, variantId: 'v1' }, true);
+        assert.equal(key, `${a}::v1`);
+        assert.deepEqual(parseStockKey(key), { itemId: a, variantId: 'v1' });
+    });
+
+    await t.test('a variant without its own count folds into the product', () => {
+        // Half and full plate come off the same pot -- the old behaviour, and what
+        // every product that predates per-variant counts still does.
+        assert.equal(stockKeyFor({ itemId: a, variantId: 'v1' }, false), a);
+        assert.equal(stockKeyFor({ itemId: a }, true), a, 'no variant on the line');
+    });
+
+    await t.test('an unusable item id has no shelf at all', () => {
+        assert.equal(stockKeyFor({ itemId: '', variantId: 'v1' }, true), null);
+        assert.equal(stockKeyFor({ itemId: 'not-an-id' }, false), null);
+    });
+
+    await t.test('two packs of one product are counted separately', () => {
+        const totals = totalQuantityByItem([
+            { itemId: a, variantId: 'v500', variantTracked: true, quantity: 2 },
+            { itemId: a, variantId: 'v1kg', variantTracked: true, quantity: 3 },
+        ]);
+        assert.equal(totals.size, 2, 'two shelves, not one');
+        assert.equal(totals.get(`${a}::v500`), 2);
+        assert.equal(totals.get(`${a}::v1kg`), 3);
+    });
+
+    await t.test('untracked variants still sum into the product, as before', () => {
+        const totals = totalQuantityByItem([
+            { itemId: a, variantId: 'half', quantity: 2 },
+            { itemId: a, variantId: 'full', quantity: 3 },
+        ]);
+        assert.equal(totals.size, 1);
+        assert.equal(totals.get(a), 5);
+    });
+
+    await t.test('a shortfall goes back to the shelf it came off', () => {
+        // Returning a short-picked 500 g pack into the 1 kg count would invent
+        // inventory on one shelf and lose it on the other.
+        const totals = totalQuantityByItem([
+            { itemId: a, variantId: 'v500', variantTracked: true, quantity: 5, fulfilledQty: 2 },
+        ]);
+        assert.equal(totals.get(`${a}::v500`), 2);
+        assert.equal(totals.get(a), undefined);
     });
 });

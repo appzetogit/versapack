@@ -170,17 +170,37 @@ export async function resolveOrderCartItems(restaurantId, rawItems = []) {
       // Cheap pre-checks so the customer is told at checkout rather than after
       // the reservation fails. Stock is still claimed atomically at order
       // creation -- this read is a courtesy, not the guard.
-      const cap = Number(foodDoc.maxQtyPerOrder);
+      // Which shelf this line actually draws down.
+      //
+      // A variant with a count of its own is a separate pack on a separate shelf --
+      // 500 g and 1 kg run out independently -- so the checks below, and the
+      // reservation later, have to look at the variant rather than the product.
+      // A variant without one is a portion of the same stock and keeps the old
+      // behaviour, which is every product that predates per-variant counts.
+      const selectedVariant = String(rawItem?.variantId || '').trim()
+        ? (foodDoc.variants || []).find((v) => String(v._id) === String(rawItem.variantId))
+        : null;
+      const variantTracked =
+        !!selectedVariant &&
+        selectedVariant.stockQty !== null &&
+        selectedVariant.stockQty !== undefined;
+      const shelf = variantTracked ? selectedVariant : foodDoc;
+      const shelfLabel =
+        variantTracked && selectedVariant.name
+          ? `${foodDoc.name} (${selectedVariant.name})`
+          : foodDoc.name;
+
+      const cap = Number(shelf.maxQtyPerOrder ?? foodDoc.maxQtyPerOrder);
       if (Number.isFinite(cap) && cap > 0 && quantity > cap) {
-        throw new ValidationError(`You can order at most ${cap} of ${foodDoc.name}`);
+        throw new ValidationError(`You can order at most ${cap} of ${shelfLabel}`);
       }
 
-      const onHand = foodDoc.stockQty;
+      const onHand = shelf.stockQty;
       if (onHand !== null && onHand !== undefined && Number(onHand) < quantity) {
         throw new ValidationError(
           Number(onHand) > 0
-            ? `Only ${Number(onHand)} left of ${foodDoc.name}. Please reduce the quantity.`
-            : `${foodDoc.name} just went out of stock`,
+            ? `Only ${Number(onHand)} left of ${shelfLabel}. Please reduce the quantity.`
+            : `${shelfLabel} just went out of stock`,
         );
       }
 
@@ -213,6 +233,10 @@ export async function resolveOrderCartItems(restaurantId, rawItems = []) {
             hsnCode: String(tax.hsnCode || ''),
           };
         })(),
+        // Recorded so the reservation, the restock and a later cancellation all key
+        // on the shelf this line was actually checked against. Absent on every order
+        // placed before per-variant counts, which keys those on the product.
+        variantTracked,
         brand: String(foodDoc.brand || ''),
         packSize: String(foodDoc.packSize || ''),
         // Snapshotted so category reporting survives a rename or a delete.

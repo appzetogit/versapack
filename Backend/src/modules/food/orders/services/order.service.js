@@ -719,6 +719,12 @@ export async function createOrder(userId, dto) {
         : null,
       total: Number(pricingResult.pricing?.total) || 0,
       currency: String(pricingResult.pricing?.currency || "INR"),
+      // What the customer was actually shown. Left out of this list, it never
+      // reached the document, and everything downstream that reads the promise --
+      // batching above all -- saw an order that had never made one.
+      deliveryPromiseMinutes: Number.isFinite(Number(pricingResult.pricing?.deliveryPromiseMinutes))
+        ? Number(pricingResult.pricing.deliveryPromiseMinutes)
+        : null,
       // Same road distance source as cart preview / delivery Rest→User.
       distanceKm: Number.isFinite(Number(pricingResult.pricing?.distanceKm))
         ? Number(pricingResult.pricing.distanceKm)

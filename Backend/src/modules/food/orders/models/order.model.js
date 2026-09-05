@@ -7,6 +7,13 @@ const orderItemSchema = new mongoose.Schema(
         variantId: { type: String, trim: true, default: '' },
         variantName: { type: String, trim: true, default: '' },
         variantPrice: { type: Number, min: 0, default: 0 },
+        /**
+         * Whether this line draws down the VARIANT's own stock rather than the
+         * product's. Stored, not recomputed: the reservation was made against one
+         * specific shelf, and a seller adding a per-variant count later must not
+         * change which shelf an existing order gets restocked to on cancellation.
+         */
+        variantTracked: { type: Boolean, default: false },
         price: { type: Number, required: true, min: 0 },
         /** Compare-at / other-platform unit price snapshot at order time. */
         otherPrice: { type: Number, min: 0, default: 0 },
@@ -130,6 +137,17 @@ const pricingSchema = new mongoose.Schema(
         /** Extra surcharge when user selects Quick Mode (also included in platformFee). */
         quickDeliveryFee: { type: Number, default: 0, min: 0 },
         deliveryMode: { type: String, enum: ['basic', 'quick'], default: 'basic' },
+        /**
+         * The delivery time quoted to the customer, in minutes, at the moment they
+         * committed. Stored because it is the commitment -- batching reads it to
+         * refuse any trip that would make an existing order late, and recomputing it
+         * later from distance would measure something the customer never agreed to.
+         *
+         * It was previously computed, returned to the client, and then dropped on
+         * save because this field did not exist, so every stored order looked like it
+         * had no promise at all and the batching guard had nothing to enforce.
+         */
+        deliveryPromiseMinutes: { type: Number, default: null, min: 0 },
         restaurantCommission: { type: Number, default: 0, min: 0 },
         discount: { type: Number, default: 0, min: 0 },
         couponCode: { type: String, default: null, trim: true, uppercase: true },

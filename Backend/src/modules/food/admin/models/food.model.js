@@ -4,7 +4,22 @@ const foodVariantSchema = new mongoose.Schema(
     {
         name: { type: String, required: true, trim: true },
         price: { type: Number, required: true, min: 0 },
-        otherPrice: { type: Number, min: 0, default: 0 }
+        otherPrice: { type: Number, min: 0, default: 0 },
+        /**
+         * Units of THIS variant on hand.
+         *
+         * A restaurant variant is a portion of one dish -- half and full plate come
+         * off the same pot, so counting the dish was right. A grocery variant is a
+         * different pack: 500 g and 1 kg are separate things on separate shelves that
+         * run out independently, and counting them together oversells whichever one
+         * the customer actually wanted.
+         *
+         * null means this variant is not counted separately and the item-level
+         * stockQty governs, which is exactly how every existing product behaves.
+         */
+        stockQty: { type: Number, default: null, min: 0 },
+        /** Per-order cap for this pack specifically. null falls back to the item's. */
+        maxQtyPerOrder: { type: Number, default: null, min: 1 }
     },
     { _id: true }
 );
