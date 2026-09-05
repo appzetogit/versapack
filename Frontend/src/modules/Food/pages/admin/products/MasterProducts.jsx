@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react"
 import { createPortal } from "react-dom"
 import { AnimatePresence, motion } from "framer-motion"
 import {
@@ -310,8 +310,11 @@ export default function MasterProducts() {
                   const isOpen = expandedId === id
                   const rows = listings[id] || []
                   return (
-                    <>
-                      <tr key={id} className="hover:bg-slate-50/60">
+                    // The key belongs on the fragment, not the first row inside it:
+                    // a product expands into two sibling <tr>s, and React keys the
+                    // outermost element the map returns.
+                    <Fragment key={id}>
+                      <tr className="hover:bg-slate-50/60">
                         <td className="px-5 py-4">
                           <div className="flex items-center gap-3">
                             {product.image ? (
@@ -443,7 +446,7 @@ export default function MasterProducts() {
                           </td>
                         </tr>
                       )}
-                    </>
+                    </Fragment>
                   )
                 })}
               </tbody>
