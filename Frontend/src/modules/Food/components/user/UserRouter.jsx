@@ -7,7 +7,9 @@ import ProtectedRoute from "@food/components/ProtectedRoute"
 // Lazy Loading Pages
 
 // Home & Discovery
+import { isFeatureEnabled } from "@food/services/publicAppConfig"
 const Home = lazy(() => import("@food/pages/user/Home"))
+const QuickHome = lazy(() => import("@food/pages/user/QuickHome"))
 const Categories = lazy(() => import("@food/pages/user/Categories"))
 const CategoryPage = lazy(() => import("@food/pages/user/CategoryPage"))
 const Restaurants = lazy(() => import("@food/pages/user/restaurants/Restaurants"))
@@ -78,13 +80,28 @@ const Wallet = lazy(() => import("@food/pages/user/Wallet"))
 // Complaints
 const SubmitComplaint = lazy(() => import("@food/pages/user/complaints/SubmitComplaint"))
 
+/**
+ * Which home the customer lands on.
+ *
+ * Quick commerce opens on a category grid, because the store is assigned by distance
+ * and there is nothing to choose between -- a store feed would be a list of length
+ * one. The old restaurant-card home is kept behind the flag rather than deleted: this
+ * is the single most important screen in the app, and being able to switch back from
+ * the admin panel without a deploy is worth one lazy import.
+ *
+ * Defaults on, since this is the model the platform is being built for.
+ */
+function HomeScreen() {
+  return isFeatureEnabled("quick_commerce_home", true) ? <QuickHome /> : <Home />
+}
+
 export default function UserRouter() {
   return (
     <Suspense fallback={<Loader />}>
       <Routes>
         <Route element={<UserLayout />}>
           {/* Home & Discovery */}
-          <Route path="" element={<Home />} />
+          <Route path="" element={<HomeScreen />} />
           <Route path="categories" element={<Categories />} />
           <Route path="category/:category" element={<CategoryPage />} />
           <Route path="restaurants" element={<Restaurants />} />
