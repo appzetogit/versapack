@@ -5,7 +5,7 @@ import { motion } from 'framer-motion'
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
-import bikeLogo from '../../Food/assets/bikelogo.png'
+import bikeLogo from '../../Food/assets/bikelogo.webp'
 
 
 /**

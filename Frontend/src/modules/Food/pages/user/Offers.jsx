@@ -10,7 +10,7 @@ import { RestaurantGridSkeleton } from "@food/components/ui/loading-skeletons"
 import { useDelayedLoading } from "@food/hooks/useDelayedLoading"
 
 // Import banner image
-import offerBanner from "@food/assets/offerpagebanner.png"
+import offerBanner from "@food/assets/offerpagebanner.webp"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}

@@ -5,7 +5,7 @@ import { adminAPI } from "@food/api"
 import { getGoogleMapsApiKey } from "@food/utils/googleMapsApiKey"
 import { Loader } from "@googlemaps/js-api-loader"
 import { subscribeAllDeliveryLocations } from "@food/realtimeTracking"
-import bikeLogo from "@food/assets/bikelogo.png"
+import bikeLogo from "@food/assets/bikelogo.webp"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}

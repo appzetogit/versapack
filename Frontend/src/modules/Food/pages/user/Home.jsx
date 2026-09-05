@@ -120,7 +120,7 @@ import OutOfZoneScreen from "@food/components/user/OutOfZoneScreen";
 // Explore More Icons
 import exploreOffers from "@food/assets/explore more icons/offers.png";
 import exploreTop10 from "@food/assets/explore more icons/top 10.png";
-import exploreCollection from "@food/assets/explore more icons/collection.png";
+import exploreCollection from "@food/assets/explore more icons/collection.webp";
 import { isVideoUrl } from "@food/utils/mediaType";
 
 // Banner images for hero carousel - will be fetched from API

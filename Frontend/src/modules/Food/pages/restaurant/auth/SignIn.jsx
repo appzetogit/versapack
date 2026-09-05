@@ -7,7 +7,7 @@ import { Button } from "@food/components/ui/button"
 import { Input } from "@food/components/ui/input"
 import { Label } from "@food/components/ui/label"
 import { Checkbox } from "@food/components/ui/checkbox"
-import loginBg from "@food/assets/loginbanner.png"
+import loginBg from "@food/assets/loginbanner.webp"
 import { useCompanyName } from "@food/hooks/useCompanyName"
 
 export default function RestaurantSignIn() {
