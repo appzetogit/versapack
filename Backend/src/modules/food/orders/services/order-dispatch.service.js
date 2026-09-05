@@ -6,6 +6,18 @@ import { FoodDeliveryWallet } from '../../delivery/models/deliveryWallet.model.j
 import { FoodDeliveryCashLimit } from '../../admin/models/deliveryCashLimit.model.js';
 import { ValidationError, NotFoundError } from '../../../../core/auth/errors.js';
 import { logger } from '../../../../utils/logger.js';
+import {
+  placeOrderInBatch,
+  listBatchesReadyToDispatch,
+  assignBatchToPartner,
+} from './batching.service.js';
+
+/**
+ * Batching holds an order for up to its batch window before a rider is sought, so it
+ * stays off until it is deliberately switched on. A delivery optimisation that changes
+ * when customers get their orders is not something to enable by accident.
+ */
+const BATCHING_ENABLED = String(process.env.BATCHING_ENABLED || 'false') === 'true';
 import { config } from '../../../../config/env.js';
 import { getIO, rooms } from '../../../../config/socket.js';
 import { addOrderJob } from '../../../../queues/producers/order.producer.js';
@@ -392,6 +404,33 @@ export async function tryAutoAssign(orderId, options = {}) {
     return order;
   }
 
+  // Batching, when it is switched on and this is one of our own stores.
+  //
+  // An order that joins a still-open batch deliberately does NOT go hunting for a
+  // rider of its own: the point is to leave with company. dispatchReadyBatches picks
+  // it up when the window closes. The dispatching lock is released first, or the
+  // order would sit locked for the length of the window and the sweep would find
+  // nothing it could touch.
+  if (BATCHING_ENABLED) {
+    try {
+      const placement = await placeOrderInBatch(order._id);
+      if (placement?.batch?.status === 'open') {
+        await FoodOrder.updateOne(
+          { _id: order._id },
+          { $unset: { 'dispatch.dispatchingAt': '' } },
+        );
+        logger.info(
+          `tryAutoAssign: ${orderId} is waiting in batch ${placement.batch._id} until its window closes.`,
+        );
+        return order;
+      }
+    } catch (err) {
+      // Batching is an optimisation. If it fails the order must still be delivered,
+      // so this falls through to ordinary single-order dispatch.
+      logger.warn(`Batching skipped for ${orderId}: ${err?.message || err}`);
+    }
+  }
+
   try {
     const offeredIds = (order.dispatch?.offeredTo || []).map(o => o.partnerId.toString());
     const permanentlyExcludedIds = new Set(
@@ -634,6 +673,59 @@ export async function tryAutoAssign(orderId, options = {}) {
   }
 }
 
+
+/**
+ * Sends every batch whose window has closed to a rider.
+ *
+ * A batch leaves when its window expires, not when it is full: holding a trip open
+ * waiting for a third order that may never arrive spends the first customer's promise
+ * on a maybe. Each batch is offered to the nearest rider through the same path a
+ * single order uses, so accept, reject and timeout behave identically -- the rider
+ * simply receives a trip with more than one drop on it.
+ *
+ * Returns a summary rather than throwing: this runs on an interval and one bad batch
+ * must not stop the rest from going out.
+ */
+export async function dispatchReadyBatches() {
+  if (!BATCHING_ENABLED) return { dispatched: 0, skipped: 0 };
+
+  let dispatched = 0;
+  let skipped = 0;
+
+  const ready = await listBatchesReadyToDispatch();
+  for (const batch of ready) {
+    try {
+      const { partners } = await listNearbyOnlineDeliveryPartners(batch.storeId, {
+        limit: 10,
+      });
+      const busy = await getBusyDeliveryPartnerIds();
+      const candidate = partners.find((partner) => !busy.has(String(partner._id)));
+
+      if (!candidate) {
+        // Nobody free. The batch stays open and the next sweep tries again; its
+        // orders are already past their window so they are not waiting on it.
+        skipped += 1;
+        continue;
+      }
+
+      const assigned = await assignBatchToPartner(batch._id, candidate._id);
+      if (!assigned) {
+        skipped += 1;
+        continue;
+      }
+
+      dispatched += 1;
+      logger.info(
+        `Batch ${batch._id}: ${assigned.orders.length} drop(s) assigned to rider ${candidate._id}`,
+      );
+    } catch (err) {
+      skipped += 1;
+      logger.error(`Batch ${batch?._id} dispatch failed: ${err?.message || err}`);
+    }
+  }
+
+  return { dispatched, skipped };
+}
 
 export async function processDispatchTimeout(orderId, partnerId) {
   const order = await FoodOrder.findById(orderId);

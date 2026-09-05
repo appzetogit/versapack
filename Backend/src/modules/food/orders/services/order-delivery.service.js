@@ -1159,6 +1159,13 @@ export async function completeDelivery(orderId, deliveryPartnerId, body = {}) {
     note: `Delivery completed. Prev status: ${prevPayStatus}`,
   });
 
+  // Close this drop off on its trip, and the trip itself once it is the last one.
+  // Fire-and-forget: an order is delivered whether or not the batch bookkeeping
+  // succeeds, and failing the rider's "delivered" tap over it would be absurd.
+  import('./batching.service.js')
+    .then(({ markBatchDropDelivered }) => markBatchDropDelivered(order._id))
+    .catch((e) => logger.warn(`batch drop bookkeeping failed: ${e?.message || e}`));
+
   emitOrderUpdate(order, deliveryPartnerId);
   enqueueOrderEvent('delivery_completed', {
     orderMongoId: order._id?.toString?.(),
