@@ -638,7 +638,43 @@ export async function updateRestaurantFood(restaurantId, foodId, body = {}) {
         'name', 'description', 'image', 'images', 'price', 'variants',
         'foodType', 'categoryId', 'categoryName', 'preparationTime'
     ];
-    const shouldResubmitForApproval = Object.keys(update).some(key => CRITICAL_APPROVAL_FIELDS.includes(key));
+    /**
+     * Whether a field is genuinely different from what is already stored.
+     *
+     * The seller form posts the entire item on every save, so the critical fields
+     * are always present in `update` even when the seller only touched the stock
+     * count. Testing for presence therefore sent the product back to pending on
+     * every edit -- it vanished from the storefront until an admin re-approved it,
+     * which for a store correcting its shelf counts through the day is the whole
+     * catalogue going dark. Approval should turn on what actually changed.
+     */
+    const differsFromStored = (key) => {
+        const normalise = (value) => {
+            if (value === null || value === undefined) return null;
+            if (Array.isArray(value)) return JSON.stringify(value.map(normalise));
+            if (typeof value === 'object') {
+                // Subdocuments and ObjectIds both compare correctly by their
+                // canonical string form.
+                if (typeof value.toHexString === 'function') return value.toHexString();
+                const plain = value.toObject ? value.toObject() : value;
+                if (plain instanceof Date) return plain.toISOString();
+                return JSON.stringify(
+                    Object.keys(plain).sort().reduce((acc, k) => {
+                        if (k === '_id' || k === '__v') return acc;
+                        acc[k] = normalise(plain[k]);
+                        return acc;
+                    }, {}),
+                );
+            }
+            if (typeof value === 'number') return String(value);
+            return String(value).trim();
+        };
+        return normalise(update[key]) !== normalise(existing?.[key]);
+    };
+
+    const shouldResubmitForApproval = Object.keys(update)
+        .filter((key) => CRITICAL_APPROVAL_FIELDS.includes(key))
+        .some(differsFromStored);
 
     if (shouldResubmitForApproval) {
         update.approvalStatus = 'pending';
