@@ -11,6 +11,21 @@ const orderItemSchema = new mongoose.Schema(
         /** Compare-at / other-platform unit price snapshot at order time. */
         otherPrice: { type: Number, min: 0, default: 0 },
         quantity: { type: Number, required: true, min: 1 },
+        /**
+         * Units the seller actually picked, once they have reported.
+         *
+         * `quantity` stays exactly what the customer ordered — the receipt has to keep
+         * saying that — so the shortfall is `quantity - fulfilledQty`. null means not
+         * yet reported, which is every line on every order placed before this existed
+         * and every line on an order still being picked. That distinction matters:
+         * null is "we do not know yet", 0 is "the seller could not find any".
+         */
+        fulfilledQty: { type: Number, default: null, min: 0 },
+        pickStatus: {
+            type: String,
+            enum: ['pending', 'picked', 'short', 'unavailable'],
+            default: 'pending'
+        },
         isVeg: { type: Boolean, default: true },
         /**
          * Rate this line was taxed at, snapshotted like the price is: a
@@ -348,6 +363,20 @@ const orderSchema = new mongoose.Schema(
         statusHistory: {
             type: [statusHistorySchema],
             default: []
+        },
+        /**
+         * Record of a seller reporting what they could actually pick.
+         *
+         * `reportedAt` doubles as the idempotency claim: the shortfall is refunded and
+         * restocked exactly once, and a seller who submits the same stock-take twice —
+         * or double-taps — cannot refund the customer a second time.
+         */
+        fulfilment: {
+            reportedAt: { type: Date, default: null },
+            /** What the customer was charged before the shortfall, for reconciliation. */
+            originalTotal: { type: Number, default: null },
+            refundAmount: { type: Number, default: null },
+            note: { type: String, trim: true, default: '' }
         },
         ratings: {
             type: orderRatingsSchema,

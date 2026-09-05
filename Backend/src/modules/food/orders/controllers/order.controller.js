@@ -1,4 +1,4 @@
-import { sendResponse } from '../../../../utils/response.js';
+import { sendResponse, sendError } from '../../../../utils/response.js';
 import * as orderService from '../services/order.service.js';
 import * as foodOrderPaymentService from '../services/foodOrderPayment.service.js';
 import {
@@ -200,6 +200,35 @@ export async function updateOrderStatusRestaurantController(req, res, next) {
         const dto = validateOrderStatusDto(req.body);
         const order = await orderService.updateOrderStatusRestaurant(orderId, restaurantId, dto.orderStatus, dto.note);
         return sendResponse(res, 200, 'Order status updated', { order });
+    } catch (err) {
+        next(err);
+    }
+}
+
+/**
+ * Seller reports what they could actually pick.
+ *
+ * restaurantId comes from the token, never the body: the service scopes its lookup by
+ * it, which is what stops one seller from repricing another's order.
+ */
+export async function reportPickShortfallController(req, res, next) {
+    try {
+        const restaurantId = req.user?.userId;
+        const orderId = req.params.orderId;
+        const body = req.body || {};
+        const lines = Array.isArray(body.lines) ? body.lines : body.items;
+
+        if (!Array.isArray(lines) || lines.length === 0) {
+            return sendError(res, 400, 'lines must be a non-empty array of { index, fulfilledQty }');
+        }
+
+        const order = await orderService.reportPickShortfall(
+            orderId,
+            restaurantId,
+            lines,
+            body.note
+        );
+        return sendResponse(res, 200, 'Picked quantities recorded', { order });
     } catch (err) {
         next(err);
     }

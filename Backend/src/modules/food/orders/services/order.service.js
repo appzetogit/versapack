@@ -8,7 +8,12 @@ import { FoodRestaurant } from '../../restaurant/models/restaurant.model.js';
 import { FoodDeliveryPartner } from '../../delivery/models/deliveryPartner.model.js';
 import { FoodZone } from '../../admin/models/zone.model.js';
 import { ValidationError, ForbiddenError, NotFoundError } from '../../../../core/auth/errors.js';
-import { reserveStockForItems, releaseReservations, restoreOrderStock } from './inventory.service.js';
+import {
+  reserveStockForItems,
+  releaseReservations,
+  restoreOrderStock,
+  releaseUnfulfilledStock,
+} from './inventory.service.js';
 import { findZoneForPoint, readAddressPoint } from '../../shared/zoneServiceability.js';
 import { buildPaginationOptions, buildPaginatedResult } from '../../../../utils/helpers.js';
 import { FoodOffer } from '../../admin/models/offer.model.js';
@@ -38,6 +43,7 @@ import {
   calculateRiderEarning,
   getDeliveryDistanceKm,
   loadActiveFeeSettings,
+  repriceForFulfilledItems,
   loadRestaurantForOrdering,
   assertRestaurantOpenForOrdering,
 } from './order-pricing.service.js';
@@ -1785,6 +1791,234 @@ export async function listOrdersRestaurant(restaurantId, query) {
       pages: paginated.meta.totalPages,
     },
   };
+}
+
+/**
+ * Statuses during which a seller is still holding the goods and can report a shortfall.
+ *
+ * Before acceptance there is nothing to pick; from the moment a rider has the bag it is
+ * too late to change what is in it, and refunding then would be refunding an order that
+ * is already on its way.
+ */
+const PICKABLE_STATUSES = new Set(['confirmed', 'preparing', 'ready_for_pickup']);
+
+/**
+ * A seller reports the quantities they could actually pick.
+ *
+ * Groceries run out between the customer tapping "order" and the picker reaching the
+ * shelf. Until this existed the only available answer was to cancel the whole order —
+ * at realistic grocery pick rates, that means cancelling a large share of them over one
+ * missing item. Here the order survives, the customer is refunded for exactly what they
+ * did not get, and the units nobody took go back on the shelf.
+ *
+ * Deliberately NOT a substitution flow. Offering a replacement means waiting on a
+ * customer who may be nowhere near their phone, which needs a hold state, a timeout and
+ * a way to release the rider — none of which exist. Refunding the difference is what
+ * the customer would have chosen anyway in most cases, and it needs nobody's attention.
+ *
+ * @param {string} orderId
+ * @param {string} restaurantId The seller from the token, never from the request body.
+ * @param {Array<{ index: number, fulfilledQty: number }>} lines
+ * @param {string} note
+ */
+export async function reportPickShortfall(orderId, restaurantId, lines = [], note = "") {
+  const identity = buildOrderIdentityFilter(orderId);
+  if (!identity) throw new ValidationError("Order id required");
+
+  const order = await FoodOrder.findOne({
+    ...identity,
+    restaurantId: new mongoose.Types.ObjectId(String(restaurantId)),
+  });
+  if (!order) throw new NotFoundError("Order not found");
+
+  if (!canExposeOrderToRestaurant(order)) {
+    throw new ValidationError("This order is not payable yet and cannot be updated");
+  }
+  if (!PICKABLE_STATUSES.has(String(order.orderStatus || ""))) {
+    throw new ValidationError(
+      `An order that is '${order.orderStatus}' can no longer be re-picked`,
+    );
+  }
+  // The claim that makes the refund and the restock happen exactly once. A seller who
+  // double-taps, or resubmits the same stock-take, must not be able to refund twice.
+  if (order.fulfilment?.reportedAt) {
+    throw new ValidationError("This order's picked quantities were already reported");
+  }
+
+  const items = Array.isArray(order.items) ? order.items : [];
+  const fulfilled = items.map((item) => Number(item?.quantity) || 0);
+
+  for (const line of Array.isArray(lines) ? lines : []) {
+    const index = Number(line?.index);
+    if (!Number.isInteger(index) || index < 0 || index >= items.length) {
+      throw new ValidationError(`No such line on this order: ${line?.index}`);
+    }
+    const ordered = Number(items[index]?.quantity) || 0;
+    const picked = Number(line?.fulfilledQty);
+    if (!Number.isFinite(picked) || picked < 0 || picked > ordered) {
+      throw new ValidationError(
+        `Picked quantity for "${items[index]?.name}" must be between 0 and ${ordered}`,
+      );
+    }
+    fulfilled[index] = Math.floor(picked);
+  }
+
+  const feeSettings = await loadActiveFeeSettings();
+  const repriced = repriceForFulfilledItems(order, fulfilled, Number(feeSettings?.gstRate) || 0);
+
+  // Nothing picked is not a partial fulfilment. There is no order left to deliver, and
+  // billing the delivery fee for a journey nobody will make would be indefensible, so
+  // this becomes an ordinary seller cancellation with a full refund and a full restock.
+  if (repriced.nothingFulfilled) {
+    return cancelOrderRestaurantForEmptyPick(order, restaurantId, note);
+  }
+
+  // Put the shortfall back on the shelf BEFORE the order records it as picked, so a
+  // failure here cannot leave stock written off against an order that never held it.
+  await releaseUnfulfilledStock(items, fulfilled);
+
+  const originalTotal = Number(order.pricing?.total) || 0;
+
+  items.forEach((item, index) => {
+    const ordered = Number(item.quantity) || 0;
+    item.fulfilledQty = fulfilled[index];
+    item.pickStatus =
+      fulfilled[index] === ordered ? 'picked' : fulfilled[index] === 0 ? 'unavailable' : 'short';
+  });
+
+  order.pricing = { ...order.pricing, ...repriced.pricing };
+  order.fulfilment = {
+    reportedAt: new Date(),
+    originalTotal,
+    refundAmount: repriced.refundAmount,
+    note: String(note || ""),
+  };
+
+  // What is still owed on a cash order is the reduced figure; the rider must not be
+  // sent to collect for items nobody is delivering.
+  if (order.payment) order.payment.amountDue = repriced.pricing.total;
+
+  pushStatusHistory(order, {
+    byRole: 'RESTAURANT',
+    byId: restaurantId,
+    from: order.orderStatus,
+    to: order.orderStatus,
+    note: `Short-picked: refund ₹${repriced.refundAmount}. ${note || ''}`.trim(),
+  });
+
+  await order.save();
+
+  // Only money already taken can be given back. A cash order simply collects less.
+  if (repriced.refundAmount > 0 && isPrepaidOrder(order)) {
+    try {
+      await applyCancellationRefund(order, {
+        cancelledBy: 'restaurant',
+        refundAmount: repriced.refundAmount,
+      });
+      await order.save();
+    } catch (err) {
+      // The customer is owed money and did not get it. Loud, and left for
+      // reconciliation rather than rolled back — the goods are already short.
+      logger.error(
+        `[CRITICAL] partial-fulfilment refund of ${repriced.refundAmount} failed for order ${order._id}: ${err?.message || err}`,
+      );
+    }
+  }
+
+  const shortLines = items
+    .filter((item) => item.pickStatus !== 'picked')
+    .map((item) => item.name)
+    .filter(Boolean);
+
+  await notifyOwnersSafely([{ ownerType: "USER", ownerId: order.userId }], {
+    title: "Some items were unavailable",
+    body:
+      `${shortLines.slice(0, 3).join(', ')}${shortLines.length > 3 ? ' and more' : ''} ` +
+      `could not be packed. ₹${repriced.refundAmount} is being refunded; the rest of your order is on its way.`,
+    image: "https://i.ibb.co/5GzXz7r/VersaPack-Brand-Image.png",
+    data: {
+      type: "order_partially_fulfilled",
+      orderId: String(order._id),
+      orderMongoId: String(order._id),
+      refundAmount: String(repriced.refundAmount),
+    },
+  });
+
+  try {
+    await foodTransactionService.updateTransactionStatus(order._id, 'partially_fulfilled', {
+      status: 'captured',
+      recordedByRole: 'RESTAURANT',
+      recordedById: restaurantId,
+      note: `Short-picked. Refunded ${repriced.refundAmount} of ${originalTotal}.`,
+    });
+  } catch (err) {
+    logger.warn(`reportPickShortfall transaction sync failed: ${err?.message || err}`);
+  }
+
+  enqueueOrderEvent('order_partially_fulfilled', {
+    orderMongoId: order._id?.toString?.(),
+    orderId: order._id.toString(),
+    restaurantId: String(restaurantId),
+    refundAmount: repriced.refundAmount,
+  });
+
+  return sanitizeOrderForExternal(order);
+}
+
+/** Only these have money sitting with us that can actually be sent back. */
+function isPrepaidOrder(order) {
+  const method = String(order?.payment?.method || '').toLowerCase();
+  const status = String(order?.payment?.status || '').toLowerCase();
+  if (method === 'cash') return false;
+  return status === 'paid' || status === 'authorized';
+}
+
+/** A stock-take that found nothing is a cancellation, handled as the seller's. */
+async function cancelOrderRestaurantForEmptyPick(order, restaurantId, note) {
+  order.orderStatus = 'cancelled_by_restaurant';
+  pushStatusHistory(order, {
+    byRole: 'RESTAURANT',
+    byId: restaurantId,
+    from: order.orderStatus,
+    to: 'cancelled_by_restaurant',
+    note: note || 'No items could be picked',
+  });
+
+  await restoreOrderStock(order);
+  try {
+    await applyCancellationRefund(order, { cancelledBy: 'restaurant' });
+  } catch (err) {
+    logger.error(
+      `[CRITICAL] empty-pick refund failed for order ${order._id}: ${err?.message || err}`,
+    );
+  }
+
+  order.fulfilment = {
+    reportedAt: new Date(),
+    originalTotal: Number(order.pricing?.total) || 0,
+    refundAmount: Number(order.pricing?.total) || 0,
+    note: String(note || ''),
+  };
+  await order.save();
+
+  await notifyOwnersSafely([{ ownerType: 'USER', ownerId: order.userId }], {
+    title: 'Order Cancelled ❌',
+    body: `Order #${order.order_id || order._id} was cancelled because none of the items were in stock. Your refund is being processed.`,
+    image: 'https://i.ibb.co/5GzXz7r/VersaPack-Brand-Image.png',
+    data: {
+      type: 'order_cancelled',
+      orderId: String(order._id),
+      orderMongoId: String(order._id),
+    },
+  });
+
+  enqueueOrderEvent('order_cancelled_by_restaurant', {
+    orderMongoId: order._id?.toString?.(),
+    orderId: order._id.toString(),
+    restaurantId: String(restaurantId),
+  });
+
+  return sanitizeOrderForExternal(order);
 }
 
 export async function updateOrderStatusRestaurant(

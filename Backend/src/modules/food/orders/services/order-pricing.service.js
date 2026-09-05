@@ -227,6 +227,115 @@ export function computeItemsTax(items = [], { subtotal = 0, discount = 0, fallba
   return Math.round(tax);
 }
 
+/**
+ * Reprices an order against the quantities a seller could actually pick.
+ *
+ * A shelf is not a kitchen: a picker finds one of six items missing several times a
+ * day, and until now the only answer was to cancel the whole order. At grocery pick
+ * rates that means cancelling a large share of them, which is why this exists.
+ *
+ * Deliberately computed from the ORDER's own snapshotted line prices, never from the
+ * live catalogue. The customer agreed to the prices on their receipt, and a product
+ * repriced since checkout must not change what they are refunded.
+ *
+ * Two rules the arithmetic encodes, both in the customer's favour, because the
+ * shortfall is the seller's:
+ *
+ *  - Fees do not move. Delivery, packaging and the platform fee stay exactly as
+ *    charged. Recomputing them would let a smaller basket cross back over a
+ *    free-delivery threshold and bill the customer MORE for receiving less.
+ *  - The discount scales with the basket rather than being revoked. A coupon with a
+ *    minimum spend is not clawed back because the seller came up short; the effective
+ *    discount rate is simply held constant, which is the same proportional model
+ *    computeItemsTax already applies.
+ *
+ * @param {object} order      The stored order (items + pricing as written at checkout).
+ * @param {number[]} fulfilledQuantities Parallel to order.items: units actually picked.
+ * @param {number} fallbackRate Order-wide GST rate for lines with no slab of their own.
+ * @returns {{
+ *   pricing: object, refundAmount: number, removedValue: number, nothingFulfilled: boolean
+ * }}
+ */
+export function repriceForFulfilledItems(order, fulfilledQuantities = [], fallbackRate = 0) {
+  const items = Array.isArray(order?.items) ? order.items : [];
+  const original = order?.pricing || {};
+
+  const originalSubtotal = round2(
+    items.reduce((sum, it) => sum + (Number(it?.price) || 0) * (Number(it?.quantity) || 0), 0),
+  );
+
+  const fulfilledLines = items.map((item, index) => {
+    const ordered = Number(item?.quantity) || 0;
+    const raw = Number(fulfilledQuantities[index]);
+    // Absent means untouched, so a seller who reports only the short lines does not
+    // silently zero out everything they did not mention.
+    const picked = Number.isFinite(raw) ? Math.max(0, Math.min(ordered, Math.floor(raw))) : ordered;
+    return { ...item, quantity: picked };
+  });
+
+  const newSubtotal = round2(
+    fulfilledLines.reduce((sum, it) => sum + (Number(it.price) || 0) * it.quantity, 0),
+  );
+
+  const originalDiscount = Number(original.discount) || 0;
+  // Guard the division: an order whose lines sum to zero has no proportion to keep.
+  const newDiscount =
+    originalSubtotal > 0
+      ? round2(Math.min(originalDiscount, originalDiscount * (newSubtotal / originalSubtotal)))
+      : 0;
+
+  // Lines picked to zero are dropped before tax, not passed through with quantity 0.
+  //
+  // computeItemsTax reads `Number(item.quantity) || 1`, so a zero would be taxed as a
+  // single unit -- the customer would be charged GST on an item the seller never gave
+  // them. That default is correct for checkout, where a quantity is always at least
+  // one and a missing value means one; it is only wrong for a basket where zero is a
+  // real, meaningful answer. Filtering here keeps that default intact for the flow it
+  // was written for.
+  const taxableLines = fulfilledLines.filter((line) => line.quantity > 0);
+
+  const newTax = computeItemsTax(taxableLines, {
+    subtotal: newSubtotal,
+    discount: newDiscount,
+    fallbackRate,
+  });
+
+  // platformFee already carries the quick-delivery surcharge folded in by
+  // applyDeliveryModePricing, so it must not be added a second time here.
+  const packagingFee = Number(original.packagingFee) || 0;
+  const deliveryFee = Number(original.deliveryFee) || 0;
+  const deliveryFeeGst = Number(original.deliveryFeeGst) || 0;
+  const platformFee = Number(original.platformFee) || 0;
+
+  const newTotal = round2(
+    Math.max(
+      0,
+      newSubtotal + packagingFee + deliveryFee + deliveryFeeGst + platformFee + newTax - newDiscount,
+    ),
+  );
+
+  const originalTotal = Number(original.total) || 0;
+  // Never refund more than was actually charged, and never produce a negative refund
+  // if the recomputation somehow lands above the original.
+  const refundAmount = round2(Math.max(0, Math.min(originalTotal, originalTotal - newTotal)));
+
+  return {
+    pricing: {
+      ...original,
+      subtotal: newSubtotal,
+      tax: newTax,
+      discount: newDiscount,
+      total: newTotal,
+    },
+    refundAmount,
+    removedValue: round2(Math.max(0, originalSubtotal - newSubtotal)),
+    // Everything short is a cancellation, not a partial fulfilment: there is no order
+    // left to deliver, and the caller must refund in full rather than bill fees for a
+    // delivery that will not happen.
+    nothingFulfilled: newSubtotal <= 0,
+  };
+}
+
 export function resolveUserDeliveryFee(feeSettings = {}, { subtotal = 0, distanceKm = null } = {}) {
   const ranges = Array.isArray(feeSettings.deliveryFeeRanges)
     ? feeSettings.deliveryFeeRanges

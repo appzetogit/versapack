@@ -296,6 +296,9 @@ router.get('/orders', authMiddleware, requireRestaurant, orderController.listOrd
 router.get('/orders/:orderId', authMiddleware, requireRestaurant, orderController.getOrderByIdRestaurantController);
 router.patch('/orders/:orderId/status', authMiddleware, requireRestaurant, orderController.updateOrderStatusRestaurantController);
 router.post('/orders/:orderId/resend-notification', authMiddleware, requireRestaurant, orderController.resendDeliveryNotificationRestaurantController);
+// Seller reports the quantities they could actually pick. Refunds the shortfall and
+// returns the unpicked units to the shelf, instead of cancelling the whole order.
+router.post('/orders/:orderId/picked-quantities', authMiddleware, requireRestaurant, orderController.reportPickShortfallController);
 
 // Complaints (restaurant dashboard)
 router.get('/complaints', authMiddleware, requireRestaurant, getRestaurantComplaintsController);

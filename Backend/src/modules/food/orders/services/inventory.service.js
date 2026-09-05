@@ -16,16 +16,75 @@ import { logger } from '../../../../utils/logger.js';
  * is every document that existed before this file.
  */
 
-/** Same item can appear on several lines (different variants); the shelf sees the sum. */
+/**
+ * Same item can appear on several lines (different variants); the shelf sees the sum.
+ *
+ * Counts `fulfilledQty` in preference to `quantity` once a seller has reported what
+ * they could pick, because from that moment the units still held against the order are
+ * the picked ones — the shortfall was already put back. Without this, cancelling a
+ * partially fulfilled order would restock what was ordered rather than what was taken
+ * and quietly invent the difference. null means not yet reported, so an order still
+ * being picked, and every order that predates partial fulfilment, falls through to
+ * `quantity` and behaves exactly as before.
+ */
 export function totalQuantityByItem(items = []) {
   const totals = new Map();
   for (const item of items) {
     const id = String(item?.itemId || '');
     if (!id || !mongoose.Types.ObjectId.isValid(id)) continue;
+
+    const reported = item?.fulfilledQty;
+    if (reported !== null && reported !== undefined && Number.isFinite(Number(reported))) {
+      const picked = Math.max(0, Number(reported));
+      // A line picked to zero holds nothing; it must not be floored up to 1 the way
+      // an absent quantity is.
+      if (picked === 0) continue;
+      totals.set(id, (totals.get(id) || 0) + picked);
+      continue;
+    }
+
     const qty = Math.max(1, Number(item?.quantity) || 1);
     totals.set(id, (totals.get(id) || 0) + qty);
   }
   return totals;
+}
+
+/**
+ * Returns the units a seller could not find, immediately.
+ *
+ * Separate from restoreOrderStock, which ends an order: this one runs on an order that
+ * is still alive and still holds its picked units, so it must NOT claim
+ * `stockRestoredAt` — doing so would make a later cancellation a no-op and strand the
+ * rest of the reservation.
+ *
+ * @param {object[]} items Order lines, in order.
+ * @param {number[]} fulfilledQuantities Parallel array of units actually picked.
+ */
+export async function releaseUnfulfilledStock(items = [], fulfilledQuantities = []) {
+  const shortfalls = new Map();
+
+  items.forEach((item, index) => {
+    const id = String(item?.itemId || '');
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) return;
+
+    const ordered = Math.max(0, Number(item?.quantity) || 0);
+    const raw = Number(fulfilledQuantities[index]);
+    const picked = Number.isFinite(raw) ? Math.max(0, Math.min(ordered, Math.floor(raw))) : ordered;
+    const short = ordered - picked;
+    if (short > 0) shortfalls.set(id, (shortfalls.get(id) || 0) + short);
+  });
+
+  for (const [itemId, qty] of shortfalls) {
+    try {
+      await incrementStock(itemId, qty);
+    } catch (err) {
+      logger.error(
+        `[CRITICAL] partial restock failed for item ${itemId} (+${qty}): ${err?.message || err}`,
+      );
+    }
+  }
+
+  return shortfalls;
 }
 
 /**

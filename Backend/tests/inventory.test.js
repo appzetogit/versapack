@@ -7,7 +7,8 @@ import { FoodOrder } from '../src/modules/food/orders/models/order.model.js';
 import {
     totalQuantityByItem,
     reserveStockForItems,
-    restoreOrderStock
+    restoreOrderStock,
+    releaseUnfulfilledStock
 } from '../src/modules/food/orders/services/inventory.service.js';
 
 /**
@@ -234,5 +235,83 @@ test('restoreOrderStock', async (t) => {
                 assert.equal(stock[a], 5, 'a second restore must not invent inventory');
             });
         });
+    });
+});
+
+test('partial fulfilment stock', async (t) => {
+    await t.test('returns only the units the seller could not find', async () => {
+        const a = oid();
+        const b = oid();
+        const stock = { [a]: 0, [b]: 5 };
+
+        await withStubbedItem({ stock }, async () => {
+            // Ordered 3 and 2; picked 1 and 2. Only the two missing 'a' come back.
+            await releaseUnfulfilledStock(
+                [{ itemId: a, quantity: 3 }, { itemId: b, quantity: 2 }],
+                [1, 2]
+            );
+            assert.equal(stock[a], 2, 'the shortfall went back on the shelf');
+            assert.equal(stock[b], 5, 'a fully picked line is untouched');
+        });
+    });
+
+    await t.test('a line picked to zero returns the whole quantity', async () => {
+        const a = oid();
+        const stock = { [a]: 0 };
+        await withStubbedItem({ stock }, async () => {
+            await releaseUnfulfilledStock([{ itemId: a, quantity: 4 }], [0]);
+            assert.equal(stock[a], 4);
+        });
+    });
+
+    await t.test('an unreported line is treated as fully picked and returns nothing', async () => {
+        const a = oid();
+        const stock = { [a]: 7 };
+        await withStubbedItem({ stock }, async () => {
+            await releaseUnfulfilledStock([{ itemId: a, quantity: 2 }], []);
+            assert.equal(stock[a], 7);
+        });
+    });
+
+    await t.test('a seller cannot restock more than was ordered', async () => {
+        const a = oid();
+        const stock = { [a]: 1 };
+        await withStubbedItem({ stock }, async () => {
+            // Claiming -5 picked would otherwise return more units than existed.
+            await releaseUnfulfilledStock([{ itemId: a, quantity: 2 }], [-5]);
+            assert.equal(stock[a], 3, 'clamped to the ordered quantity');
+        });
+    });
+
+    await t.test('untracked products are never incremented into a number', async () => {
+        const a = oid();
+        const stock = { [a]: null };
+        await withStubbedItem({ stock }, async () => {
+            await releaseUnfulfilledStock([{ itemId: a, quantity: 3 }], [0]);
+            assert.equal(stock[a], null);
+        });
+    });
+
+    await t.test('a later cancellation restocks what was picked, not what was ordered', () => {
+        // This is the trap partial fulfilment introduces: the shortfall is already
+        // back on the shelf, so cancelling afterwards must return only the units the
+        // order still holds, or the difference is invented out of nothing.
+        const a = oid();
+        const totals = totalQuantityByItem([{ itemId: a, quantity: 5, fulfilledQty: 2 }]);
+        assert.equal(totals.get(a), 2);
+    });
+
+    await t.test('a line picked to zero holds nothing to give back', () => {
+        const a = oid();
+        const totals = totalQuantityByItem([{ itemId: a, quantity: 5, fulfilledQty: 0 }]);
+        assert.equal(totals.size, 0, 'and must not be floored up to one unit');
+    });
+
+    await t.test('an order still being picked falls back to the ordered quantity', () => {
+        // null means "not reported yet", which is every order placed before this
+        // feature existed. Those must behave exactly as they always did.
+        const a = oid();
+        assert.equal(totalQuantityByItem([{ itemId: a, quantity: 5, fulfilledQty: null }]).get(a), 5);
+        assert.equal(totalQuantityByItem([{ itemId: a, quantity: 5 }]).get(a), 5);
     });
 });
