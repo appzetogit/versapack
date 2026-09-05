@@ -567,7 +567,16 @@ export async function createOrder(userId, dto) {
 
     const payment = {
       method: paymentMethod,
-      status: isCash ? "cod_pending" : isWallet ? "paid" : "created",
+      // A wallet order is written as 'created', NOT 'paid', and is promoted to 'paid'
+      // only once the debit below actually succeeds.
+      //
+      // It used to be saved as 'paid' before a rupee had moved, on the assumption
+      // that the debit that follows would either work or be undone by deleting the
+      // order. When that delete failed — and it is the one step with no retry — the
+      // customer was left holding a fully paid order that had never been paid for.
+      // Writing the truthful status first makes the bad outcome an unpaid order that
+      // nothing downstream will dispatch, instead of a free one.
+      status: isCash ? "cod_pending" : "created",
       amountDue: normalizedPricing.total || 0,
       razorpay: {},
       qr: {},
@@ -730,11 +739,39 @@ export async function createOrder(userId, dto) {
 
     if (isWallet) {
       try {
-        await userWalletService.deductWalletBalance(userId, order.pricing.total, `Payment for order #${order.order_id || order._id}`, { orderId: order._id });
+        // Atomic: the balance check and the debit are one conditional update, so two
+        // orders placed at the same instant cannot both spend the same money.
+        await userWalletService.deductWalletBalance(
+          userId,
+          order.pricing.total,
+          `Payment for order #${order.order_id || order._id}`,
+          { orderId: order._id },
+        );
       } catch (err) {
         await restoreOrderStock(order);
         await FoodOrder.deleteOne({ _id: order._id });
         throw err;
+      }
+
+      // Money has moved; the order may now say so.
+      //
+      // Kept as its own conditional update rather than folded into the save above:
+      // `payment.status` must not read 'paid' during the window where the debit is
+      // still in flight. The `$ne` guard makes a retry a no-op instead of a second
+      // promotion.
+      const promoted = await FoodOrder.updateOne(
+        { _id: order._id, "payment.status": { $ne: "paid" } },
+        { $set: { "payment.status": "paid" } },
+      );
+      if (promoted.modifiedCount === 1) {
+        order.payment.status = "paid";
+      } else {
+        // The debit succeeded but the order could not be marked paid. The customer
+        // has been charged, so the order is NOT rolled back — the wallet transaction
+        // carries this orderId in its metadata, which is what reconciliation needs.
+        logger.error(
+          `[CRITICAL] wallet debited but order ${order._id} not marked paid; reconcile manually`,
+        );
       }
     }
 
