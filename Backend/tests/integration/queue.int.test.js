@@ -15,30 +15,64 @@ import assert from 'node:assert/strict';
  * they resolve at call time rather than at load, and a bundler or a linter will never
  * see them.
  *
- * Requires a redis-server on TEST_REDIS_PORT (default 6399). Skipped, not failed,
- * when there is none: this suite must stay runnable on a machine without Redis.
+ * Starts its own redis-server through redis-memory-server, the same way the other
+ * integration suites start their own mongod, so this needs no setup to run. Set
+ * TEST_REDIS_URL to point at one you are already running instead. Skipped rather
+ * than failed if neither can be had, so the suite stays green on a machine that
+ * cannot start Redis at all.
  */
 
-const PORT = Number(process.env.TEST_REDIS_PORT) || 6399;
-const REDIS_URL = `redis://127.0.0.1:${PORT}`;
+let serverProcess = null;
 
-const redisReachable = async () => {
-    const { default: IORedis } = await import('ioredis');
-    const probe = new IORedis(REDIS_URL, { lazyConnect: true, maxRetriesPerRequest: 1, retryStrategy: () => null });
+/**
+ * Starts a redis-server and returns its url, or null if one cannot be had.
+ *
+ * The binary comes from redis-memory-server, but the spawn is ours: its own spawn
+ * lets the server inherit stdio, and redis writing to this process's stdout
+ * corrupts the test runner's IPC stream ("Unable to deserialize cloned data"),
+ * which fails the file at random with every subtest passing. stdio must be ignored.
+ */
+const startRedis = async () => {
+    if (process.env.TEST_REDIS_URL) return process.env.TEST_REDIS_URL;
     try {
-        await probe.connect();
-        await probe.ping();
-        return true;
+        const { RedisBinary } = await import('redis-memory-server');
+        const { spawn } = await import('node:child_process');
+        const { default: IORedis } = await import('ioredis');
+
+        const binary = await RedisBinary.getPath({});
+        // A per-process port, so parallel test files never collide.
+        const port = 6400 + (process.pid % 1000);
+        const url = `redis://127.0.0.1:${port}`;
+
+        serverProcess = spawn(binary, ['--port', String(port), '--save', '', '--appendonly', 'no'], {
+            stdio: 'ignore',
+            windowsHide: true,
+        });
+        serverProcess.unref();
+
+        // Poll until it answers, rather than sleeping a guessed interval.
+        for (let i = 0; i < 50; i += 1) {
+            const probe = new IORedis(url, { lazyConnect: true, maxRetriesPerRequest: 1, retryStrategy: () => null });
+            try {
+                await probe.connect();
+                await probe.ping();
+                return url;
+            } catch {
+                await new Promise((r) => setTimeout(r, 100));
+            } finally {
+                probe.disconnect();
+            }
+        }
+        return null;
     } catch {
-        return false;
-    } finally {
-        probe.disconnect();
+        return null;
     }
 };
 
 test('BullMQ against a real Redis', async (t) => {
-    if (!(await redisReachable())) {
-        t.skip(`no redis on ${REDIS_URL}`);
+    const REDIS_URL = await startRedis();
+    if (!REDIS_URL) {
+        t.skip('could not start a redis-server');
         return;
     }
 
@@ -47,15 +81,31 @@ test('BullMQ against a real Redis', async (t) => {
     process.env.BULLMQ_ENABLED = 'true';
     process.env.REDIS_URL = REDIS_URL;
 
+    // The app logger writes to stdout, and BullMQ logs connection lifecycle events
+    // asynchronously -- including after a subtest has returned. node:test streams a
+    // V8-serialized protocol over that same stdout, so an interleaved log corrupts it
+    // and fails the file with "Unable to deserialize cloned data" while every subtest
+    // passes. Capture the lines instead of printing them; they are assertable anyway.
+    const logged = [];
+    const { logger } = await import('../../src/utils/logger.js');
+    const realLogger = { info: logger.info, warn: logger.warn, error: logger.error };
+    logger.info = (m) => { logged.push(String(m)); };
+    logger.warn = (m) => { logged.push(String(m)); };
+    logger.error = (m) => { logged.push(String(m)); };
+    t.after(() => { Object.assign(logger, realLogger); });
+
     const { Queue, Worker } = await import('bullmq');
     const { default: IORedis } = await import('ioredis');
     const connection = new IORedis(REDIS_URL, { maxRetriesPerRequest: null });
     const created = [];
 
     t.after(async () => {
+        const { closeBullMQConnection } = await import('../../src/queues/index.js');
+        await closeBullMQConnection().catch(() => {});
         await Promise.all(created.map((c) => c.close().catch(() => {})));
-        await connection.flushdb();
+        await connection.flushdb().catch(() => {});
         connection.disconnect();
+        if (serverProcess) serverProcess.kill();
     });
 
     const makeQueue = (name) => {
@@ -119,26 +169,17 @@ test('BullMQ against a real Redis', async (t) => {
 
         const { processOrderJob } = await import('../../src/queues/processors/order.processor.js');
 
-        const seen = [];
-        const realError = console.error;
-        const { logger } = await import('../../src/utils/logger.js');
-        const realLoggerError = logger.error;
-        logger.error = (msg) => { seen.push(String(msg)); };
-
-        try {
-            for (const action of ['DISPATCH_TIMEOUT_CHECK', 'ORDER_ACCEPTANCE_TIMEOUT_CHECK']) {
-                const result = await processOrderJob({
-                    id: 'j1',
-                    data: { action, orderMongoId: '64b7f1c2a1b2c3d4e5f60001' },
-                });
-                assert.equal(result.processed, true);
-            }
-        } finally {
-            logger.error = realLoggerError;
-            console.error = realError;
+        const from = logged.length;
+        for (const action of ['DISPATCH_TIMEOUT_CHECK', 'ORDER_ACCEPTANCE_TIMEOUT_CHECK']) {
+            const result = await processOrderJob({
+                id: 'j1',
+                data: { action, orderMongoId: '64b7f1c2a1b2c3d4e5f60001' },
+            });
+            assert.equal(result.processed, true);
         }
 
-        const unresolved = seen.filter((m) => /ERR_MODULE_NOT_FOUND|Cannot find module/i.test(m));
+        const unresolved = logged.slice(from)
+            .filter((m) => /ERR_MODULE_NOT_FOUND|Cannot find module/i.test(m));
         assert.deepEqual(unresolved, [], 'the handlers must not fail to resolve their imports');
     });
 
@@ -164,10 +205,9 @@ test('BullMQ against a real Redis', async (t) => {
 
     await t.test('getQueue returns a real queue once the flags are on', async () => {
         // With them off this returns null and every producer silently drops its job.
-        const { getOrderQueue, closeBullMQConnection } = await import('../../src/queues/index.js');
+        const { getOrderQueue } = await import('../../src/queues/index.js');
         const q = getOrderQueue();
         assert.ok(q, 'order queue must exist when BullMQ is enabled');
         assert.equal(typeof q.add, 'function');
-        await closeBullMQConnection().catch(() => {});
     });
 });
