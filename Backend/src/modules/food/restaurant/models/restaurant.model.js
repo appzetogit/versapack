@@ -267,6 +267,38 @@ const restaurantSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    /**
+     * Whether this location is one we operate or a shop that sells through us.
+     *
+     * Ten-minute delivery is a physics problem before it is a software one: at the
+     * 22 km/h a bike actually averages in traffic, seven minutes of riding is about
+     * 2.5 km, so the promise only exists if the stock is already that close and the
+     * picking is under our control. A dark store is assigned to the customer by
+     * distance; a marketplace seller is chosen by the customer and makes no such
+     * promise. Defaulting to 'marketplace_seller' keeps every existing store exactly
+     * as it behaves today.
+     */
+    storeType: {
+      type: String,
+      enum: ["dark_store", "marketplace_seller"],
+      default: "marketplace_seller",
+      index: true,
+    },
+    /**
+     * How far this store will deliver, in km.
+     *
+     * The hard edge of the promise, and deliberately per store rather than global:
+     * a dense neighbourhood hub covers 2 km, one on a ring road with clear roads
+     * covers more. Null means no radius of its own, which is every marketplace
+     * seller -- those are still governed by the zone polygons.
+     */
+    serviceRadiusKm: { type: Number, default: null, min: 0 },
+    /**
+     * Orders this store can pick per hour, used to stop promising ten minutes at a
+     * moment when nobody is free to pick. Null means uncapped, which is the
+     * behaviour today.
+     */
+    pickingCapacityPerHour: { type: Number, default: null, min: 0 },
     panImage: {
       type: String,
     },

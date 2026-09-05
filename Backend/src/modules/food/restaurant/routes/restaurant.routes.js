@@ -3,6 +3,7 @@ import { upload } from '../../../../middleware/upload.js';
 import {
     registerRestaurantController,
     createOnboardingFeeOrderController,
+    getServingStoreController,
     listApprovedRestaurantsController,
     getApprovedRestaurantController,
     listPublicOffersController,
@@ -117,6 +118,10 @@ router.post('/unregistered', registerUnregisteredRestaurantController);
 router.post('/upload-attachment', upload.single('file'), uploadRestaurantAttachmentController);
 
 // Public: approved restaurants list (for user app)
+// Which dark store serves a location. Deliberately uncached: the answer depends on
+// the caller's coordinates and on whether that store is accepting orders right now,
+// and a stale yes sends a customer into a catalogue they cannot buy from.
+router.get('/stores/nearest', getServingStoreController);
 router.get('/restaurants', cacheResponse(300, 'restaurants'), listApprovedRestaurantsController);
 router.get('/restaurants/:id', cacheResponse(600, 'restaurant_detail'), getApprovedRestaurantController);
 router.get('/restaurants/:id/menu', cacheResponse(600, 'restaurant_menu'), getPublicRestaurantMenuController);

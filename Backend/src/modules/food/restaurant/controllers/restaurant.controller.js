@@ -16,6 +16,7 @@ import {
     deleteCurrentRestaurantAccount,
     createRestaurantOnboardingFeeOrder,
 } from '../services/restaurant.service.js';
+import { assignStoreForCustomer } from '../services/storeAssignment.service.js';
 import { getRestaurantSubscriptionHistory } from '../services/subscriptionHistory.service.js';
 import { validateRestaurantRegisterDto } from '../validators/restaurant.validator.js';
 import { sendResponse, sendError } from '../../../../utils/response.js';
@@ -49,6 +50,52 @@ export const createOnboardingFeeOrderController = async (req, res, next) => {
         return sendResponse(res, 200, 'Onboarding fee order created', data);
     } catch (error) {
         next(error);
+    }
+};
+
+/**
+ * Which dark store serves this location, and what it can promise.
+ *
+ * The first call the customer app makes after it has a location. Quick commerce does
+ * not ask the customer to choose a store -- ten minutes only exists within about
+ * 2.5 km, so the nearest store that can actually reach them is assigned and its shelf
+ * is what they browse. A null answer is a real answer: it means we do not deliver
+ * here, which the app has to say plainly rather than showing an empty catalogue.
+ */
+export const getServingStoreController = async (req, res, next) => {
+    try {
+        const lat = Number(req.query.lat);
+        const lng = Number(req.query.lng);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+            return sendError(res, 400, 'lat and lng are required');
+        }
+
+        const assignment = await assignStoreForCustomer(lat, lng);
+        if (!assignment) {
+            return sendResponse(res, 200, 'No store serves this location yet', {
+                store: null,
+                serviceable: false,
+            });
+        }
+
+        const { store, distanceKm, promiseMinutes } = assignment;
+        return sendResponse(res, 200, 'Serving store resolved', {
+            serviceable: true,
+            store: {
+                _id: store._id,
+                name: store.restaurantName || '',
+                image: store.profileImage || '',
+                zoneId: store.zoneId || null,
+                isAcceptingOrders: store.isAcceptingOrders !== false,
+            },
+            distanceKm,
+            // Quoted for an empty basket. The cart re-quotes as lines are added,
+            // because picking time grows with the basket and a promise that ignores
+            // that is wrong on exactly the orders that matter most.
+            promiseMinutes,
+        });
+    } catch (err) {
+        next(err);
     }
 };
 
