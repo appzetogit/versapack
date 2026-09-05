@@ -76,6 +76,14 @@ export default function ItemDetailsPage() {
   const [gst, setGst] = useState("5.0")
   const [isRecommended, setIsRecommended] = useState(false)
   const [isInStock, setIsInStock] = useState(true)
+  // A dark store sells counted units. Without a number here stockQty stays null,
+  // which the reservation path reads as "this seller does not count this item" and
+  // skips entirely -- so nothing stops the same unit being sold twice.
+  const [stockQty, setStockQty] = useState("")
+  // The barcode is what links this listing to a master product. The server resolves
+  // the link from it rather than trusting an id, so sending it is what makes one
+  // product group across stores and inherit the master's tax class.
+  const [barcode, setBarcode] = useState("")
   const [weightPerServing, setWeightPerServing] = useState("")
   const [calorieCount, setCalorieCount] = useState("")
   const [proteinCount, setProteinCount] = useState("")
@@ -130,7 +138,11 @@ export default function ItemDetailsPage() {
     setBasePrice(itemVariants.length === 0 ? item.price?.toString() || "" : "")
     setOtherPrice(itemVariants.length === 0 ? item.otherPrice?.toString() || "" : "")
     setPreparationTime(item.preparationTime || "")
-    setGst(item.gst?.toString() || "5.0")
+    // The API returns gstRate; item.gst does not exist, so every edit silently
+    // reset a seller's tax class to 5%.
+    setGst((item.gstRate ?? item.gst)?.toString() || "5.0")
+    setStockQty(item.stockQty === null || item.stockQty === undefined ? "" : String(item.stockQty))
+    setBarcode(item.barcode || "")
     setIsRecommended(item.isRecommended || false)
     setIsInStock(item.isAvailable !== false)
     setSelectedTags(item.tags || [])
@@ -710,6 +722,10 @@ export default function ItemDetailsPage() {
         otherPrice: variant.otherPrice > 0 ? variant.otherPrice : 0,
       }))
 
+      // "" means the seller left it blank, which has to stay null rather than
+      // becoming a zero that would hide the product.
+      const parsedStockQty = stockQty === "" ? null : Number(stockQty)
+
       // Create/update FoodItem in DB (single call per explicit Save; no autosave spam)
       let itemId
       if (isNewItem) {
@@ -729,6 +745,8 @@ export default function ItemDetailsPage() {
           categoryId: categoryId || undefined,
           categoryName,
           isRecommended,
+          stockQty: parsedStockQty,
+          barcode: barcode.trim(),
         })
         const created = createRes?.data?.data?.food || createRes?.data?.food
         itemId = String(created?._id || created?.id || "")
@@ -756,6 +774,8 @@ export default function ItemDetailsPage() {
           categoryId: categoryId || undefined,
           categoryName,
           isRecommended,
+          stockQty: parsedStockQty,
+          barcode: barcode.trim(),
         })
       }
 
@@ -1086,6 +1106,44 @@ export default function ItemDetailsPage() {
                   <span>Non-Veg</span>
                 </button>
               )}
+            </div>
+          </div>
+
+          {/* Stock and barcode */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-900 mb-2">
+                Stock quantity
+              </label>
+              <input
+                type="number"
+                min="0"
+                inputMode="numeric"
+                value={stockQty}
+                onChange={(e) => setStockQty(e.target.value.replace(/[^0-9]/g, ""))}
+                placeholder="Units on the shelf"
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                Leave blank only if you do not count this item. Counted stock is what
+                stops it being oversold.
+              </p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-900 mb-2">
+                Barcode (EAN/UPC)
+              </label>
+              <input
+                type="text"
+                value={barcode}
+                onChange={(e) => setBarcode(e.target.value.trim())}
+                placeholder="8901234567890"
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                Links this listing to the catalogue product, so it shares one name and
+                tax class with every other store selling it.
+              </p>
             </div>
           </div>
 
