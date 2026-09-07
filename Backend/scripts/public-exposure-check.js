@@ -12,7 +12,21 @@
  * Runs against a live host with no credentials, which is the only way to test
  * what an anonymous caller actually receives.
  */
-const BASE = process.argv[2] || 'https://quick.appzeto.com/api/v1';
+/**
+ * No default host.
+ *
+ * This defaulted to the pre-rebrand production domain, so running it without an
+ * argument checked a server that is no longer ours. A leak check that quietly
+ * picks its own target is worse than none: it either fails on a host nobody
+ * cares about, or passes against a stale one and reports the current server safe
+ * without ever having spoken to it.
+ */
+const BASE = process.argv[2];
+if (!BASE) {
+  console.error('Usage: node scripts/public-exposure-check.js <baseUrl>');
+  console.error('   eg: node scripts/public-exposure-check.js https://your-host/api/v1');
+  process.exit(2);
+}
 
 /** Nothing here may ever appear in a response served without authentication. */
 const FORBIDDEN = [
