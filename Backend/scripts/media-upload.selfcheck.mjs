@@ -55,7 +55,7 @@ assert.equal(looksLikeDeclaredVideo(webm, 'video/mp4'), false);
 // carry no type field, so the stored URL extension is the only signal.
 const isVideoUrl = (url) => /\.(mp4|webm)(\?|#|$)/i.test(String(url || ''));
 assert.equal(isVideoUrl('/uploads/banners/123-abc.mp4'), true);
-assert.equal(isVideoUrl('https://quick.appzeto.com/uploads/b/1.webm?v=2'), true);
+assert.equal(isVideoUrl('https://versapack.in/uploads/b/1.webm?v=2'), true);
 assert.equal(isVideoUrl('/uploads/banners/123-abc.gif'), false, 'a GIF is an image and must render in <img>');
 assert.equal(isVideoUrl('/uploads/banners/123-abc.webp'), false);
 assert.equal(isVideoUrl(''), false);

@@ -1022,7 +1022,7 @@ export default function LandingPage() {
             <div className="flex flex-col gap-5 text-sm font-medium">
               <h4 className="text-slate-900 font-bold tracking-widest text-xs uppercase mb-1">Legal</h4>
               <a 
-                href="https://versapack.com/food/user/profile/privacy" 
+                href="/food/user/profile/privacy" 
                 target="_blank" 
                 rel="noopener noreferrer" 
                 className="hover:text-[#FA0272] transition-colors"
@@ -1030,7 +1030,7 @@ export default function LandingPage() {
                 Privacy Policy
               </a>
               <a 
-                href="https://versapack.com/food/user/profile/terms" 
+                href="/food/user/profile/terms" 
                 target="_blank" 
                 rel="noopener noreferrer" 
                 className="hover:text-[#FA0272] transition-colors"
@@ -1042,7 +1042,7 @@ export default function LandingPage() {
             <div className="flex flex-col gap-5 text-sm font-medium">
               <h4 className="text-slate-900 font-bold tracking-widest text-xs uppercase mb-1">Company</h4>
               <a 
-                href="https://versapack.com/food/user/profile/about" 
+                href="/food/user/profile/about" 
                 target="_blank" 
                 rel="noopener noreferrer" 
                 className="hover:text-[#FA0272] transition-colors"
@@ -1050,7 +1050,7 @@ export default function LandingPage() {
                 About Us
               </a>
               <a 
-                href="https://versapack.com/food/user/profile/help-content" 
+                href="/food/user/profile/help-content" 
                 target="_blank" 
                 rel="noopener noreferrer" 
                 className="hover:text-[#FA0272] transition-colors"
