@@ -8,10 +8,14 @@ module.exports = {
       exec_mode: 'cluster',
       autorestart: true,
       max_memory_restart: '500M',
+      // PORT and SOCKET_PORT deliberately absent: PM2 puts whatever is here into
+      // the environment before Node starts, and dotenv will not overwrite an
+      // existing variable, so naming them here silently overrode the .env the
+      // operator actually edited. That is how the API ended up on 5000 while
+      // nginx proxied to the 5055 from .env -- a 502 with a healthy process
+      // behind it. The .env is the single source of truth for ports.
       env: {
         NODE_ENV: 'production',
-        PORT: 5000,
-        SOCKET_PORT: 5001,
         SERVER_BACKGROUND_JOBS_ENABLED: 'false',
         SERVER_QUEUE_BOOTSTRAP_ENABLED: 'false'
       }
@@ -25,8 +29,7 @@ module.exports = {
       autorestart: true,
       max_memory_restart: '350M',
       env: {
-        NODE_ENV: 'production',
-        SOCKET_PORT: 5001
+        NODE_ENV: 'production'
       }
     },
     {
@@ -48,6 +51,10 @@ module.exports = {
       instances: 1,
       exec_mode: 'fork',
       autorestart: true,
+      // A worker exits 0 on purpose when BULLMQ_ENABLED is false. Without this,
+      // autorestart reads that as a crash and respawns it forever -- six processes
+      // restarting every couple of seconds, which is what pinned the host CPU.
+      stop_exit_codes: [0],
       max_memory_restart: '250M',
       env: {
         NODE_ENV: 'production'
@@ -60,6 +67,10 @@ module.exports = {
       instances: 1,
       exec_mode: 'fork',
       autorestart: true,
+      // A worker exits 0 on purpose when BULLMQ_ENABLED is false. Without this,
+      // autorestart reads that as a crash and respawns it forever -- six processes
+      // restarting every couple of seconds, which is what pinned the host CPU.
+      stop_exit_codes: [0],
       max_memory_restart: '250M',
       env: {
         NODE_ENV: 'production'
@@ -72,6 +83,10 @@ module.exports = {
       instances: 1,
       exec_mode: 'fork',
       autorestart: true,
+      // A worker exits 0 on purpose when BULLMQ_ENABLED is false. Without this,
+      // autorestart reads that as a crash and respawns it forever -- six processes
+      // restarting every couple of seconds, which is what pinned the host CPU.
+      stop_exit_codes: [0],
       max_memory_restart: '350M',
       env: {
         NODE_ENV: 'production'
@@ -84,6 +99,10 @@ module.exports = {
       instances: 1,
       exec_mode: 'fork',
       autorestart: true,
+      // A worker exits 0 on purpose when BULLMQ_ENABLED is false. Without this,
+      // autorestart reads that as a crash and respawns it forever -- six processes
+      // restarting every couple of seconds, which is what pinned the host CPU.
+      stop_exit_codes: [0],
       max_memory_restart: '350M',
       env: {
         NODE_ENV: 'production'
@@ -96,6 +115,10 @@ module.exports = {
       instances: 1,
       exec_mode: 'fork',
       autorestart: true,
+      // A worker exits 0 on purpose when BULLMQ_ENABLED is false. Without this,
+      // autorestart reads that as a crash and respawns it forever -- six processes
+      // restarting every couple of seconds, which is what pinned the host CPU.
+      stop_exit_codes: [0],
       max_memory_restart: '250M',
       env: {
         NODE_ENV: 'production'
@@ -108,6 +131,10 @@ module.exports = {
       instances: 1,
       exec_mode: 'fork',
       autorestart: true,
+      // A worker exits 0 on purpose when BULLMQ_ENABLED is false. Without this,
+      // autorestart reads that as a crash and respawns it forever -- six processes
+      // restarting every couple of seconds, which is what pinned the host CPU.
+      stop_exit_codes: [0],
       max_memory_restart: '250M',
       env: {
         NODE_ENV: 'production'
