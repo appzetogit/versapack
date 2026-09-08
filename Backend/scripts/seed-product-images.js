@@ -1,72 +1,31 @@
 /**
- * Seeds a browsable grocery catalogue with real product photography.
+ * Puts a photograph on every product in the catalogue.
  *
- * Images are searched on Wikimedia Commons, downloaded, and then stored on this
- * server — not hot-linked. A catalogue that points at someone else's CDN breaks
- * the day they rotate a URL, and every shopper's device would be fetching from
- * a third party. Each photo lands in /uploads like any seller upload.
+ * Images are searched, downloaded, and stored on this server rather than
+ * hot-linked. A catalogue pointing at someone else's CDN breaks the day they
+ * rotate a URL, and every shopper's device would be fetching from a third party.
  *
- *   node scripts/seed-product-images.js
- *   node scripts/seed-product-images.js --force   (re-fetch images already set)
+ * Because uploads are written to this machine's disk, THIS MUST RUN ON THE
+ * SERVER THAT SERVES /uploads. Run it anywhere else and the database ends up
+ * holding paths to files that exist only on a laptop.
  *
- * Safe to re-run: products are matched by name per seller and updated in place.
+ * The catalogue comes from the database, not from a list in here. This file used
+ * to carry a second hardcoded product list, which meant two catalogues to keep in
+ * step and one of them silently wrong the moment the other changed.
+ * seed-quick-commerce.js owns what the products are; this owns what they look
+ * like.
+ *
+ * Photos go on the master product and the listings pointing at it inherit them,
+ * so a three-store catalogue costs 48 downloads rather than 144.
+ *
+ *   node scripts/seed-product-images.js           fill in what is missing
+ *   node scripts/seed-product-images.js --force   re-fetch everything
  */
 import 'dotenv/config';
 import mongoose from 'mongoose';
 import { FoodItem } from '../src/modules/food/admin/models/food.model.js';
-import { FoodCategory } from '../src/modules/food/admin/models/category.model.js';
-import { FoodRestaurant } from '../src/modules/food/restaurant/models/restaurant.model.js';
-import { uploadRestaurantAttachment } from '../src/modules/food/restaurant/services/restaurant.service.js';
-
-/**
- * name, brand, packSize, price, mrp, gstRate, stock, category, image search
- *
- * The search terms are deliberately concrete — "toned milk pouch packet" rather
- * than "milk" — because Commons ranks loosely and a vague term returns a dairy
- * farm rather than something a shopper would recognise on a shelf.
- */
-const CATALOGUE = [
-  // Dairy
-  ['Toned Milk Pouch', 'Amul', '500 ml', 27, 28, 0, 120, 'Milk', 'amul toned milk'],
-  ['Full Cream Milk', 'Nandini', '1 L', 66, 70, 0, 80, 'Milk', 'nandini full cream milk'],
-  ['Fresh Curd Cup', 'Amul', '400 g', 40, 45, 0, 60, 'Curd & Yogurt', 'amul curd dahi'],
-  ['Greek Yogurt Blueberry', 'Epigamia', '90 g', 55, 60, 12, 35, 'Curd & Yogurt', 'epigamia greek yogurt blueberry'],
-  ['Salted Butter', 'Amul', '500 g', 285, 295, 12, 24, 'Butter & Cheese', 'amul butter'],
-  ['Cheese Slices', 'Go', '200 g', 145, 155, 12, 18, 'Butter & Cheese', 'go cheese slices'],
-  ['Paneer Block', 'Mother Dairy', '200 g', 95, 100, 5, 30, 'Butter & Cheese', 'mother dairy paneer'],
-
-  // Fruits & vegetables
-  ['Banana Robusta', '', '1 kg', 54, 60, 0, 45, 'Fresh Fruits', 'banana bunch fruit'],
-  ['Royal Gala Apple', '', '4 pcs', 189, 210, 0, 30, 'Fresh Fruits', 'gala apple fruit'],
-  ['Alphonso Mango', '', '1 kg', 320, 360, 0, 25, 'Fresh Fruits', 'alphonso mango fruit'],
-  ['Pomegranate', '', '500 g', 128, 140, 0, 28, 'Fresh Fruits', 'pomegranate fruit whole'],
-  ['Tomato Local', '', '1 kg', 32, 40, 0, 70, 'Fresh Vegetables', 'tomato fruit red'],
-  ['Onion', '', '1 kg', 38, 45, 0, 65, 'Fresh Vegetables', 'onion bulb'],
-  ['Potato', '', '1 kg', 30, 36, 0, 90, 'Fresh Vegetables', 'potato tuber'],
-  ['Baby Spinach', '', '250 g', 29, 35, 0, 20, 'Fresh Vegetables', 'spinach leaves'],
-  ['Carrot', '', '500 g', 34, 40, 0, 40, 'Fresh Vegetables', 'carrot root vegetable'],
-
-  // Staples
-  ['Whole Wheat Atta', 'Aashirvaad', '5 kg', 285, 310, 5, 40, 'Atta & Flour', 'aashirvaad atta whole wheat'],
-  ['Basmati Rice', 'India Gate', '1 kg', 132, 145, 5, 50, 'Rice & Pulses', 'india gate basmati rice'],
-  ['Toor Dal', 'Tata Sampann', '1 kg', 178, 195, 5, 38, 'Rice & Pulses', 'tata sampann toor dal'],
-  ['Chana Dal', 'Tata Sampann', '500 g', 88, 95, 5, 42, 'Rice & Pulses', 'tata sampann chana dal'],
-  ['Sunflower Oil', 'Fortune', '1 L', 148, 165, 5, 42, 'Oils', 'fortune sunflower oil'],
-  ['Mustard Oil', 'Dhara', '1 L', 168, 180, 5, 30, 'Oils', 'dhara mustard oil'],
-
-  // Snacks
-  ['Marie Gold', 'Britannia', '250 g', 35, 40, 18, 90, 'Biscuits', 'britannia marie gold'],
-  ['Dark Fantasy Choco Fills', 'Sunfeast', '300 g', 145, 160, 18, 25, 'Biscuits', 'sunfeast dark fantasy choco fills'],
-  ['Classic Salted Chips', 'Lays', '52 g', 20, 20, 18, 110, 'Chips & Namkeen', 'lays classic salted'],
-  ['Aloo Bhujia', 'Haldiram', '400 g', 105, 115, 12, 33, 'Chips & Namkeen', 'haldiram aloo bhujia'],
-  ['Salted Peanuts', '', '200 g', 60, 70, 12, 48, 'Chips & Namkeen', 'roasted salted peanuts'],
-
-  // Beverages
-  ['Red Label Tea', 'Brooke Bond', '500 g', 265, 285, 5, 28, 'Tea & Coffee', 'brooke bond red label tea'],
-  ['Instant Coffee', 'Nescafe', '50 g', 190, 205, 18, 22, 'Tea & Coffee', 'nescafe classic coffee'],
-  ['Cola Bottle', 'Coca-Cola', '750 ml', 40, 45, 28, 75, 'Soft Drinks', 'coca cola'],
-  ['Orange Drink', 'Mirinda', '600 ml', 40, 40, 28, 0, 'Soft Drinks', 'mirinda orange'],
-];
+import { FoodMasterProduct } from '../src/modules/food/admin/models/masterProduct.model.js';
+import { uploadImageBuffer } from '../src/services/cloudinary.service.js';
 
 const FORCE = process.argv.includes('--force');
 
@@ -79,6 +38,72 @@ const UA = {
 };
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/** Words too common to prove a match: every grocery result contains them. */
+const STOPWORDS = new Set(['powder', 'fresh', 'pouch', 'cup', 'bottle', 'pack', 'local',
+    'classic', 'salted', 'whole', 'refined', 'premium', 'the', 'and', 'with', 'oil', 'drink',
+    // Descriptors general enough to match almost anything: "bathing" let a
+    // photograph of a bathing dove through as Dove Bathing Soap, and "baby" let
+    // a picture of someone carrying a baby through as baby wipes.
+    'baby', 'bathing', 'medium', 'block', 'good', 'dark', 'full', 'cream', 'mixed']);
+
+/**
+ * Whether a search result plausibly is the thing that was asked for.
+ *
+ * Token overlap on words that carry meaning: "turmeric" against "fanta coca
+ * cola" shares nothing and is rejected, while "Aashirvaad Atta" against
+ * "Aashirvaad Superior MP Atta" shares two and is kept.
+ */
+function looksRelated(query, candidate) {
+    const wanted = tokens(query).filter((w) => !STOPWORDS.has(w));
+    if (!wanted.length) return true;
+    return wanted.some((w) => matchesAny(w, tokens(candidate)));
+}
+
+const tokens = (t) => [...new Set(String(t).toLowerCase().match(/[a-z]{4,}/g) || [])];
+
+/** Loose enough that "onion" matches "onions", tight enough to mean something. */
+const matchesAny = (word, candidates) =>
+    candidates.some((c) => c === word || c.startsWith(word) || word.startsWith(c));
+
+/**
+ * Whether a result is the product itself rather than something sharing its name.
+ *
+ * Word overlap alone is not enough once a brand is an ordinary word. Commons
+ * answered "Dove Bathing Soap" with a photograph of a spotted dove having a
+ * bath, and "Vim Dishwash Bar" with a screenshot of the Vim text editor -- both
+ * genuinely contain the brand. Requiring a word from the product name as well,
+ * not just the brand, is what separates "Head & Shoulders shampoo bottle" from
+ * "Spotted Dove bathing".
+ */
+function isTheProduct(nameWords, candidate) {
+    if (!nameWords.length) return true;
+    return nameWords.some((w) => matchesAny(w, tokens(candidate)));
+}
+
+/**
+ * Queries for products a bare name cannot find.
+ *
+ * Loose produce has no packaging and no brand, so a packshot database has
+ * nothing and an encyclopedia needs telling what kind of thing this is --
+ * searching Commons for "Ginger" alone returns a botanical illustration or a
+ * person named Ginger, not something you would recognise in a crate.
+ */
+const SEARCH_OVERRIDES = {
+    'Banana Robusta': 'banana bunch fruit',
+    'Royal Gala Apple': 'gala apple fruit red',
+    Pomegranate: 'pomegranate fruit whole',
+    'Tomato Local': 'tomato red ripe vegetable',
+    Onion: 'onion bulb vegetable',
+    Potato: 'potato tuber vegetable',
+    'Baby Spinach': 'spinach leaves green',
+    'Coriander Bunch': 'coriander leaves cilantro bunch',
+    Ginger: 'ginger rhizome root',
+    'Farm Eggs': 'chicken eggs carton',
+    'Refined Sugar': 'white sugar crystals',
+    'Sona Masoori Rice': 'white rice grains bowl',
+    'Salted Butter': 'butter block dairy',
+};
 
 /**
  * Paces requests to Commons.
@@ -133,7 +158,7 @@ async function searchCommons(query) {
  * a map of Gujarat, or a butter sculpture -- all correctly matching the words
  * and none of them a thing on a shelf.
  */
-async function fetchPackshot(term) {
+async function fetchPackshot(term, nameWords = []) {
   const api =
     'https://world.openfoodfacts.org/cgi/search.pl?search_simple=1' +
     '&action=process&json=1&page_size=8' +
@@ -162,6 +187,18 @@ async function fetchPackshot(term) {
     const url = product?.image_front_url;
     if (!url) continue;
 
+    // Open Food Facts ranks loosely and will happily return a Fanta bottle for
+    // "Everest Turmeric Powder" -- it did exactly that. A photograph of the
+    // wrong product is worse than none at all, because nothing downstream can
+    // tell it is wrong. Require the result to share a real word with the query.
+    // The brand is allowed to satisfy the loose check but not the product one.
+    // Open Food Facts is user-contributed and its brand tags are noisy: a record
+    // named "fanta coca cola" carrying a turmeric brand tag passed as turmeric,
+    // and the photograph was of a cola bottle. The name has to carry it.
+    const label = `${product.product_name || ''} ${product.brands || ''}`;
+    if (!looksRelated(term, label)) continue;
+    if (!isTheProduct(nameWords, product.product_name || '')) continue;
+
     const img = await politeFetch(url);
     if (!img.ok) continue;
     const buffer = Buffer.from(await img.arrayBuffer());
@@ -174,7 +211,7 @@ async function fetchPackshot(term) {
 }
 
 /** Commons fallback, for loose produce that no packaged-food database carries. */
-async function fetchPhoto(term) {
+async function fetchPhoto(term, nameWords = []) {
   // Most specific first. A three-word term gives the most recognisable photo
   // when it hits; the shorter forms are there so a product is never left blank
   // just because the phrasing was unlucky.
@@ -185,7 +222,25 @@ async function fetchPhoto(term) {
       const url = page?.imageinfo?.[0]?.thumburl;
       // SVG and TIFF come back from Commons too; the image pipeline rejects
       // them and they are not what a product tile wants anyway.
-      if (!url || !/\.(jpe?g|png|webp)$/i.test(url)) continue;
+      //
+      // Tested against the path, not the whole URL: Commons now appends utm_*
+      // tracking parameters to every thumburl, so an end-anchored match on the
+      // full string rejected all six results for every query. Nothing errored --
+      // fresh produce and household goods simply came out with no photograph,
+      // which reads exactly like "Commons has no picture of an onion".
+      if (!url || !/\.(jpe?g|png|webp)$/i.test(url.split('?')[0])) continue;
+
+      // The same relevance test the packshot search uses. Without it Commons
+      // answered "Himalaya Baby Wipes" with a scan of a book about rabbits and
+      // "Bisleri Packaged Water" with a 1910 court notice -- both real results
+      // for the words, neither a product. A blank tile is better than that.
+      const title = String(page.title || '').replace(/^File:/, '');
+      if (!looksRelated(query, title) || !isTheProduct(nameWords, title)) continue;
+
+      // Digitised books and documents match grocery words constantly and are
+      // never a packshot. The Internet Archive marker and .djvu are what they
+      // arrive as.
+      if (/\.djvu|\(IA |notices of judgment|annual report|catalogue of/i.test(title)) continue;
 
       const img = await politeFetch(url);
       if (!img.ok) continue;
@@ -197,117 +252,104 @@ async function fetchPhoto(term) {
   return null;
 }
 
+/**
+ * What to search for.
+ *
+ * Brand first, because a packshot database indexes by what is printed on the
+ * label. Pack size is deliberately left out: "Amul butter 500 g" matches fewer
+ * real listings than "Amul butter", and the photograph is the same either way.
+ */
+const searchTermFor = (product) =>
+    SEARCH_OVERRIDES[product.name] ??
+    [product.brand, product.name].filter(Boolean).join(' ').trim();
+
 async function main() {
-  await mongoose.connect(process.env.MONGODB_URI, { serverSelectionTimeoutMS: 30000 });
-  if (mongoose.connection.name !== 'quickcommerce') {
-    console.error(`refusing to seed '${mongoose.connection.name}'`);
-    process.exit(1);
-  }
-  console.log(`connected -> ${mongoose.connection.name}\n`);
-
-  const sellers = await FoodRestaurant.find({ status: 'approved' })
-    .select('_id restaurantName')
-    .lean();
-  if (!sellers.length) {
-    console.error('no approved seller; run seed-quick-commerce.js first');
-    process.exit(1);
-  }
-
-  const categories = await FoodCategory.find({}).select('_id name').lean();
-  const categoryByName = new Map(categories.map((c) => [c.name, c]));
-
-  let created = 0;
-  let withImage = 0;
-  let noImage = 0;
-
-  for (const [catalogueIndex, [name, brand, packSize, price, mrp, gstRate, stockQty, categoryName, term]] of CATALOGUE.entries()) {
-    const category = categoryByName.get(categoryName);
-
-    for (const [index, seller] of sellers.entries()) {
-      // Which products a seller stocks is decided per (seller, product), not by
-      // a running counter.
-      //
-      // The previous rule skipped on `created % 3`, a global counter that
-      // advanced as other sellers were written — so whether a seller got a
-      // product depended on how many had been created before it. In practice
-      // three sellers ended up with the full catalogue and four with nothing
-      // at all, which is not a subset, just an accident.
-      //
-      // Every third product is held back from every seller after the first, so
-      // catalogues still differ between sellers, but each one is stocked.
-      if (index > 0 && catalogueIndex % 3 === 2) continue;
-      const sellerPrice = index > 0 ? Math.min(Math.round(price * 1.05), mrp || price) : price;
-
-      const existing = await FoodItem.findOne({ restaurantId: seller._id, name })
-        .select('_id image')
-        .lean();
-
-      let image = existing?.image || '';
-      if (!image || FORCE) {
-        // Only the first seller fetches; the rest reuse the same photo rather
-        // than hitting Commons once per seller for an identical product.
-        const shared = await FoodItem.findOne({ name, image: { $nin: ['', null] } })
-          .select('image')
-          .lean();
-
-        if (shared?.image && !FORCE) {
-          image = shared.image;
-        } else {
-          const photo = brand
-            ? ((await fetchPackshot(term)) ?? (await fetchPhoto(term)))
-            : await fetchPhoto(term);
-          if (photo) {
-            const stored = await uploadRestaurantAttachment(
-              { buffer: photo.buffer, originalname: `${name}.jpg`, mimetype: 'image/jpeg' },
-              'products',
-            );
-            image = stored?.url || '';
-            if (image) console.log(`  photo  ${name.padEnd(28)} <- ${photo.source}`);
-          }
-        }
-      }
-
-      await FoodItem.findOneAndUpdate(
-        { restaurantId: seller._id, name },
-        {
-          $set: {
-            restaurantId: seller._id,
-            ...(category ? { categoryId: category._id, categoryName: category.name } : {}),
-            name,
-            brand,
-            packSize,
-            description: `${brand ? `${brand} ` : ''}${name}${packSize ? ` - ${packSize}` : ''}`,
-            price: sellerPrice,
-            mrp: mrp || null,
-            otherPrice: 0,
-            gstRate,
-            stockQty: index > 0 ? Math.ceil(stockQty / 2) : stockQty,
-            lowStockThreshold: 10,
-            maxQtyPerOrder: 10,
-            isAvailable: stockQty > 0,
-            foodType: 'Veg',
-            image,
-            images: image ? [image] : [],
-            approvalStatus: 'approved',
-            approvedAt: new Date(),
-          },
-        },
-        { upsert: true, new: true, setDefaultsOnInsert: true },
-      );
-
-      created++;
-      image ? withImage++ : noImage++;
+    const uri = process.env.MONGO_URI || process.env.MONGODB_URI;
+    if (!uri) {
+        console.error('MONGO_URI is not set.');
+        process.exit(2);
     }
-  }
+    await mongoose.connect(uri, { serverSelectionTimeoutMS: 30000 });
+    console.log(`connected -> ${mongoose.connection.name} @ ${mongoose.connection.host}
+`);
 
-  console.log(`\nlistings: ${created} across ${sellers.length} sellers`);
-  console.log(`  with image: ${withImage} | without: ${noImage}`);
-  console.log(`  distinct products: ${CATALOGUE.length}`);
+    const missing = { $or: [{ image: '' }, { image: null }, { image: { $exists: false } }] };
+    const products = await FoodMasterProduct.find(FORCE ? {} : missing).lean();
 
-  await mongoose.disconnect();
+    if (!products.length) {
+        console.log('every master product already has a photo. Use --force to re-fetch.');
+        await mongoose.disconnect();
+        return;
+    }
+    console.log(`${products.length} products need a photo
+`);
+
+    let done = 0;
+    const misses = [];
+
+    for (const product of products) {
+        const term = searchTermFor(product);
+
+        // A brand means a packaged good, which a packshot database will carry.
+        // Loose produce -- an onion, a bunch of coriander -- has no packaging and
+        // no barcode, so it only exists in an encyclopedia.
+        // A dropped connection on one product is not a reason to abandon the
+        // other forty-seven. The first run of this died on a single `fetch
+        // failed` two thirds of the way through and reported nothing about the
+        // products it never reached.
+        // The nouns that make this product what it is, brand excluded -- these
+        // are what a candidate has to match, not merely the brand.
+        const nameWords = tokens(product.name).filter((w) => !STOPWORDS.has(w));
+
+        let photo = null;
+        try {
+            photo = product.brand
+                ? ((await fetchPackshot(term, nameWords)) ?? (await fetchPhoto(term, nameWords)))
+                : await fetchPhoto(term, nameWords);
+        } catch (err) {
+            console.log(`  ----   ${product.name.padEnd(30)} fetch failed: ${err.message}`);
+        }
+
+        if (!photo) {
+            console.log(`  ----   ${product.name.padEnd(30)} no photo found`);
+            misses.push(product.name);
+            continue;
+        }
+
+        let url = '';
+        try {
+            url = await uploadImageBuffer(photo.buffer, 'food/products');
+        } catch (err) {
+            console.log(`  ----   ${product.name.padEnd(30)} upload failed: ${err.message}`);
+        }
+        if (!url) {
+            console.log(`  ----   ${product.name.padEnd(30)} upload returned nothing`);
+            misses.push(product.name);
+            continue;
+        }
+
+        await FoodMasterProduct.updateOne({ _id: product._id }, { $set: { image: url, images: [url] } });
+
+        // The listing keeps its own copy as well. Resolution prefers the master,
+        // so this is only a fallback -- but the seller's inventory screen reads
+        // the listing directly and would otherwise show a blank tile.
+        const listings = await FoodItem.updateMany(
+            { masterProductId: product._id },
+            { $set: { image: url, images: [url] } },
+        );
+
+        console.log(`  photo  ${product.name.padEnd(30)} <- ${String(photo.source).slice(0, 38)}  (+${listings.modifiedCount} listings)`);
+        done += 1;
+    }
+
+    console.log(`
+photographed ${done}, without a photo ${misses.length}`);
+    if (misses.length) console.log(`  missing: ${misses.join(', ')}`);
+    await mongoose.disconnect();
 }
 
-main().catch((err) => {
-  console.error('seed failed:', err.message);
-  process.exit(1);
+main().catch(async (err) => {
+    console.error('seed failed:', err.message);
+    await mongoose.disconnect().catch(() => {});
+    process.exit(1);
 });
