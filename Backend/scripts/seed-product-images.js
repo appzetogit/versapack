@@ -21,7 +21,7 @@
  *   node scripts/seed-product-images.js           fill in what is missing
  *   node scripts/seed-product-images.js --force   re-fetch everything
  */
-import 'dotenv/config';
+import './_env.js';
 import mongoose from 'mongoose';
 import { FoodItem } from '../src/modules/food/admin/models/food.model.js';
 import { FoodMasterProduct } from '../src/modules/food/admin/models/masterProduct.model.js';

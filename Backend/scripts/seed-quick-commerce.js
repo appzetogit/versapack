@@ -25,7 +25,7 @@
  * dropped connection halfway through into an empty shop with no way back --
  * which is exactly what happened the first time this was tested.
  */
-import 'dotenv/config';
+import './_env.js';
 import mongoose from 'mongoose';
 import { FoodZone } from '../src/modules/food/admin/models/zone.model.js';
 import { FoodCategory } from '../src/modules/food/admin/models/category.model.js';

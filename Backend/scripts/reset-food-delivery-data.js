@@ -19,7 +19,7 @@
  * India carry a statutory retention period -- deleting them is a decision to
  * make deliberately, not a cleanup.
  */
-import 'dotenv/config';
+import './_env.js';
 import mongoose from 'mongoose';
 
 /**
