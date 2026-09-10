@@ -798,9 +798,12 @@ export default function Home() {
   }, [refreshUserHome]);
 
   useEffect(() => {
-    setTopBannersData(Array.isArray(topBanners) ? topBanners : []);
-    if (topBanners) setTopBannersLoaded(true);
-  }, [topBanners]);
+    const list = Array.isArray(topBanners) && topBanners.length > 0
+      ? topBanners
+      : (Array.isArray(heroBanners) ? heroBanners.map((b) => ({ ...b, image: b.imageUrl })) : []);
+    setTopBannersData(list);
+    if (topBanners || heroBanners) setTopBannersLoaded(true);
+  }, [topBanners, heroBanners]);
   const [heroBannerImages, setHeroBannerImages] = useState([]);
   const [heroBannersData, setHeroBannersData] = useState([]); // Store full banner data with linked restaurants
   const [loadingBanners, setLoadingBanners] = useState(true);

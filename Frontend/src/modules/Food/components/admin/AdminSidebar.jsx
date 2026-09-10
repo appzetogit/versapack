@@ -886,48 +886,24 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
         <div className="shrink-0 px-3 py-3 border-b border-neutral-800/60 bg-neutral-900 animate-[fadeIn_0.4s_ease-out]">
           <div className="flex items-center justify-between mb-3">
             {!isCollapsed && (
-              <div className="flex items-center gap-2 animate-[slideIn_0.3s_ease-out]">
-                <div className="w-24 h-12 rounded-lg flex items-center justify-center shadow-black/20">
-                  {logoUrl ? (
-                    <img
-                      src={logoUrl || quickSpicyLogo}
-                      alt={companyName || "Company"}
-                      className="w-24 h-10 object-contain"
-                      loading="lazy"
-                      onError={(e) => {
-                        if (e.target.src !== quickSpicyLogo) {
-                          e.target.src = quickSpicyLogo
-                        }
-                      }}
-                    />
-                  ) : companyName ? (
-                    <span className="text-xs font-semibold text-white px-2 truncate">
-                      {companyName}
-                    </span>
-                  ) : (
-                    <img src={quickSpicyLogo} alt="Company" className="w-24 h-10 object-contain" loading="lazy" />
-                  )}
+              <div className="flex items-center gap-2.5 animate-[slideIn_0.3s_ease-out] px-1 py-0.5">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center font-black text-white text-lg shadow-lg shadow-emerald-950/40 ring-1 ring-emerald-400/30 shrink-0">
+                  V
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-base font-bold tracking-tight text-white leading-tight truncate">
+                    {companyName || "VersaPack"}
+                  </span>
+                  <span className="text-[10px] font-semibold tracking-wider text-emerald-400 uppercase">
+                    Admin Portal
+                  </span>
                 </div>
               </div>
             )}
             {isCollapsed && (
-              <div className="w-full flex items-center justify-center">
-                <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center shadow-lg shadow-black/20 ring-1 ring-white/10">
-                  {logoUrl || companyName ? (
-                    <img
-                      src={logoUrl || quickSpicyLogo}
-                      alt={companyName || "Company"}
-                      className="w-10 h-10 object-contain"
-                      loading="lazy"
-                      onError={(e) => {
-                        if (e.target.src !== quickSpicyLogo) {
-                          e.target.src = quickSpicyLogo
-                        }
-                      }}
-                    />
-                  ) : (
-                    <img src={quickSpicyLogo} alt="Company" className="w-10 h-10 object-contain" loading="lazy" />
-                  )}
+              <div className="w-full flex items-center justify-center py-0.5">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center font-black text-white text-lg shadow-lg shadow-emerald-950/40 ring-1 ring-emerald-400/30">
+                  V
                 </div>
               </div>
             )}

@@ -36,7 +36,17 @@ export const getPublicHeroBannersController = async (req, res, next) => {
 
 export const getPublicTopBannersController = async (req, res, next) => {
     try {
-        const docs = await TopBanner.find({ isActive: true }).sort('order').lean();
+        let docs = await TopBanner.find({ isActive: true }).sort('order').lean();
+        if (!docs || docs.length === 0) {
+            const heroDocs = await FoodHeroBanner.find({ isActive: true })
+                .sort({ sortOrder: 1, createdAt: -1 })
+                .lean();
+            docs = (heroDocs || []).map((b) => ({
+                ...b,
+                image: b.imageUrl,
+                order: b.sortOrder
+            }));
+        }
         return sendResponse(res, 200, 'Top banners fetched', { banners: docs });
     } catch (error) {
         next(error);

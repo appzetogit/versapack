@@ -15,7 +15,7 @@ const debugError = (...args) => {}
 
 
 export default function LandingPageManagement() {
-  const [activeTab, setActiveTab] = useState('top-banners')
+  const [activeTab, setActiveTab] = useState('banners')
   const [exploreMoreSubTab, setExploreMoreSubTab] = useState('icons')
 
 
@@ -1011,8 +1011,7 @@ export default function LandingPageManagement() {
   // ==================== RENDER ====================
 
   const tabs = [
-    { id: 'top-banners', label: 'Top Banners', icon: ImageIcon },
-    { id: 'banners', label: 'Hero Banners', icon: ImageIcon },
+    { id: 'banners', label: 'Top & Hero Banners', icon: ImageIcon },
     { id: 'explore-more', label: 'Explore More', icon: Layout },
   ]
 
@@ -1031,7 +1030,7 @@ export default function LandingPageManagement() {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-slate-900">Landing Page Management</h1>
-              <p className="text-sm text-slate-600 mt-1">Manage hero banners</p>
+              <p className="text-sm text-slate-600 mt-1">Manage top & hero banners</p>
             </div>
           </div>
         </div>
@@ -1073,159 +1072,11 @@ export default function LandingPageManagement() {
           </div>
         )}
 
-        {/* Hero Banners Tab */}
-        {activeTab === 'top-banners' && (
+{activeTab === 'banners' && (
           <>
             {/* Upload Section */}
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
-              <h2 className="text-lg font-bold text-slate-900 mb-4">Upload New Top Banner(s) (800x680 pixels)</h2>
-              <div
-                className="border-2 border-dashed border-blue-300 rounded-lg p-8 text-center bg-blue-50/30 cursor-pointer transition-colors hover:border-blue-400 hover:bg-blue-50/50"
-                onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                onDrop={(e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  const files = Array.from(e.dataTransfer.files)
-                  if (files.length > 0) handleTopBannerFileSelect({ files })
-                }}
-                onClick={() => topBannersFileInputRef.current?.click()}
-              >
-                <input
-                  ref={topBannersFileInputRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm"
-                  multiple
-                  onChange={handleTopBannerFileSelect}
-                  className="hidden"
-                  disabled={topBannersUploading}
-                />
-                {topBannersUploading ? (
-                  <div className="flex flex-col items-center gap-3">
-                    <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
-                    <p className="text-blue-600 font-medium">
-                      Uploading image {topBannersUploadProgress.current} of {topBannersUploadProgress.total}...
-                    </p>
-                    {topBannersUploadProgress.total > 0 && (
-                      <div className="w-full max-w-xs">
-                        <div className="w-full bg-blue-200 rounded-full h-2">
-                          <div
-                            className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                            style={{ width: `${(topBannersUploadProgress.current / topBannersUploadProgress.total) * 100}%` }}
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center gap-3">
-                    <Upload className="w-8 h-8 text-blue-600" />
-                    <div>
-                      <button
-                        type="button"
-                        onClick={(e) => { e.stopPropagation(); topBannersFileInputRef.current?.click(); }}
-                        className="text-blue-600 font-medium hover:text-blue-700 underline"
-                      >
-                        Click to upload
-                      </button>
-                      <span className="text-slate-600"> or drag and drop</span>
-                    </div>
-                    <p className="text-xs text-slate-500">PNG, JPG, WEBP up to 5MB each (Max 5 images at once)</p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Banners List */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-              <h2 className="text-lg font-bold text-slate-900 mb-4">Top Banner List ({topBanners.length})</h2>
-              {topBannersLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
-                </div>
-              ) : topBanners.length === 0 ? (
-                <div className="text-center py-12 text-slate-500">
-                  <ImageIcon className="w-12 h-12 mx-auto mb-3 text-slate-400" />
-                  <p>No banners uploaded yet.</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {topBanners.map((banner, index) => (
-                    <div key={banner._id} className="border border-slate-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow">
-                      <div className="relative aspect-video bg-slate-100">
-                        <img src={resolveMediaUrl(banner.image || banner.imageUrl) || undefined} alt={`Top Banner ${index + 1}`} className="w-full h-full object-cover" />
-                        <div className="absolute top-2 right-2">
-                          <span className={`px-2 py-1 rounded text-xs font-medium ${banner.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-                            {banner.isActive ? 'Active' : 'Inactive'}
-                          </span>
-                        </div>
-                        <div className="absolute top-2 left-2">
-                          <span className="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">Order: {banner.order}</span>
-                        </div>
-                      </div>
-                      <div className="p-4 bg-white">
-                        <div className="flex items-center justify-between gap-2 flex-wrap">
-                          <div className="flex items-center gap-1">
-                            <button onClick={() => handleTopBannerOrderChange(banner._id, 'up')} disabled={index === 0} className="p-1.5 rounded hover:bg-slate-100 disabled:opacity-50">
-                              <ArrowUp className="w-4 h-4 text-slate-600" />
-                            </button>
-                            <button onClick={() => handleTopBannerOrderChange(banner._id, 'down')} disabled={index === topBanners.length - 1} className="p-1.5 rounded hover:bg-slate-100 disabled:opacity-50">
-                              <ArrowDown className="w-4 h-4 text-slate-600" />
-                            </button>
-                          </div>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            {/* <button
-                              onClick={() => {
-                                setSelectedBannerId(banner._id)
-                                setSelectedRestaurantIds(banner.linkedRestaurants?.map(r => r._id || r) || [])
-                                setShowRestaurantModal(true)
-                              }}
-                              className="px-3 py-1.5 rounded text-sm font-medium bg-blue-100 text-blue-800 hover:bg-blue-200 flex items-center gap-1"
-                            >
-                              <Megaphone className="w-4 h-4" />
-                              Advertise
-                            </button> */}
-                            <button onClick={() => handleToggleTopBannerStatus(banner._id, banner.isActive)} className={`px-3 py-1.5 rounded text-sm font-medium ${banner.isActive ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}`}>
-                              {banner.isActive ? 'Deactivate' : 'Activate'}
-                            </button>
-                            <button onClick={() => handleDeleteTopBanner(banner._id)} disabled={topBannersDeleting === banner._id} className="p-1.5 rounded hover:bg-red-100 text-red-600 disabled:opacity-50">
-                              {topBannersDeleting === banner._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                            </button>
-                          </div>
-                        </div>
-                        {banner.linkedRestaurants && banner.linkedRestaurants.length > 0 && (
-                          <div className="mt-2 pt-2 border-t border-slate-200">
-                            <p className="text-xs text-slate-600 mb-1">Linked Restaurants ({banner.linkedRestaurants.length}):</p>
-                            <div className="flex flex-wrap gap-1">
-                              {banner.linkedRestaurants.slice(0, 3).map((restaurant) => (
-                                <span key={restaurant._id || restaurant} className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs">
-                                  {restaurant.name || 'Restaurant'}
-                                </span>
-                              ))}
-                              {banner.linkedRestaurants.length > 3 && (
-                                <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-xs">
-                                  +{banner.linkedRestaurants.length - 3} more
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </>
-        )}
-
-        {/* Switch 99 Banner Tab */}
-        
-        {activeTab === 'banners' && (
-          <>
-            {/* Upload Section */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
-              <h2 className="text-lg font-bold text-slate-900 mb-4">Upload New Banner(s)</h2>
+              <h2 className="text-lg font-bold text-slate-900 mb-4">Upload New Top & Hero Banner(s)</h2>
               <div
                 className="border-2 border-dashed border-blue-300 rounded-lg p-8 text-center bg-blue-50/30 cursor-pointer transition-colors hover:border-blue-400 hover:bg-blue-50/50"
                 onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
@@ -1285,7 +1136,7 @@ export default function LandingPageManagement() {
 
             {/* Banners List */}
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-              <h2 className="text-lg font-bold text-slate-900 mb-4">Banner List ({banners.length})</h2>
+              <h2 className="text-lg font-bold text-slate-900 mb-4">Top & Hero Banner List ({banners.length})</h2>
               {bannersLoading ? (
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
