@@ -68,20 +68,28 @@ export default function DesktopNavbar({ showLogo = true }) {
             try {
                 const cached = getCachedSettings()
                 if (cached) {
-                    if (cached.logo?.url) {
+                    if (cached.logo?.url && !cached.logo.url.toLowerCase().includes('switcheats')) {
                         setLogoUrl(cached.logo.url)
+                    } else {
+                        setLogoUrl(quickSpicyLogo)
                     }
-                    if (cached.companyName) {
+                    if (cached.companyName && !cached.companyName.toLowerCase().includes('switcheats')) {
                         setCompanyName(cached.companyName)
+                    } else {
+                        setCompanyName('VersaPack')
                     }
                 } else {
                     const settings = await loadBusinessSettings()
                     if (settings) {
-                        if (settings.logo?.url) {
+                        if (settings.logo?.url && !settings.logo.url.toLowerCase().includes('switcheats')) {
                             setLogoUrl(settings.logo.url)
+                        } else {
+                            setLogoUrl(quickSpicyLogo)
                         }
-                        if (settings.companyName) {
+                        if (settings.companyName && !settings.companyName.toLowerCase().includes('switcheats')) {
                             setCompanyName(settings.companyName)
+                        } else {
+                            setCompanyName('VersaPack')
                         }
                     }
                 }
@@ -95,11 +103,15 @@ export default function DesktopNavbar({ showLogo = true }) {
         const handleSettingsUpdate = () => {
             const cached = getCachedSettings()
             if (cached) {
-                if (cached.logo?.url) {
+                if (cached.logo?.url && !cached.logo.url.toLowerCase().includes('switcheats')) {
                     setLogoUrl(cached.logo.url)
+                } else {
+                    setLogoUrl(quickSpicyLogo)
                 }
-                if (cached.companyName) {
+                if (cached.companyName && !cached.companyName.toLowerCase().includes('switcheats')) {
                     setCompanyName(cached.companyName)
+                } else {
+                    setCompanyName('VersaPack')
                 }
             }
         }

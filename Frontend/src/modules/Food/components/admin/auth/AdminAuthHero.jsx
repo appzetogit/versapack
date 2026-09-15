@@ -63,17 +63,15 @@ export default function AdminAuthHero({ themeColor, logoUrl }) {
       <div className="relative z-10 flex h-full flex-col justify-between p-8 xl:p-10">
         {/* Brand lockup */}
         <motion.div {...fadeUp(0)} className="flex items-center gap-3">
-          {logoUrl ? (
-            <img
-              src={logoUrl}
-              alt=""
-              className="h-10 w-10 rounded-xl object-contain ring-1 ring-white/15"
-              loading="lazy"
-              onError={(e) => {
-                e.currentTarget.style.display = "none"
-              }}
-            />
-          ) : null}
+          <img
+            src={logoUrl && !logoUrl.toLowerCase().includes('switcheats') ? logoUrl : "/versapack-logo.png"}
+            alt="VersaPack"
+            className="h-10 w-10 rounded-xl object-contain ring-1 ring-white/15 bg-white/5"
+            loading="lazy"
+            onError={(e) => {
+              e.currentTarget.src = "/versapack-logo.png";
+            }}
+          />
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40">
               Admin Portal

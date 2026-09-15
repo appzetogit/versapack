@@ -360,6 +360,15 @@ export const loadBusinessSettings = async ({ force = false } = {}) => {
       const mergedSettings = snapshot.businessSettings || cachedSettings;
 
       if (mergedSettings) {
+        if (mergedSettings.logo?.url && mergedSettings.logo.url.toLowerCase().includes('switcheats')) {
+          mergedSettings.logo.url = '/versapack-logo.png';
+        }
+        if (!mergedSettings.logo?.url) {
+          mergedSettings.logo = { ...(mergedSettings.logo || {}), url: '/versapack-logo.png' };
+        }
+        if (!mergedSettings.companyName || mergedSettings.companyName.toLowerCase().includes('switcheats')) {
+          mergedSettings.companyName = 'VersaPack';
+        }
         cachedSettings = mergedSettings;
         try {
           localStorage.setItem(SETTINGS_KEY, JSON.stringify(mergedSettings));
@@ -400,16 +409,26 @@ export const updateFavicon = (url) => {
   document.head.appendChild(link);
 };
 
+const sanitizeLogoUrl = (url) => {
+  if (!url || typeof url !== 'string') return '/versapack-logo.png';
+  if (url.toLowerCase().includes('switcheats')) {
+    return '/versapack-logo.png';
+  }
+  return url;
+};
+
 const resolveLogoByModule = (settings, moduleName = "user") => {
-  if (!settings || typeof settings !== "object") return "";
+  if (!settings || typeof settings !== "object") return "/versapack-logo.png";
   const moduleKey = String(moduleName || "").trim().toLowerCase();
+  let logo = "";
   if (moduleKey === "restaurant") {
-    return settings.restaurantLogo?.url || settings.logo?.url || "";
+    logo = settings.restaurantLogo?.url || settings.logo?.url || "";
+  } else if (moduleKey === "delivery") {
+    logo = settings.deliveryLogo?.url || settings.logo?.url || "";
+  } else {
+    logo = settings.logo?.url || "";
   }
-  if (moduleKey === "delivery") {
-    return settings.deliveryLogo?.url || settings.logo?.url || "";
-  }
-  return settings.logo?.url || "";
+  return sanitizeLogoUrl(logo);
 };
 
 const resolveFaviconByModule = (settings, moduleName = "user") => {

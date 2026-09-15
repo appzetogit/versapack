@@ -56,8 +56,10 @@ export default function AdminLogin() {
         applyModulePowerScanning("user", settings)
         const { themeColor: color } = getModulePowerScanning("user", settings)
         setThemeColor(color)
-        if (settings?.logo?.url) {
+        if (settings?.logo?.url && !settings.logo.url.toLowerCase().includes('switcheats')) {
           setLogoUrl(settings.logo.url)
+        } else {
+          setLogoUrl(quickSpicyLogo)
         }
       } catch (err) {
         debugWarn("Failed to load business settings:", err)
@@ -70,8 +72,10 @@ export default function AdminLogin() {
       applyModulePowerScanning("user", settings)
       const { themeColor: color } = getModulePowerScanning("user", settings)
       setThemeColor(color)
-      if (settings?.logo?.url) {
+      if (settings?.logo?.url && !settings.logo.url.toLowerCase().includes('switcheats')) {
         setLogoUrl(settings.logo.url)
+      } else {
+        setLogoUrl(quickSpicyLogo)
       }
     }
     window.addEventListener("businessSettingsUpdated", handleSettingsUpdate)

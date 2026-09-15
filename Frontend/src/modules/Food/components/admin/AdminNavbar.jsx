@@ -278,10 +278,18 @@ export default function AdminNavbar({ onMenuClick }) {
             >
               <Menu className="w-5 h-5" />
             </button>
-            {/* Brand Text */}
-            <div className="flex items-center gap-2">
+            {/* Brand Logo & Text */}
+            <div className="flex items-center gap-2.5">
+              <img
+                src={quickSpicyLogo}
+                alt="VersaPack"
+                className="h-8 w-auto object-contain"
+                onError={(e) => {
+                  e.currentTarget.src = "/versapack-logo.png";
+                }}
+              />
               <span className="text-base font-bold tracking-tight text-neutral-800">
-                {businessSettings?.companyName || "VersaPack"}
+                {businessSettings?.companyName && !businessSettings.companyName.toLowerCase().includes('switcheats') ? businessSettings.companyName : "VersaPack"}
               </span>
             </div>
           </div>

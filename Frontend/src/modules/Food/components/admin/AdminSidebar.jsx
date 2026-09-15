@@ -887,24 +887,26 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
           <div className="flex items-center justify-between mb-3">
             {!isCollapsed && (
               <div className="flex items-center gap-2.5 animate-[slideIn_0.3s_ease-out] px-1 py-0.5">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center font-black text-white text-lg shadow-lg shadow-emerald-950/40 ring-1 ring-emerald-400/30 shrink-0">
-                  V
-                </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="text-base font-bold tracking-tight text-white leading-tight truncate">
-                    {companyName || "VersaPack"}
-                  </span>
-                  <span className="text-[10px] font-semibold tracking-wider text-emerald-400 uppercase">
-                    Admin Portal
-                  </span>
-                </div>
+                <img
+                  src={quickSpicyLogo}
+                  alt="VersaPack"
+                  className="h-8 max-w-[140px] object-contain rounded"
+                  onError={(e) => {
+                    e.currentTarget.src = "/versapack-logo.png";
+                  }}
+                />
               </div>
             )}
             {isCollapsed && (
               <div className="w-full flex items-center justify-center py-0.5">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center font-black text-white text-lg shadow-lg shadow-emerald-950/40 ring-1 ring-emerald-400/30">
-                  V
-                </div>
+                <img
+                  src={quickSpicyLogo}
+                  alt="VersaPack"
+                  className="w-8 h-8 object-contain rounded"
+                  onError={(e) => {
+                    e.currentTarget.src = "/versapack-logo.png";
+                  }}
+                />
               </div>
             )}
             <div className="flex items-center gap-2">

@@ -124,6 +124,22 @@ export async function getBusinessSettings(req, res, next) {
 
         const payload = ensurePowerScanningOnSettings(settings.toObject());
 
+        if (payload.logo?.url && payload.logo.url.toLowerCase().includes('switcheats')) {
+            payload.logo.url = '';
+            payload.logo.publicId = '';
+        }
+        if (payload.restaurantLogo?.url && payload.restaurantLogo.url.toLowerCase().includes('switcheats')) {
+            payload.restaurantLogo.url = '';
+            payload.restaurantLogo.publicId = '';
+        }
+        if (payload.deliveryLogo?.url && payload.deliveryLogo.url.toLowerCase().includes('switcheats')) {
+            payload.deliveryLogo.url = '';
+            payload.deliveryLogo.publicId = '';
+        }
+        if (!payload.companyName || payload.companyName.toLowerCase().includes('switcheats')) {
+            payload.companyName = 'VersaPack';
+        }
+
         // Admins only. This same handler also serves /business-settings/public,
         // which is unauthenticated -- and while the description holds no secret,
         // the service account's client email names our admin-SDK identity and is

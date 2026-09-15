@@ -44,8 +44,10 @@ export default function AdminSignup() {
     const fetchLogo = async () => {
       try {
         const settings = await loadBusinessSettings()
-        if (settings?.logo?.url) {
+        if (settings?.logo?.url && !settings.logo.url.toLowerCase().includes('switcheats')) {
           setLogoUrl(settings.logo.url)
+        } else {
+          setLogoUrl(quickSpicyLogo)
         }
       } catch (error) {
         // Silently fail and use default logo
@@ -58,8 +60,10 @@ export default function AdminSignup() {
     const handleSettingsUpdate = async () => {
       // Force reload settings from backend
       const settings = await loadBusinessSettings();
-      if (settings?.logo?.url) {
+      if (settings?.logo?.url && !settings.logo.url.toLowerCase().includes('switcheats')) {
         setLogoUrl(settings.logo.url);
+      } else {
+        setLogoUrl(quickSpicyLogo);
       }
     };
     window.addEventListener('businessSettingsUpdated', handleSettingsUpdate);
