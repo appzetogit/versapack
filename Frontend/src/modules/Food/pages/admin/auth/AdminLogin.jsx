@@ -56,11 +56,6 @@ export default function AdminLogin() {
         applyModulePowerScanning("user", settings)
         const { themeColor: color } = getModulePowerScanning("user", settings)
         setThemeColor(color)
-        if (settings?.logo?.url && !settings.logo.url.toLowerCase().includes('switcheats')) {
-          setLogoUrl(settings.logo.url)
-        } else {
-          setLogoUrl(quickSpicyLogo)
-        }
       } catch (err) {
         debugWarn("Failed to load business settings:", err)
       }
@@ -72,11 +67,6 @@ export default function AdminLogin() {
       applyModulePowerScanning("user", settings)
       const { themeColor: color } = getModulePowerScanning("user", settings)
       setThemeColor(color)
-      if (settings?.logo?.url && !settings.logo.url.toLowerCase().includes('switcheats')) {
-        setLogoUrl(settings.logo.url)
-      } else {
-        setLogoUrl(quickSpicyLogo)
-      }
     }
     window.addEventListener("businessSettingsUpdated", handleSettingsUpdate)
     return () => window.removeEventListener("businessSettingsUpdated", handleSettingsUpdate)
@@ -151,7 +141,7 @@ export default function AdminLogin() {
     <div className="flex h-[100dvh] overflow-hidden bg-white">
       {/* Left — hero */}
       <div className="hidden h-full lg:block lg:w-1/2">
-        <AdminAuthHero themeColor={themeColor} logoUrl={logoUrl} />
+        <AdminAuthHero themeColor={themeColor} />
       </div>
 
       {/* Right — form */}

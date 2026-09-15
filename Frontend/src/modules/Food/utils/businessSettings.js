@@ -11,7 +11,21 @@ import {
   invalidatePublicAppConfig,
 } from "@food/services/publicAppConfig";
 
-const SETTINGS_KEY = 'food_business_settings';
+/**
+ * Versioned on purpose.
+ *
+ * Settings are cached in localStorage and read synchronously on mount, so a copy
+ * taken before the rebrand kept putting the old logo and favicon on screen no
+ * matter what the server returned. Bumping the key retires every stale copy
+ * once, without anyone having to clear their browser.
+ */
+const SETTINGS_KEY = 'food_business_settings.v2';
+const LEGACY_SETTINGS_KEYS = ['food_business_settings'];
+try {
+  LEGACY_SETTINGS_KEYS.forEach((k) => localStorage.removeItem(k));
+} catch (e) {
+  // Private mode or storage disabled: nothing cached, nothing to retire.
+}
 const DEFAULT_MODULE_POWER_SCANNING = {
   user: { themeColor: "#FA0272", fontFamily: "Poppins" },
   restaurant: { themeColor: "#2563EB", fontFamily: "Poppins" },
@@ -325,11 +339,30 @@ let cachedSettings = (() => {
   }
 })();
 
-// Apply cached settings immediately on module load if they exist
+/**
+ * Branding a cached copy is not allowed to carry.
+ *
+ * The cached settings are applied before the server has answered, so whatever
+ * they hold is on screen first -- and a copy taken before the rebrand put the
+ * old name in the tab title and the old favicon in the tab. The versioned key
+ * above retires those copies, and this makes sure a stale one could not do it
+ * again even if it survived.
+ */
+const PREVIOUS_BRAND = 'switcheats';
+const namesPreviousBrand = (value) =>
+  typeof value === 'string' && value.toLowerCase().includes(PREVIOUS_BRAND);
+
+// Apply cached settings immediately on module load if they exist.
+//
+// The favicon is deliberately not among them. Matching the old brand in the URL
+// cannot work for a CDN path -- "res.cloudinary.com/.../fav.png" names no brand
+// at all -- so a cached favicon is simply not trusted. index.html already points
+// at the bundled one, and the server's answer replaces it a moment later.
 if (cachedSettings) {
   setTimeout(() => {
-    updateFavicon(cachedSettings.favicon?.url);
-    updateTitle(cachedSettings.companyName);
+    updateTitle(
+      namesPreviousBrand(cachedSettings.companyName) ? 'VersaPack' : cachedSettings.companyName,
+    );
   }, 0);
 }
 
@@ -374,7 +407,11 @@ export const loadBusinessSettings = async ({ force = false } = {}) => {
           localStorage.setItem(SETTINGS_KEY, JSON.stringify(mergedSettings));
         } catch (e) {}
 
-        updateFavicon(mergedSettings.favicon?.url);
+        // Only the server's own answer may change the favicon; falling back to
+        // the cached copy here is what let a pre-rebrand icon persist.
+        if (snapshot.businessSettings?.favicon?.url) {
+          updateFavicon(snapshot.businessSettings.favicon.url);
+        }
         updateTitle(mergedSettings.companyName);
         return mergedSettings;
       }
