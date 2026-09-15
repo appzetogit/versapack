@@ -10,7 +10,13 @@ import QuickCommerceArt from "./QuickCommerceArt"
  * figures below are the ones a quick-commerce operator actually watches —
  * delivery time, stock, and how many sellers are trading.
  */
-export default function AdminAuthHero({ themeColor, logoUrl }) {
+/**
+ * The admin console's own brand mark, deliberately not taken from business
+ * settings. Those settings survived the SwitchEats rebrand and a browser that
+ * cached them kept serving the old logo here; matching the brand name in the URL
+ * did not help, because the cached URL was a CDN path that never contained it.
+ */
+export default function AdminAuthHero({ themeColor }) {
   const companyName = useCompanyName()
   const prefersReducedMotion = useReducedMotion()
 
@@ -64,7 +70,7 @@ export default function AdminAuthHero({ themeColor, logoUrl }) {
         {/* Brand lockup */}
         <motion.div {...fadeUp(0)} className="flex items-center gap-3">
           <img
-            src={logoUrl && !logoUrl.toLowerCase().includes('switcheats') ? logoUrl : "/versapack-logo.png"}
+            src="/versapack-logo.png"
             alt="VersaPack"
             className="h-10 w-10 rounded-xl object-contain ring-1 ring-white/15 bg-white/5"
             loading="lazy"

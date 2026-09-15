@@ -264,7 +264,7 @@ export default function AdminForgotPassword() {
   return (
     <div className="flex h-[100dvh] overflow-hidden bg-white">
       <div className="hidden h-full lg:block lg:w-1/2">
-        <AdminAuthHero themeColor={themeColor} logoUrl={logoUrl} />
+        <AdminAuthHero themeColor={themeColor} />
       </div>
 
       <div className="flex h-full w-full flex-col bg-[#F0F2F5] lg:w-1/2">

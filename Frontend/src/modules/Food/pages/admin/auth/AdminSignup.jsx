@@ -44,11 +44,6 @@ export default function AdminSignup() {
     const fetchLogo = async () => {
       try {
         const settings = await loadBusinessSettings()
-        if (settings?.logo?.url && !settings.logo.url.toLowerCase().includes('switcheats')) {
-          setLogoUrl(settings.logo.url)
-        } else {
-          setLogoUrl(quickSpicyLogo)
-        }
       } catch (error) {
         // Silently fail and use default logo
         debugWarn("Failed to load business settings logo:", error)
@@ -58,13 +53,9 @@ export default function AdminSignup() {
 
     // Listen for business settings updates
     const handleSettingsUpdate = async () => {
-      // Force reload settings from backend
-      const settings = await loadBusinessSettings();
-      if (settings?.logo?.url && !settings.logo.url.toLowerCase().includes('switcheats')) {
-        setLogoUrl(settings.logo.url);
-      } else {
-        setLogoUrl(quickSpicyLogo);
-      }
+      // Kept so a settings change still refreshes theme colours; the logo is
+      // deliberately not read from here.
+      await loadBusinessSettings();
     };
     window.addEventListener('businessSettingsUpdated', handleSettingsUpdate);
     return () => window.removeEventListener('businessSettingsUpdated', handleSettingsUpdate);
