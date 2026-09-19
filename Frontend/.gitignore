@@ -32,3 +32,11 @@ dist-ssr
 
 # Vite
 *.timestamp-*
+
+# The real production env, not just the *.local variants that were listed.
+# .env.production is what the build actually reads on the server.
+# .env.production.example stays tracked -- it is the template and carries no
+# secrets.
+.env.*
+!.env.production.example
+!.env.example

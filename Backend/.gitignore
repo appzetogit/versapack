@@ -11,3 +11,10 @@ coverage/
 /config/firebase-service-account.json
 .local-e2e.mjs
 .local-e2e-data/
+
+# Every .env variant, however it got made. .env and .env.bak* were listed but
+# an editor's own backup is not named either -- nano writes .env.save, and that
+# file holds the same database credentials, JWT secrets and payment keys as the
+# original. One `git add -A` on the server is all it takes.
+.env.*
+!.env.example
