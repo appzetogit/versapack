@@ -6,7 +6,7 @@ import { FoodRestaurant } from '../../src/modules/food/restaurant/models/restaur
 import { FoodItem } from '../../src/modules/food/admin/models/food.model.js';
 import { FoodOrder } from '../../src/modules/food/orders/models/order.model.js';
 import { FoodDeliveryBatch } from '../../src/modules/food/orders/models/deliveryBatch.model.js';
-import { reportPickShortfall } from '../../src/modules/food/orders/services/order.service.js';
+import { reportPickShortfall, updateOrderStatusRestaurant } from '../../src/modules/food/orders/services/order.service.js';
 import {
     placeOrderInBatch,
     listBatchesReadyToDispatch,
@@ -137,6 +137,39 @@ test('order flows against a real database', async (t) => {
             () => reportPickShortfall(String(order._id), String(store._id), [{ index: 0, fulfilledQty: 1 }]),
             /no longer be re-picked/,
         );
+    });
+
+    // ── Handover without a rider ─────────────────────────────────────────────
+
+    await t.test('handing over with no rider keeps the order grabbable', async () => {
+        // picked_up means a rider physically has the order. The seller tapping
+        // "Handed Over" before anyone has come for it means the opposite -- the
+        // food is packed and waiting -- and storing picked_up orphaned it: no
+        // dispatch runs for that status and the available-orders list does not
+        // include it, so the order left every rider's screen with no rider on it.
+        await clearDb();
+        const store = await makeStore();
+        const order = await makeOrder(store._id, { orderStatus: 'preparing' });
+
+        await updateOrderStatusRestaurant(String(order._id), String(store._id), 'picked_up');
+
+        const after = await FoodOrder.findById(order._id).lean();
+        assert.equal(after.orderStatus, 'ready_for_pickup', 'packed, not collected');
+    });
+
+    await t.test('but a rider who has accepted can still be handed the order', async () => {
+        await clearDb();
+        const store = await makeStore();
+        const riderId = oid();
+        const order = await makeOrder(store._id, {
+            orderStatus: 'ready_for_pickup',
+            dispatch: { status: 'accepted', deliveryPartnerId: riderId, acceptedAt: new Date() },
+        });
+
+        await updateOrderStatusRestaurant(String(order._id), String(store._id), 'picked_up');
+
+        const after = await FoodOrder.findById(order._id).lean();
+        assert.equal(after.orderStatus, 'picked_up', 'a real pickup still records as one');
     });
 
     // ── Batching ─────────────────────────────────────────────────────────────

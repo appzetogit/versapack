@@ -2242,7 +2242,37 @@ export async function updateOrderStatusRestaurant(
     }
   }
   const from = order.orderStatus;
-  if (!isStatusAdvance(from, orderStatus)) {
+
+  /**
+   * A restaurant cannot mark an order picked up when nobody has come for it.
+   *
+   * picked_up means a rider physically has the order. The seller tapping
+   * "Handed Over" with no rider assigned means something else entirely -- the
+   * food is packed and sitting on the counter -- and that is ready_for_pickup.
+   *
+   * Left as picked_up it orphans the order: no dispatch runs for that status,
+   * and listOrdersAvailableDelivery only lists confirmed/preparing/
+   * ready_for_pickup, so the order vanishes from every rider's list while no
+   * rider is holding it. Nothing errors and nobody is told.
+   */
+  const riderHasOrder =
+    String(order.dispatch?.status || '') === 'accepted' &&
+    Boolean(order.dispatch?.deliveryPartnerId);
+  const handedOverWithoutRider =
+    String(orderStatus) === 'picked_up' && !riderHasOrder;
+  if (handedOverWithoutRider) {
+    logger.info(
+      `Order ${order._id}: restaurant handed over with no rider assigned; treating as ready_for_pickup.`,
+    );
+    orderStatus = 'ready_for_pickup';
+  }
+
+  // A second Handed Over on an order already sitting at ready_for_pickup is not a
+  // regression, it is the seller asking again for a rider. Let it through so the
+  // hunt below can run instead of failing the tap.
+  const isRepeatHandover = handedOverWithoutRider && from === 'ready_for_pickup';
+
+  if (!isRepeatHandover && !isStatusAdvance(from, orderStatus)) {
     throw new ValidationError(
       `Current order status '${from}' is further ahead than '${orderStatus}'. Order cannot be moved backwards.`
     );
@@ -2431,7 +2461,15 @@ export async function updateOrderStatusRestaurant(
   // Real-time: delivery request / ready notifications.
   try {
     const io = getIO();
-    if (io) {
+
+    // Dispatch is deliberately OUTSIDE the socket check below.
+    //
+    // This whole block used to sit inside `if (io)`, which meant that with the
+    // socket server down no rider was ever hunted for -- and the FCM push lives
+    // inside tryAutoAssign, so the push died with it. Push and sockets are
+    // separate channels and a rider's phone does not care whether a websocket
+    // is up.
+    {
       // On accept (confirmed or preparing) -> request delivery partners via central logic
       if (
         (String(orderStatus) === "preparing" || String(orderStatus) === "confirmed") && 
@@ -2458,20 +2496,31 @@ export async function updateOrderStatusRestaurant(
         });
       }
 
-            // When ready for pickup -> ping assigned delivery partner.
-            if (String(orderStatus) === 'ready_for_pickup' && String(from) !== 'ready_for_pickup') {
+            // When ready for pickup -> ping the assigned rider, or find one.
+            if (String(orderStatus) === 'ready_for_pickup' && (String(from) !== 'ready_for_pickup' || isRepeatHandover)) {
                 console.log(`[DEBUG] Order ${order._id.toString()} changed to 'ready_for_pickup'.`);
                 const assignedId = order.dispatch?.deliveryPartnerId?.toString?.() || order.dispatch?.deliveryPartnerId;
                 if (assignedId) {
                     console.log(`[DEBUG] Notifying assigned partner ${assignedId} that order is ready.`);
-                    const restaurant = await FoodRestaurant.findById(order.restaurantId).select('restaurantName location addressLine1 area city state').lean();
-                    const payload = buildDeliverySocketPayload(order, restaurant);
-                    logger.info(
-                      `[DeliveryDispatch] Emitting order_ready to ${rooms.delivery(assignedId)} for order ${order._id.toString()}`,
-                    );
-                    io.to(rooms.delivery(assignedId)).emit('order_ready', payload);
+                    if (io) {
+                      const restaurant = await FoodRestaurant.findById(order.restaurantId).select('restaurantName location addressLine1 area city state').lean();
+                      const payload = buildDeliverySocketPayload(order, restaurant);
+                      logger.info(
+                        `[DeliveryDispatch] Emitting order_ready to ${rooms.delivery(assignedId)} for order ${order._id.toString()}`,
+                      );
+                      io.to(rooms.delivery(assignedId)).emit('order_ready', payload);
+                    }
                 } else {
-                    console.log(`[DEBUG] Order ${order._id.toString()} is ready but no partner assigned.`);
+                    // Food is packed and nobody is coming for it. This is the moment a
+                    // rider is most needed, and it used to be the moment we wrote a log
+                    // line and stopped -- the hunt only ever ran at accept, so an order
+                    // that found no rider then found none ever.
+                    logger.info(
+                      `Order ${order._id} is ready with no rider assigned; starting the hunt.`,
+                    );
+                    void tryAutoAssign(order._id).catch((err) => {
+                      logger.warn(`Ready-for-pickup dispatch failed for ${order._id}: ${err?.message || err}`);
+                    });
                 }
             }
         }
@@ -3087,26 +3136,28 @@ export async function updateOrderStatusAdmin(orderId, orderStatus, note = "", ad
                 io.to(rooms.delivery(order.dispatch.deliveryPartnerId)).emit("order_status_update", payload);
             }
 
-            // On accept (confirmed or preparing) -> request delivery partners via central logic
-            if (
-                (String(orderStatus) === "preparing" || String(orderStatus) === "confirmed") && 
-                (String(from) !== "preparing" && String(from) !== "confirmed")
-            ) {
-                console.log(
-                    `[DEBUG] Order ${order._id.toString()} status changed to '${orderStatus}' by Admin. Triggering central delivery dispatch.`,
-                );
-                
-                try {
-                    await tryAutoAssign(order._id);
-                    // Refresh local order state after assignment search
-                    order = await FoodOrder.findById(order._id); 
-                } catch (err) {
-                    console.error(`[DEBUG] Auto-assign in updateOrderStatusAdmin failed:`, err);
-                }
-            }
         }
     } catch (err) {
         logger.warn(`Admin status update socket emit failed: ${err?.message || err}`);
+    }
+
+    // Dispatch sits outside the socket block for the same reason it does in the
+    // restaurant path: the FCM push to riders lives inside tryAutoAssign, and a
+    // websocket being down is no reason for a rider's phone to stay silent.
+    if (
+        (String(orderStatus) === "preparing" || String(orderStatus) === "confirmed") &&
+        (String(from) !== "preparing" && String(from) !== "confirmed")
+    ) {
+        console.log(
+            `[DEBUG] Order ${order._id.toString()} status changed to '${orderStatus}' by Admin. Triggering central delivery dispatch.`,
+        );
+        try {
+            await tryAutoAssign(order._id);
+            // Refresh local order state after assignment search
+            order = await FoodOrder.findById(order._id);
+        } catch (err) {
+            console.error(`[DEBUG] Auto-assign in updateOrderStatusAdmin failed:`, err);
+        }
     }
 
     return normalizeOrderForClient(order);
