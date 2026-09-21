@@ -617,7 +617,11 @@ export const sendNotificationToOwner = async ({ ownerType, ownerId, payload, pla
 
     const tokens = await listOwnerTokens({ ownerType, ownerId, platform });
     if (!tokens.length) {
-        return { successCount: 0, failureCount: 0, results: [] };
+        // Said out loud on purpose. "Nobody has registered a device" and "the
+        // push failed" look identical from the outside -- no notification
+        // arrives either way -- and this used to return in silence.
+        logger.info(`FCM skipped for ${ownerType}:${ownerId}: no device registered`);
+        return { successCount: 0, failureCount: 0, results: [], noDevice: true };
     }
     try {
         console.log(`[FCM] Sending to ${ownerType}:${ownerId}. Title: "${enrichedPayload.title || 'Data Only'}"`);
@@ -640,9 +644,18 @@ export const sendNotificationToOwner = async ({ ownerType, ownerId, payload, pla
                 await doc.save();
             }
         }
-        logger.info(
-            `FCM push sent to ${ownerType}:${ownerId} (${platform || 'all'}). Success=${response.successCount}, Failure=${response.failureCount}`
-        );
+        // A send where every token failed is not an event to log as success.
+        // It read "FCM push sent ... Success=0, Failure=1" at info level, which
+        // is how a broadcast that reached nobody looked exactly like one that
+        // worked.
+        const line = `FCM push to ${ownerType}:${ownerId} (${platform || 'all'}): `
+            + `${response.successCount} delivered, ${response.failureCount} failed`;
+        if (response.successCount === 0 && response.failureCount > 0) {
+            const why = (response.results || []).find((r) => !r.ok)?.error;
+            logger.warn(`${line}${why ? ` -- ${why}` : ''}`);
+        } else {
+            logger.info(line);
+        }
         return response;
     } catch (error) {
         logger.warn(`FCM push failed for ${ownerType}:${ownerId}: ${error.message}`);

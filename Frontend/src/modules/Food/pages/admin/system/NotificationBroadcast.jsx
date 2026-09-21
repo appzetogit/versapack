@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { BellRing, Loader2, Search, Send, Trash2 } from "lucide-react";
 import { adminAPI } from "@food/api";
+import { toast } from "sonner";
 
 const TARGET_OPTIONS = [
   { value: "ALL", label: "All" },
@@ -156,7 +157,7 @@ export default function NotificationBroadcast() {
 
     try {
       setSubmitting(true);
-      await adminAPI.createBroadcastNotification({
+      const response = await adminAPI.createBroadcastNotification({
         title: form.title.trim(),
         message: form.message.trim(),
         targetType: form.targetType,
@@ -179,6 +180,34 @@ export default function NotificationBroadcast() {
       setSearch("");
       window.dispatchEvent(new Event("adminBroadcastUpdated"));
       await loadHistory();
+
+      // Saving the broadcast and delivering it are separate things, and this
+      // screen only ever showed the first -- silently, at that. A broadcast
+      // that reached nobody looked exactly like one that worked, which is the
+      // whole reason "it sends but no notification arrives" was hard to place.
+      const delivery = response?.data?.data?.delivery ?? response?.data?.delivery;
+      if (!delivery) {
+        toast.success("Broadcast sent");
+      } else if (delivery.delivered > 0) {
+        toast.success(
+          `Broadcast sent to ${delivery.delivered} device${delivery.delivered === 1 ? "" : "s"}` +
+            (delivery.failed ? ` — ${delivery.failed} failed` : ""),
+        );
+      } else if (delivery.noDevice >= delivery.recipients) {
+        toast.warning(
+          `Saved, but nobody was reached: none of the ${delivery.recipients} recipients has the app installed.`,
+        );
+      } else {
+        toast.error(
+          `Saved, but no notification was delivered (${delivery.failed} push failure${delivery.failed === 1 ? "" : "s"}). Check the server's Firebase configuration.`,
+        );
+      }
+    } catch (error) {
+      // A failed request used to leave the form untouched and say nothing at
+      // all, so the admin had no way to tell it had not been sent.
+      toast.error(
+        error?.response?.data?.message || error?.message || "Could not send the broadcast",
+      );
     } finally {
       setSubmitting(false);
     }

@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { logger } from '../../../../utils/logger.js';
 import { ValidationError, NotFoundError } from '../../../../core/auth/errors.js';
 import { FoodUser } from '../../../../core/users/user.model.js';
 import { FoodRestaurant } from '../../restaurant/models/restaurant.model.js';
@@ -251,7 +252,7 @@ export const createBroadcastNotification = async ({ body = {}, adminId } = {}) =
         )
     });
 
-    await notifyOwnersSafely(
+    const pushResults = await notifyOwnersSafely(
         resolvedTargets.map((target) => ({
             ownerType: target.ownerType,
             ownerId: target.ownerId
@@ -269,9 +270,37 @@ export const createBroadcastNotification = async ({ body = {}, adminId } = {}) =
 
     emitRealtimeNotifications(resolvedTargets, broadcast);
 
+    /**
+     * What actually reached a phone.
+     *
+     * Creating the broadcast and delivering it are separate things, and this
+     * only ever reported the first. An admin saw "sent successfully" whether
+     * every device got it, nobody had an app installed, or Firebase was not
+     * configured on the server at all -- the push failure is swallowed by
+     * notifyOwnersSafely by design, so the response is the only place the
+     * difference can show up.
+     */
+    const delivery = (Array.isArray(pushResults) ? pushResults : []).reduce(
+        (acc, result) => ({
+            delivered: acc.delivered + (Number(result?.successCount) || 0),
+            failed: acc.failed + (Number(result?.failureCount) || 0),
+            noDevice: acc.noDevice + (result?.noDevice ? 1 : 0),
+        }),
+        { delivered: 0, failed: 0, noDevice: 0 },
+    );
+
+    if (delivery.delivered === 0 && resolvedTargets.length > 0) {
+        logger.warn(
+            `Broadcast ${broadcast._id} reached no device: `
+            + `${resolvedTargets.length} recipients, ${delivery.noDevice} with no app registered, `
+            + `${delivery.failed} push failures.`
+        );
+    }
+
     return {
         broadcast,
-        targetPreview: resolvedTargets.slice(0, 10)
+        targetPreview: resolvedTargets.slice(0, 10),
+        delivery: { ...delivery, recipients: resolvedTargets.length }
     };
 };
 
