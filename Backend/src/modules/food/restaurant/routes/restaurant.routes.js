@@ -9,6 +9,7 @@ import {
     listPublicOffersController,
     getCurrentRestaurantController,
     updateRestaurantProfileController,
+    updateRestaurantLocationController,
     updateRestaurantAcceptingOrdersController,
     updateCurrentRestaurantDiningSettingsController,
     uploadRestaurantProfileImageController,
@@ -149,6 +150,12 @@ router.patch('/profile', authMiddleware, requireRestaurant, async (req, res, nex
     await invalidateCache('restaurant_detail:*');
     next();
 }, updateRestaurantProfileController);
+router.patch('/location', authMiddleware, requireRestaurant, async (req, res, next) => {
+    // Invalidate caches when location is updated
+    await invalidateCache('restaurants:*');
+    await invalidateCache('restaurant_detail:*');
+    next();
+}, updateRestaurantLocationController);
 router.patch('/availability', authMiddleware, requireRestaurant, async (req, res, next) => {
     await invalidateCache('restaurants:*');
     await invalidateCache('restaurant_detail:*');

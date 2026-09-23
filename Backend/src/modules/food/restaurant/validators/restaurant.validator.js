@@ -150,6 +150,23 @@ const restaurantRegisterSchema = z.object({
     galleryImages: z.string().optional() // stringified array of pre-uploaded URLs
 });
 
+const updateLocationSchema = z.object({
+    lat: z.number({ required_error: 'lat is required', invalid_type_error: 'lat must be a number' })
+        .finite('lat must be a valid number'),
+    lng: z.number({ required_error: 'lng is required', invalid_type_error: 'lng must be a number' })
+        .finite('lng must be a valid number'),
+    shop_name: z.string().trim().min(1).optional(),
+    address: z.string().trim().min(1).optional()
+});
+
+export const validateUpdateRestaurantLocationDto = (body) => {
+    const result = updateLocationSchema.safeParse(body);
+    if (!result.success) {
+        throw new ValidationError(result.error.errors[0].message);
+    }
+    return result.data;
+};
+
 export const validateRestaurantRegisterDto = (body) => {
     const result = restaurantRegisterSchema.safeParse(body);
     if (!result.success) {

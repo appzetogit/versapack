@@ -18,7 +18,7 @@ import {
 } from '../services/restaurant.service.js';
 import { assignStoreForCustomer } from '../services/storeAssignment.service.js';
 import { getRestaurantSubscriptionHistory } from '../services/subscriptionHistory.service.js';
-import { validateRestaurantRegisterDto } from '../validators/restaurant.validator.js';
+import { validateRestaurantRegisterDto, validateUpdateRestaurantLocationDto } from '../validators/restaurant.validator.js';
 import { sendResponse, sendError } from '../../../../utils/response.js';
 import { FoodUnregisteredRestaurant } from '../models/unregisteredRestaurant.model.js';
 
@@ -135,6 +135,30 @@ export const updateRestaurantProfileController = async (req, res, next) => {
         const restaurantId = req.user?.userId;
         const restaurant = await updateRestaurantProfile(restaurantId, req.body || {});
         return sendResponse(res, 200, 'Store updated successfully', { restaurant });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * Flat {lat, lng, shop_name, address} contract for the seller app's location picker.
+ * Translates into the nested shape updateRestaurantProfile expects, so the zone
+ * resolution / pending-approval-for-live-stores rules stay in one place.
+ */
+export const updateRestaurantLocationController = async (req, res, next) => {
+    try {
+        const restaurantId = req.user?.userId;
+        const { lat, lng, shop_name, address } = validateUpdateRestaurantLocationDto(req.body);
+
+        const body = {
+            location: { latitude: lat, longitude: lng, address }
+        };
+        if (shop_name !== undefined) {
+            body.name = shop_name;
+        }
+
+        const restaurant = await updateRestaurantProfile(restaurantId, body);
+        return sendResponse(res, 200, 'Store location updated successfully', { restaurant });
     } catch (error) {
         next(error);
     }
