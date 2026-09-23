@@ -446,13 +446,21 @@ export default function JoiningRequest() {
                         <span className="text-sm text-slate-700">{request.zone || "—"}</span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          request.status === "Pending"
-                            ? "bg-blue-100 text-blue-700"
-                            : "bg-red-100 text-red-700"
-                        }`}>
-                          {request.status}
-                        </span>
+                        {request.locationUpdateStatus === "pending" ? (
+                          <span className="px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-300 flex items-center gap-1 w-max">
+                            <span>📍</span> Location Update Pending
+                          </span>
+                        ) : (
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                            String(request.status || "").toLowerCase() === "pending"
+                              ? "bg-blue-100 text-blue-700"
+                              : String(request.status || "").toLowerCase() === "approved"
+                              ? "bg-green-100 text-green-700"
+                              : "bg-red-100 text-red-700"
+                          }`}>
+                            {request.status}
+                          </span>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-center">
                         <div className="flex items-center justify-center gap-2">
@@ -784,7 +792,41 @@ export default function JoiningRequest() {
                     {/* Location & Contact */}
                     <div>
                       <h4 className="text-lg font-semibold text-slate-900 mb-4">Location & Contact</h4>
-                      <div className="space-y-3">
+                      <div className="space-y-4">
+                        {/* Pending Location Update Banner & Card */}
+                        {r?.locationUpdateStatus === "pending" && r?.pendingLocation && (() => {
+                          const p = r.pendingLocation
+                          const pendingAddr = [
+                            p.addressLine1,
+                            p.addressLine2,
+                            p.area,
+                            p.city,
+                            p.state,
+                            p.pincode,
+                            p.landmark
+                          ].filter(Boolean).join(", ") || p.formattedAddress || p.address || "New pinned location on map"
+                          const pendingZoneName = r.pendingZone || r.pendingZoneId?.zoneName || r.pendingZoneId?.name || null
+                          return (
+                            <div className="p-4 rounded-xl bg-amber-50 border-2 border-amber-300 space-y-2">
+                              <div className="flex items-center gap-2 text-amber-800 font-bold text-sm">
+                                <span className="text-lg">📍</span>
+                                <span>Requested New Location (Pending Admin Approval)</span>
+                              </div>
+                              <p className="text-sm font-semibold text-slate-900">{pendingAddr}</p>
+                              {pendingZoneName && (
+                                <p className="text-xs text-amber-900 font-medium">
+                                  Requested Zone: <span className="font-bold underline">{pendingZoneName}</span>
+                                </p>
+                              )}
+                              {Array.isArray(p.coordinates) && p.coordinates.length >= 2 && (
+                                <p className="text-xs text-slate-500 font-mono">
+                                  GPS Pin: [{p.coordinates[1]}, {p.coordinates[0]}]
+                                </p>
+                              )}
+                            </div>
+                          )
+                        })()}
+
                         {(() => {
                           const loc = r?.location || r?.onboarding?.step1?.location
                           const fullAddress = [
@@ -800,7 +842,7 @@ export default function JoiningRequest() {
                             <div className="flex items-start gap-3">
                               <MapPin className="w-5 h-5 text-slate-400 mt-0.5 shrink-0" />
                               <div>
-                                <p className="text-xs text-slate-500">Address</p>
+                                <p className="text-xs text-slate-500">{r?.locationUpdateStatus === "pending" ? "Current Live Address" : "Address"}</p>
                                 <p className="text-sm font-medium text-slate-900">{fullAddress}</p>
                               </div>
                             </div>
