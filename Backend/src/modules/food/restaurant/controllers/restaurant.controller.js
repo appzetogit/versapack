@@ -150,6 +150,8 @@ export const updateRestaurantLocationController = async (req, res, next) => {
         const restaurantId = req.user?.userId;
         const { lat, lng, shop_name, address } = validateUpdateRestaurantLocationDto(req.body);
 
+        console.log(`📍 [RESTAURANT_LOCATION_LOG] SellerID: ${restaurantId} | Latitude: ${lat}, Longitude: ${lng} | Address: "${address || ''}" | ShopName: "${shop_name || ''}"`);
+
         const body = {
             location: { latitude: lat, longitude: lng, address }
         };
