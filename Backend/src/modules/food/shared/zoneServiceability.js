@@ -100,3 +100,59 @@ export const readAddressPoint = (address) => {
 
   return null;
 };
+
+/** Haversine distance in meters between two lat/lng points. */
+export const calculateHaversineDistanceMeters = (lat1, lng1, lat2, lng2) => {
+  const R = 6371000;
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLng = (lng2 - lng1) * (Math.PI / 180);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) *
+      Math.cos(lat2 * (Math.PI / 180)) *
+      Math.sin(dLng / 2) *
+      Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return Math.round(R * c);
+};
+
+/**
+ * Check if user lat/lng is inside seller's active circular delivery zone.
+ */
+export const checkSellerServiceabilityForUser = async (sellerId, userLat, userLng) => {
+  const latitude = toFiniteNumber(userLat);
+  const longitude = toFiniteNumber(userLng);
+  if (!sellerId || latitude === null || longitude === null) {
+    return { isServiceable: false, distanceMeters: null, activeZone: null };
+  }
+
+  const { SellerZone } = await import('../restaurant/models/sellerZone.model.js');
+  const activeZone = await SellerZone.findOne({ sellerId, isActive: true }).lean();
+
+  if (!activeZone) {
+    return { isServiceable: false, distanceMeters: null, activeZone: null };
+  }
+
+  const distanceMeters = calculateHaversineDistanceMeters(
+    latitude,
+    longitude,
+    activeZone.centerLat,
+    activeZone.centerLng
+  );
+
+  const isServiceable = distanceMeters <= activeZone.radiusM;
+
+  return {
+    isServiceable,
+    distanceMeters,
+    activeZone: {
+      id: activeZone._id.toString(),
+      name: activeZone.name,
+      center_lat: activeZone.centerLat,
+      center_lng: activeZone.centerLng,
+      radius_m: activeZone.radiusM,
+      is_active: activeZone.isActive
+    }
+  };
+};
+

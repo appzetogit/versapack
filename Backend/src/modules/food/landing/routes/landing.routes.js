@@ -51,7 +51,7 @@ import {
     getPublicLandingSettingsController,
     getPublicTopBannersController
 } from '../controllers/publicLanding.controller.js';
-import { detectZonePublicController, listZonesPublicController, listZonesNearbyPublicController } from '../controllers/zonePublic.controller.js';
+import { detectZonePublicController, listZonesPublicController, listZonesNearbyPublicController, checkSellerZonePublicController } from '../controllers/zonePublic.controller.js';
 import { getPublicPageController } from '../../admin/controllers/pageContent.controller.js';
 import { getPublicReferralSettingsController } from '../controllers/publicReferralSettings.controller.js';
 
@@ -169,6 +169,7 @@ router.get('/landing/settings/public', getPublicLandingSettingsController);
 router.get('/zones/detect', detectZonePublicController);
 router.get('/zones/nearby', listZonesNearbyPublicController);
 router.get('/zones/public', listZonesPublicController);
+router.get('/zones/seller-check', checkSellerZonePublicController);
 // Admin landing settings
 router.get('/hero-banners/landing/settings', getAdminLandingSettingsController);
 router.patch('/hero-banners/landing/settings', updateAdminLandingSettingsController);

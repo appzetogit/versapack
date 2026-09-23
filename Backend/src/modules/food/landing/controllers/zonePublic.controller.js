@@ -131,3 +131,28 @@ export const listZonesNearbyPublicController = async (_req, res, next) => {
         next(error);
     }
 };
+
+/** GET /zones/seller-check?sellerId=..&lat=..&lng=.. - User app check if location is within seller's circular zone */
+export const checkSellerZonePublicController = async (req, res, next) => {
+    try {
+        const { sellerId, lat, lng } = req.query;
+        if (!sellerId || lat === undefined || lng === undefined) {
+            return res.status(400).json({
+                success: false,
+                message: 'sellerId, lat, and lng are required query parameters'
+            });
+        }
+
+        const { checkSellerServiceabilityForUser } = await import('../../shared/zoneServiceability.js');
+        const result = await checkSellerServiceabilityForUser(sellerId, lat, lng);
+
+        return res.status(200).json({
+            success: true,
+            message: result.isServiceable ? 'Location is serviceable by seller' : 'Location is out of seller service zone',
+            data: result
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+

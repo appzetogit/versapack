@@ -20,7 +20,7 @@ import searchRoutes from '../modules/food/search/routes/search.routes.js';
 import chatRoutes from '../modules/food/chat/routes/chat.routes.js';
 import { getCashbackSettingsPublicController } from '../modules/food/user/controllers/cashback.controller.js';
 import { config } from '../config/env.js';
-import { getRateLimitSummary } from '../middleware/rateLimit.js';
+import sellerZoneRoutes from '../modules/food/restaurant/routes/sellerZone.routes.js';
 
 const router = express.Router();
 
@@ -53,6 +53,10 @@ router.get('/v1/food/admin/restaurant-subscription-settings/public', adminContro
 router.get('/v1/food/admin/feature-settings/public', adminController.getFeatureSettings);
 router.get('/v1/food/admin/fee-settings/public', adminController.getFeeSettings);
 router.get('/v1/food/admin/cashback-settings/public', getCashbackSettingsPublicController);
+
+router.use('/seller/zones', authMiddleware, requireRoles('RESTAURANT', 'ADMIN'), sellerZoneRoutes);
+router.use('/v1/seller/zones', authMiddleware, requireRoles('RESTAURANT', 'ADMIN'), sellerZoneRoutes);
+router.use('/v1/food/restaurant/zones', authMiddleware, requireRoles('RESTAURANT', 'ADMIN'), sellerZoneRoutes);
 
 router.use('/v1/food/admin', authMiddleware, requireRoles('ADMIN'), restaurantAdminRoutes);
 router.use('/v1/food/user', authMiddleware, requireRoles('USER'), userRoutes);
