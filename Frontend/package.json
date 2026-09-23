@@ -80,5 +80,12 @@
   },
   "engines": {
     "node": "20.x"
+  },
+  "overrides": {
+    "vite": "7.3.1",
+    "@vitejs/plugin-react": "5.2.0",
+    "@tailwindcss/vite": "4.2.2",
+    "esbuild": "0.27.7",
+    "rollup": "4.62.4"
   }
 }
