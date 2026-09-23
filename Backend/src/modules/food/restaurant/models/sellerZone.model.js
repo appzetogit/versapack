@@ -44,6 +44,9 @@ const sellerZoneSchema = new mongoose.Schema(
 );
 
 sellerZoneSchema.index({ sellerId: 1, isActive: 1 });
+// Backs the bounding-box pre-filter in findInRangeSellerZones (zoneServiceability.js),
+// which narrows candidates before running exact Haversine on a much smaller set.
+sellerZoneSchema.index({ isActive: 1, centerLat: 1, centerLng: 1 });
 
 /**
  * Format doc to match the exact API specification response structure.

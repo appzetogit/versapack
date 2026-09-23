@@ -116,6 +116,56 @@ export const calculateHaversineDistanceMeters = (lat1, lng1, lat2, lng2) => {
   return Math.round(R * c);
 };
 
+// Matches SellerZone.radiusM's own max (schema-enforced), so the bounding box below
+// can never be drawn smaller than the largest zone that could possibly match.
+const MAX_SELLER_ZONE_RADIUS_METERS = 50000;
+const METERS_PER_DEGREE_LATITUDE = 111320;
+
+/**
+ * Every active seller zone within Haversine range of a point, cheapest match first.
+ *
+ * SellerZone has no geo index -- centerLat/centerLng are plain numbers -- so a true
+ * DB-level radius query ($geoWithin/$centerSphere) isn't available without a schema
+ * migration. Instead this narrows candidates with an indexed bounding-box range query
+ * (cheap, no migration) sized to the largest radius any zone could have, then runs
+ * exact Haversine only on that narrowed set. Matches this file's existing tolerance
+ * for a linear scan "at the scale a hand-drawn zone list implies" (see findZoneForPoint).
+ */
+export const findInRangeSellerZones = async (userLat, userLng) => {
+  const lat = toFiniteNumber(userLat);
+  const lng = toFiniteNumber(userLng);
+  if (lat === null || lng === null) return [];
+
+  const latDelta = MAX_SELLER_ZONE_RADIUS_METERS / METERS_PER_DEGREE_LATITUDE;
+  // Longitude degrees shrink toward the poles; guard div-by-zero at exactly +/-90.
+  const metersPerDegreeLng = METERS_PER_DEGREE_LATITUDE * Math.cos((lat * Math.PI) / 180) || METERS_PER_DEGREE_LATITUDE;
+  const lngDelta = MAX_SELLER_ZONE_RADIUS_METERS / metersPerDegreeLng;
+
+  const { SellerZone } = await import('../restaurant/models/sellerZone.model.js');
+  const candidates = await SellerZone.find({
+    isActive: true,
+    centerLat: { $gte: lat - latDelta, $lte: lat + latDelta },
+    centerLng: { $gte: lng - lngDelta, $lte: lng + lngDelta },
+  })
+    .select('sellerId centerLat centerLng radiusM')
+    .lean();
+
+  // One active zone per seller is enforced at write time (activating one deactivates
+  // the rest), but this defends the read side too: if that ever isn't true, the
+  // closest match wins rather than whichever happened to sort last.
+  const bestBySeller = new Map();
+  for (const zone of candidates) {
+    const distanceMeters = calculateHaversineDistanceMeters(lat, lng, zone.centerLat, zone.centerLng);
+    if (distanceMeters > zone.radiusM) continue; // <=, not <: exact boundary counts as in range
+    const key = String(zone.sellerId);
+    const existing = bestBySeller.get(key);
+    if (!existing || distanceMeters < existing.distanceMeters) {
+      bestBySeller.set(key, { sellerId: key, distanceMeters });
+    }
+  }
+  return [...bestBySeller.values()];
+};
+
 /**
  * Check if user lat/lng is inside seller's active circular delivery zone.
  */

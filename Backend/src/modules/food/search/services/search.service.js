@@ -270,8 +270,8 @@ const PRODUCT_SEARCH_PROJECTION = {
  * is bounded to the sellers serving one zone. Revisit if a zone's catalog grows
  * past the point where that scan is cheap.
  */
-export const searchProducts = async (query = {}) => {
-    const { q, categoryId, zoneId, storeId, isVeg, inStockOnly, page = 1, limit = 20 } = query;
+export const searchProducts = async (query = {}, sellerDistanceById = null) => {
+    const { q, categoryId, zoneId, storeId, nearSellerIds, isVeg, inStockOnly, page = 1, limit = 20 } = query;
 
     const pageNumber = Math.max(parseInt(page, 10) || 1, 1);
     const limitNumber = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 50);
@@ -316,9 +316,25 @@ export const searchProducts = async (query = {}) => {
             ? new mongoose.Types.ObjectId(requestedStoreId)
             : null;
 
+    // Additive to scopedStoreId, not a replacement: a customer gets at most one dark
+    // store by distance, but every marketplace seller whose own SellerZone radius
+    // reaches them -- these are two different sellers-in-range mechanisms, resolved
+    // by resolveStoreFromLocationHeaders (search.controller.js) and merged here.
+    const nearSellerIdList = typeof nearSellerIds === 'string' && nearSellerIds
+        ? nearSellerIds.split(',')
+        : [];
+    const inRangeSellerObjectIds = nearSellerIdList
+        .filter((id) => mongoose.Types.ObjectId.isValid(id) && sellerById.has(id))
+        .map((id) => new mongoose.Types.ObjectId(id));
+
+    const explicitRestaurantIds = [
+        ...(scopedStoreId ? [scopedStoreId] : []),
+        ...inRangeSellerObjectIds,
+    ];
+
     const productFilter = {
-        restaurantId: scopedStoreId
-            ? scopedStoreId
+        restaurantId: explicitRestaurantIds.length
+            ? { $in: explicitRestaurantIds }
             : { $in: sellers.map((seller) => seller._id) },
         approvalStatus: 'approved'
     };
@@ -497,6 +513,13 @@ export const searchProducts = async (query = {}) => {
             // The row itself may still be the out-of-stock one if nothing nearby has
             // it, which is why this is separate from `inStock` above.
             inStockNearby: row.inStockNearby === true,
+            // Debug/QA field, not authoritative: present only when this seller was
+            // matched via a SellerZone radius check for this request. Absent (not
+            // null) for a scoped dark store or an unscoped catalog, since "distance
+            // from user" isn't a claim being made there.
+            ...(sellerDistanceById && Object.prototype.hasOwnProperty.call(sellerDistanceById, String(product.restaurantId))
+                ? { distanceFromUser: sellerDistanceById[String(product.restaurantId)] }
+                : {}),
             seller: seller
                 ? {
                     _id: seller._id,

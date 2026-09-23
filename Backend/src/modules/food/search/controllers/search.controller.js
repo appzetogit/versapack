@@ -1,18 +1,25 @@
 import { searchUnified, searchProducts, getAdminCategories } from '../services/search.service.js';
 import { sendResponse, sendError } from '../../../../utils/response.js';
 import { assignStoreForCustomer } from '../../restaurant/services/storeAssignment.service.js';
+import { findInRangeSellerZones } from '../../shared/zoneServiceability.js';
 
 const NO_SERVICEABLE_STORE = '__no_serviceable_store__';
 
 /**
- * Resolves X-User-Latitude / X-User-Longitude headers to a storeId, before the
- * cache middleware runs, so the cache key (built from req.query) varies by the
- * resolved store rather than by raw, near-unique GPS coordinates.
+ * Resolves X-User-Latitude / X-User-Longitude headers to a storeId (dark-store
+ * distance assignment) AND a list of in-range marketplace sellers (SellerZone radius),
+ * before the cache middleware runs, so the cache key (built from req.query) varies by
+ * the resolved ids rather than by raw, near-unique GPS coordinates.
  *
- * An explicit storeId/zoneId query param always wins — this only fills in what
- * the client didn't already tell us. When no store serves the location, the
- * sentinel is passed through so the controller can return an explicit empty
- * catalogue instead of searchProducts' default "no storeId -> unscoped" fallback.
+ * These are two different, additive mechanisms: a customer is assigned at most one
+ * dark store by distance, but can see every marketplace seller whose own circular
+ * zone reaches them -- the same distinction storeAssignment.service.js already draws
+ * ("a marketplace seller next door must never be assigned by distance").
+ *
+ * An explicit storeId/zoneId query param always wins -- this only fills in what the
+ * client didn't already tell us. When no dark store serves the location, the sentinel
+ * is passed through; searchProductsController only treats that as a fully empty
+ * catalogue if there are also no in-range marketplace sellers.
  */
 export const resolveStoreFromLocationHeaders = async (req, res, next) => {
     try {
@@ -22,8 +29,20 @@ export const resolveStoreFromLocationHeaders = async (req, res, next) => {
         const lng = Number(req.headers['x-user-longitude']);
         if (!Number.isFinite(lat) || !Number.isFinite(lng)) return next();
 
-        const assignment = await assignStoreForCustomer(lat, lng);
+        const [assignment, inRangeZones] = await Promise.all([
+            assignStoreForCustomer(lat, lng),
+            findInRangeSellerZones(lat, lng),
+        ]);
+
         req.query.storeId = assignment?.store?._id ? String(assignment.store._id) : NO_SERVICEABLE_STORE;
+        if (inRangeZones.length) {
+            req.query.nearSellerIds = inRangeZones.map((z) => z.sellerId).join(',');
+            // Debug-only distance, kept off req.query (and so out of the cache key) since
+            // it doesn't change WHICH products match, only a display value on each one.
+            req.nearSellerDistanceById = Object.fromEntries(
+                inRangeZones.map((z) => [z.sellerId, z.distanceMeters]),
+            );
+        }
         next();
     } catch (error) {
         next(error);
@@ -63,9 +82,11 @@ export const searchController = async (req, res, next) => {
  */
 export const searchProductsController = async (req, res, next) => {
     try {
-        const { q, categoryId, zoneId, storeId, isVeg, inStockOnly, page, limit } = req.query;
+        const { q, categoryId, zoneId, storeId, nearSellerIds, isVeg, inStockOnly, page, limit } = req.query;
 
-        if (storeId === NO_SERVICEABLE_STORE) {
+        const hasNearSellers = typeof nearSellerIds === 'string' && nearSellerIds.length > 0;
+
+        if (storeId === NO_SERVICEABLE_STORE && !hasNearSellers) {
             return sendResponse(res, 200, 'Products fetched successfully', {
                 products: [],
                 total: 0,
@@ -78,12 +99,16 @@ export const searchProductsController = async (req, res, next) => {
             q,
             categoryId,
             zoneId,
-            storeId,
+            // The sentinel isn't a real store id -- clear it so the service falls
+            // through to nearSellerIds-only (or fully unscoped) rather than trying
+            // to match it as one.
+            storeId: storeId === NO_SERVICEABLE_STORE ? undefined : storeId,
+            nearSellerIds,
             isVeg,
             inStockOnly,
             page: parseInt(page, 10) || 1,
             limit: parseInt(limit, 10) || 20
-        });
+        }, req.nearSellerDistanceById);
 
         return sendResponse(res, 200, 'Products fetched successfully', results);
     } catch (error) {
