@@ -2,6 +2,7 @@ import express from 'express';
 import { upload } from '../../../../middleware/upload.js';
 import {
     listAddressesController,
+    getAddressByIdController,
     addAddressController,
     updateAddressController,
     deleteAddressController,
@@ -72,6 +73,7 @@ router.post('/support/ticket', createSupportTicketController);
 router.get('/support/my-tickets', listMySupportTicketsController);
 
 router.get('/addresses', listAddressesController);
+router.get('/addresses/:addressId', getAddressByIdController);
 router.post('/addresses', addAddressController);
 router.patch('/addresses/:addressId', updateAddressController);
 router.delete('/addresses/:addressId', deleteAddressController);

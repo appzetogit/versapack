@@ -26,6 +26,20 @@ export const listAddresses = async (userId) => {
     return { addresses };
 };
 
+export const getAddressById = async (userId, addressId) => {
+    if (!mongoose.Types.ObjectId.isValid(addressId)) {
+        throw new ValidationError('Invalid address id');
+    }
+    const user = await FoodUser.findById(userId).select('addresses').lean();
+    if (!user) throw new ValidationError('User not found');
+
+    const rawAddress = (user?.addresses || []).find((a) => String(a._id) === String(addressId));
+    if (!rawAddress) throw new ValidationError('Address not found');
+
+    const address = normalizeDeliveryAddress(rawAddress);
+    return { address };
+};
+
 export const addAddress = async (userId, dto) => {
     const user = await FoodUser.findById(userId).select('addresses');
     if (!user) throw new ValidationError('User not found');
