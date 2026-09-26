@@ -37,6 +37,54 @@ const normalizeAboutForResponse = (about) => {
     };
 };
 
+const DEFAULT_LEGAL_PAGES = {
+    terms: {
+        title: 'Terms & Conditions',
+        content: 'Welcome to VersaPack. By accessing or using our platform, mobile apps, and services, you agree to comply with and be bound by our terms and conditions governing order placements, deliveries, payment processing, and account usage.',
+        email: 'support@versapack.in',
+        mobile: ''
+    },
+    privacy: {
+        title: 'Privacy Policy',
+        content: 'Your privacy is important to us. VersaPack collects necessary personal information including name, delivery address, phone number, and location data solely to process orders, facilitate food delivery, and enhance user experience. We do not sell or share your data with unauthorized third parties.',
+        email: 'privacy@versapack.in',
+        mobile: ''
+    },
+    refund: {
+        title: 'Refund Policy',
+        content: 'Refunds for cancelled or eligible orders are processed to the original payment method or credited to your VersaPack wallet within 3-5 business days in accordance with our return guidelines.',
+        email: 'support@versapack.in',
+        mobile: ''
+    },
+    cancellation: {
+        title: 'Cancellation Policy',
+        content: 'Orders can be cancelled before they are confirmed or prepared by the merchant. Once an order is prepared or out for delivery, cancellation may be subject to cancellation charges.',
+        email: 'support@versapack.in',
+        mobile: ''
+    },
+    shipping: {
+        title: 'Delivery Policy',
+        content: 'VersaPack provides hyper-local food and quick-commerce delivery. Delivery times depend on merchant preparation, distance, weather, and traffic conditions.',
+        email: 'support@versapack.in',
+        mobile: ''
+    },
+    support: {
+        title: 'Customer Support',
+        content: 'If you have any issues with your orders or account, please contact our support team at support@versapack.in.',
+        email: 'support@versapack.in',
+        mobile: ''
+    }
+};
+
+const DEFAULT_ABOUT_PAGE = {
+    appName: 'VersaPack',
+    version: '1.0.0',
+    description: 'VersaPack is your all-in-one platform for hyper-local food delivery, quick commerce, and seamless merchant-to-customer connection.',
+    logo: '',
+    features: [],
+    stats: []
+};
+
 export const getPublicPageByKey = async (key, module = 'ALL') => {
     const k = normalizeKey(key);
     const m = String(module || 'ALL').toUpperCase();
@@ -49,9 +97,16 @@ export const getPublicPageByKey = async (key, module = 'ALL') => {
         doc = await FoodPageContent.findOne({ key: k, module: 'ALL' }).lean();
     }
     
-    if (!doc) return { key: k, module: m, data: null };
-    if (k === 'about') return { key: k, module: m, data: normalizeAboutForResponse(doc.about || null) };
-    return { key: k, module: m, data: normalizeLegalForResponse(doc.legal || null) };
+    if (!doc) {
+        if (k === 'about') {
+            return { key: k, module: m, data: DEFAULT_ABOUT_PAGE };
+        }
+        const fallback = DEFAULT_LEGAL_PAGES[k] || null;
+        return { key: k, module: m, data: fallback };
+    }
+
+    if (k === 'about') return { key: k, module: m, data: normalizeAboutForResponse(doc.about || DEFAULT_ABOUT_PAGE) };
+    return { key: k, module: m, data: normalizeLegalForResponse(doc.legal || DEFAULT_LEGAL_PAGES[k] || null) };
 };
 
 export const getAdminPageByKey = async (key, module = 'ALL') => getPublicPageByKey(key, module);
