@@ -89,14 +89,19 @@ export const getPublicPageByKey = async (key, module = 'ALL') => {
     const k = normalizeKey(key);
     const m = String(module || 'ALL').toUpperCase();
     
-    // Try to find the module-specific document first
+    // 1. Try exact match on { key: k, module: m }
     let doc = await FoodPageContent.findOne({ key: k, module: m }).lean();
     
-    // Fallback to 'ALL' if specific module is not found and we're not already looking for 'ALL'
+    // 2. Fallback to 'ALL' if specific module was requested but not found
     if (!doc && m !== 'ALL') {
         doc = await FoodPageContent.findOne({ key: k, module: 'ALL' }).lean();
     }
     
+    // 3. Global Fallback: Find ANY document matching key: k (most recently updated first)
+    if (!doc) {
+        doc = await FoodPageContent.findOne({ key: k }).sort({ updatedAt: -1 }).lean();
+    }
+
     if (!doc) {
         if (k === 'about') {
             return { key: k, module: m, data: DEFAULT_ABOUT_PAGE };
@@ -105,15 +110,23 @@ export const getPublicPageByKey = async (key, module = 'ALL') => {
         return { key: k, module: m, data: fallback };
     }
 
-    if (k === 'about') return { key: k, module: m, data: normalizeAboutForResponse(doc.about || DEFAULT_ABOUT_PAGE) };
-    return { key: k, module: m, data: normalizeLegalForResponse(doc.legal || DEFAULT_LEGAL_PAGES[k] || null) };
+    if (k === 'about') {
+        const aboutData = doc.about && (doc.about.appName || doc.about.description) ? doc.about : DEFAULT_ABOUT_PAGE;
+        return { key: k, module: doc.module || m, data: normalizeAboutForResponse(aboutData) };
+    }
+
+    const legalData = doc.legal && (doc.legal.title || doc.legal.content) ? doc.legal : (DEFAULT_LEGAL_PAGES[k] || null);
+    return { key: k, module: doc.module || m, data: normalizeLegalForResponse(legalData) };
 };
 
 export const getAdminPageByKey = async (key, module = 'ALL') => getPublicPageByKey(key, module);
 
 export const upsertLegalPage = async (key, payload, updatedBy, module = 'ALL') => {
     const k = normalizeKey(key);
-    const m = String(module || 'ALL').toUpperCase();
+    let m = String(module || 'ALL').toUpperCase();
+    if (!['USER', 'DELIVERY', 'RESTAURANT', 'ALL'].includes(m)) {
+        m = 'ALL';
+    }
     if (!['terms', 'privacy', 'refund', 'shipping', 'cancellation', 'support'].includes(k)) {
         throw new ValidationError('Invalid page key');
     }
