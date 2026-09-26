@@ -28,6 +28,8 @@ import {
   haversineKm,
   notifyOwnerSafely,
   notifyOwnersSafely,
+  notifyOwnerWithInbox,
+  notifyOwnersWithInbox,
   partnerHasActiveDelivery,
   pushStatusHistory,
   sanitizeOrderForDeliveryPartner,
@@ -151,7 +153,7 @@ function emitOrderUpdate(order, deliveryPartnerId) {
     }
 
     if (userTitle) {
-      void notifyOwnersSafely(
+      void notifyOwnersWithInbox(
         [
           { ownerType: 'RESTAURANT', ownerId: order.restaurantId },
           { ownerType: 'USER', ownerId: order.userId },
@@ -172,7 +174,7 @@ function emitOrderUpdate(order, deliveryPartnerId) {
     }
 
     if (riderTitle) {
-      void notifyOwnerSafely(
+      void notifyOwnerWithInbox(
         { ownerType: 'DELIVERY_PARTNER', ownerId: deliveryPartnerId },
         {
           title: riderTitle,
@@ -652,7 +654,7 @@ export async function acceptOrderDelivery(orderId, deliveryPartnerId) {
       // Withdraw over the same transport the offer arrived on.
       if (losingPartnerIds.length > 0) {
         try {
-          await notifyOwnersSafely(
+          await notifyOwnersWithInbox(
             losingPartnerIds.map((pid) => ({
               ownerType: 'DELIVERY_PARTNER',
               ownerId: pid,
@@ -676,7 +678,7 @@ export async function acceptOrderDelivery(orderId, deliveryPartnerId) {
         }
       }
 
-      await notifyOwnersSafely(
+      await notifyOwnersWithInbox(
         [
           { ownerType: 'USER', ownerId: order.userId },
           { ownerType: 'RESTAURANT', ownerId: order.restaurantId },
@@ -820,7 +822,7 @@ export async function confirmReachedPickupDelivery(orderId, deliveryPartnerId) {
       .select('name')
       .lean();
 
-    await notifyOwnersSafely(
+    await notifyOwnersWithInbox(
       [{ ownerType: 'RESTAURANT', ownerId: order.restaurantId }],
       {
         title: 'Rider arrived!',

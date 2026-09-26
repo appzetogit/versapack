@@ -7,6 +7,7 @@ import {
   sendNotificationToOwner,
   sendNotificationToOwners,
 } from "../../../../core/notifications/firebase.service.js";
+import { createInboxNotifications } from "../../../../core/notifications/notification.service.js";
 import { getIO, rooms } from '../../../../config/socket.js';
 import { addOrderJob } from '../../../../queues/producers/order.producer.js';
 
@@ -104,6 +105,60 @@ export async function notifyOwnerSafely(target, payload) {
   } catch (error) {
     logger.warn(`FCM notification failed: ${error?.message || error}`);
   }
+}
+
+/**
+ * Writes the in-app inbox row(s) a push is announcing, then sends the push
+ * exactly as notifyOwnersSafely already did.
+ *
+ * The entire order lifecycle -- placed, confirmed, dispatched, delivered,
+ * cancelled -- only ever called notifyOwnersSafely. That reaches a phone that
+ * has the app installed, notification permission granted, and a live device
+ * token; it does nothing for the in-app notification bell, which reads a
+ * completely separate collection that only admin broadcasts, FSSAI expiry,
+ * support replies and subscription billing ever wrote to. A customer who
+ * denied the permission prompt, or opened the app between the push arriving
+ * and being cleared from the tray, had no other record that their order was
+ * confirmed or cancelled at all.
+ *
+ * Silent variants are left alone on purpose: a rider-withdrawal push
+ * (`dataOnly: true`, e.g. "Order taken" telling the losing riders to drop a
+ * screen) exists to dismiss a UI, not to be read later, and would only clutter
+ * the inbox. Targets outside the three ownable roles (an admin alert sent to a
+ * literal 'GLOBAL' id, say) are skipped for the inbox the same way
+ * createInboxNotifications already skips them -- there is no admin inbox for
+ * this collection to write into.
+ */
+export async function notifyOwnersWithInbox(targets, payload, { category = 'order', link } = {}) {
+  if (!payload?.dataOnly && payload?.title && payload?.body) {
+    const list = Array.isArray(targets) ? targets : [];
+    void createInboxNotifications({
+      notifications: list.map((target) => ({
+        ownerType: target?.ownerType,
+        ownerId: target?.ownerId,
+        title: payload.title,
+        message: payload.body,
+        link: link ?? payload?.data?.link ?? '',
+        category,
+        source: 'ORDER_EVENT',
+        metadata: payload?.data && typeof payload.data === 'object' ? payload.data : {},
+      })),
+    }).catch((error) => {
+      logger.warn(`Inbox write failed for order event: ${error?.message || error}`);
+    });
+  }
+  await notifyOwnersSafely(targets, payload);
+}
+
+/**
+ * Singular-target counterpart to notifyOwnersWithInbox, for notifyOwnerSafely
+ * call sites. Delegates to the plural version rather than sending the push a
+ * second time -- sendNotificationToOwners([target]) and sendNotificationToOwner(target)
+ * end up at the same underlying call for one target, so nothing is lost by
+ * routing through the one function.
+ */
+export async function notifyOwnerWithInbox(target, payload, options = {}) {
+  await notifyOwnersWithInbox([target], payload, options);
 }
 
 export const TERMINAL_ORDER_STATUSES = [

@@ -42,13 +42,29 @@ export const resolveNotificationOwnerFromRequest = (user = {}) => {
 };
 
 export const createInboxNotifications = async ({ notifications = [] } = {}) => {
+    // Callers besides the admin broadcast (order events, FSSAI, support,
+    // billing) now go through this same path, so the source can no longer be
+    // hardcoded to ADMIN_BROADCAST -- that mislabelled every one of them as a
+    // broadcast the admin never sent.
+    const VALID_SOURCES = new Set(['ADMIN_BROADCAST', 'FSSAI_EXPIRY', 'SUPPORT_RESPONSE', 'SUBSCRIPTION_BILLING', 'ORDER_EVENT']);
+    const VALID_OWNER_TYPES = new Set(['USER', 'RESTAURANT', 'DELIVERY_PARTNER']);
+
     const rows = Array.isArray(notifications)
         ? notifications.filter((item) => item?.ownerType && item?.ownerId && item?.title && item?.message)
         : [];
 
     if (!rows.length) return [];
 
-    const operations = rows.map((item) => {
+    // Built one at a time rather than with a top-level .map: a single caller
+    // passing a bad ownerId (an admin-alert target, say) used to throw out of
+    // ensureObjectId and take every OTHER row in the same batch down with it,
+    // since the throw happened before bulkWrite ever ran.
+    const operations = [];
+    for (const item of rows) {
+        if (!VALID_OWNER_TYPES.has(item.ownerType)) continue;
+        if (!mongoose.Types.ObjectId.isValid(String(item.ownerId))) continue;
+
+        const requestedSource = String(item.source || 'ADMIN_BROADCAST').trim();
         const payload = {
             ownerType: item.ownerType,
             ownerId: ensureObjectId(item.ownerId, 'ownerId'),
@@ -56,7 +72,7 @@ export const createInboxNotifications = async ({ notifications = [] } = {}) => {
             message: String(item.message).trim(),
             link: String(item.link || '').trim(),
             category: String(item.category || 'broadcast').trim(),
-            source: 'ADMIN_BROADCAST',
+            source: VALID_SOURCES.has(requestedSource) ? requestedSource : 'ADMIN_BROADCAST',
             metadata: item.metadata && typeof item.metadata === 'object' ? item.metadata : {},
         };
 
@@ -64,7 +80,7 @@ export const createInboxNotifications = async ({ notifications = [] } = {}) => {
             payload.broadcastId = new mongoose.Types.ObjectId(String(item.broadcastId));
         }
 
-        return {
+        operations.push({
             updateOne: {
                 filter: payload.broadcastId
                     ? {
@@ -91,8 +107,10 @@ export const createInboxNotifications = async ({ notifications = [] } = {}) => {
                 },
                 upsert: true
             }
-        };
-    });
+        });
+    }
+
+    if (!operations.length) return [];
 
     await FoodNotification.bulkWrite(operations, { ordered: false });
 

@@ -39,7 +39,7 @@ const notificationSchema = new mongoose.Schema(
             // failed validation and was thrown away: sellers were invoiced and
             // never told. The invoice itself saved regardless, which is why this
             // went unnoticed — only a warning in the log marked it.
-            enum: ['ADMIN_BROADCAST', 'FSSAI_EXPIRY', 'SUPPORT_RESPONSE', 'SUBSCRIPTION_BILLING'],
+            enum: ['ADMIN_BROADCAST', 'FSSAI_EXPIRY', 'SUPPORT_RESPONSE', 'SUBSCRIPTION_BILLING', 'ORDER_EVENT'],
             default: 'ADMIN_BROADCAST',
             index: true
         },

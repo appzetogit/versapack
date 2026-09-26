@@ -61,6 +61,8 @@ import {
   emitDeliveryDropOtpToUser,
   notifyOwnersSafely,
   notifyOwnerSafely,
+  notifyOwnersWithInbox,
+  notifyOwnerWithInbox,
   buildOrderIdentityFilter,
   toGeoPoint,
   pushStatusHistory,
@@ -997,7 +999,7 @@ export async function createOrder(userId, dto) {
       // abandonOnlinePaymentOrder. A push adds nothing a screen they are
       // looking at does not already say.
       if (!isAwaitingOnlinePayment) {
-        await notifyOwnersSafely([{ ownerType: "USER", ownerId: userId }], {
+        await notifyOwnersWithInbox([{ ownerType: "USER", ownerId: userId }], {
           title: "Order Confirmed! 🍔",
           body: `Your order #${order.order_id || order._id} from ${restaurant.restaurantName || "the restaurant"} has been placed successfully.`,
           image: "https://i.ibb.co/5GzXz7r/VersaPack-Brand-Image.png",
@@ -1676,7 +1678,7 @@ export async function cancelOrder(orderId, userId, reason) {
     (finalPaymentStatus === "paid" || finalPaymentStatus === "refunded");
   const refundDetail = isOnlinePaid ? ` Your refund of ₹${order.pricing.total} is being processed and will be credited to your original payment method within 5-7 working days.` : "";
   
-  await notifyOwnersSafely(
+  await notifyOwnersWithInbox(
     [
       { ownerType: "USER", ownerId: userId },
       { ownerType: "RESTAURANT", ownerId: order.restaurantId },
@@ -2117,7 +2119,7 @@ export async function reportPickShortfall(orderId, restaurantId, lines = [], not
     .map((item) => item.name)
     .filter(Boolean);
 
-  await notifyOwnersSafely([{ ownerType: "USER", ownerId: order.userId }], {
+  await notifyOwnersWithInbox([{ ownerType: "USER", ownerId: order.userId }], {
     title: "Some items were unavailable",
     body:
       `${shortLines.slice(0, 3).join(', ')}${shortLines.length > 3 ? ' and more' : ''} ` +
@@ -2188,7 +2190,7 @@ async function cancelOrderRestaurantForEmptyPick(order, restaurantId, note) {
   };
   await order.save();
 
-  await notifyOwnersSafely([{ ownerType: 'USER', ownerId: order.userId }], {
+  await notifyOwnersWithInbox([{ ownerType: 'USER', ownerId: order.userId }], {
     title: 'Order Cancelled ❌',
     body: `Order #${order.order_id || order._id} was cancelled because none of the items were in stock. Your refund is being processed.`,
     image: 'https://i.ibb.co/5GzXz7r/VersaPack-Brand-Image.png',
@@ -2439,7 +2441,7 @@ export async function updateOrderStatusRestaurant(
     // Guarded rather than returned early: the delivery dispatch below this block
     // must still run for a status nobody is pushed about, or riders stop being
     // offered orders entirely.
-    if (notifyList.length > 0) void notifyOwnersSafely(
+    if (notifyList.length > 0) void notifyOwnersWithInbox(
       notifyList,
       {
         title: title,
@@ -3107,7 +3109,7 @@ export async function updateOrderStatusAdmin(orderId, orderStatus, note = "", ad
         body = (note && String(note).trim()) ? note : `Unfortunately, your order has been cancelled by support.`;
     }
 
-    await notifyOwnersSafely(notifyList, {
+    await notifyOwnersWithInbox(notifyList, {
         title,
         body,
         data: {
@@ -3225,7 +3227,7 @@ export async function markOrderDeliveredAdmin(orderId, adminId, note = "") {
         notifyList.push({ ownerType: "DELIVERY_PARTNER", ownerId: order.dispatch.deliveryPartnerId });
     }
 
-    await notifyOwnersSafely(notifyList, {
+    await notifyOwnersWithInbox(notifyList, {
         title: "Order Delivered! 🎉",
         body: `Order #${orderLabel} has been marked as delivered by support.`,
         data: {

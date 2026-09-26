@@ -26,6 +26,8 @@ import {
   buildOrderIdentityFilter,
   getBusyDeliveryPartnerIds,
   notifyOwnerSafely,
+  notifyOwnersWithInbox,
+  notifyOwnerWithInbox,
   notifyOwnersActionableAlert,
   notifyOwnersSafely,
 } from './order.helpers.js';
@@ -486,7 +488,7 @@ export async function tryAutoAssign(orderId, options = {}) {
       logger.error(`[CRITICAL] Order ${order._id} unassigned for ${attempt} mins. Triggering Admin Alert (Phase 3).`);
       // Notify Admin via Push (Web/Mobile)
       try {
-        await notifyOwnersSafely(
+        await notifyOwnersWithInbox(
           [{ ownerType: 'ADMIN', ownerId: 'GLOBAL' }], // Use GLOBAL or specific admin group if defined
           {
             title: 'Unassigned Order Crisis!',
