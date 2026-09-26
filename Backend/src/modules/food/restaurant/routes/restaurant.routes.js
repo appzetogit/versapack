@@ -90,6 +90,7 @@ import {
     deleteGalleryImageController
 } from '../controllers/restaurantBanner.controller.js';
 import { listBannersForRestaurantAppController } from '../../admin/controllers/restaurantAppBanner.controller.js';
+import { getPublicPageController } from '../../admin/controllers/pageContent.controller.js';
 
 import { cacheResponse, invalidateCache } from '../../../../middleware/cache.js';
 
@@ -129,8 +130,28 @@ router.get('/restaurants/:id/menu', cacheResponse(600, 'restaurant_menu'), getPu
 router.get('/public/foods', cacheResponse(300, 'public_foods'), listPublicFoodsController);
 router.get('/restaurants/:id/outlet-timings', cacheResponse(600, 'restaurant_timings'), getOutletTimingsByRestaurantIdController);
 router.get('/offers', optionalAuth, listPublicOffersController);
+
 // Public: categories list (zone-aware; returns zone categories + global)
 router.get('/categories/public', cacheResponse(600, 'categories'), listCategoriesController);
+
+// Public Seller App Legal & FAQ endpoints (No Auth Required for Seller App)
+router.get('/privacy', (req, res, next) => {
+    req.params.key = 'privacy';
+    req.query.module = 'RESTAURANT';
+    return getPublicPageController(req, res, next);
+});
+
+router.get('/faq', (req, res, next) => {
+    req.params.key = 'faq';
+    req.query.module = 'RESTAURANT';
+    return getPublicPageController(req, res, next);
+});
+
+router.get('/help-center', (req, res, next) => {
+    req.params.key = 'help';
+    req.query.module = 'RESTAURANT';
+    return getPublicPageController(req, res, next);
+});
 
 // Restaurant dashboard/profile (Bearer token + RESTAURANT role)
 router.get('/current', authMiddleware, requireRestaurant, getCurrentRestaurantController);
