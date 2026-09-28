@@ -192,6 +192,12 @@ const restaurantSchema = new mongoose.Schema(
     accountType: {
       type: String,
     },
+    bankName: {
+      type: String,
+    },
+    branchName: {
+      type: String,
+    },
     upiId: {
       type: String,
       trim: true,
