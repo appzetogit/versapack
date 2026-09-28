@@ -371,6 +371,8 @@ const toRestaurantProfile = (doc) => {
         ifscCode: doc.ifscCode || '',
         accountHolderName: doc.accountHolderName || '',
         accountType: doc.accountType || '',
+        bankName: doc.bankName || '',
+        branchName: doc.branchName || '',
         upiId: doc.upiId || '',
         upiQrImage: doc.upiQrImage ? { url: doc.upiQrImage } : null,
         pureVegRestaurant: Boolean(doc.pureVegRestaurant),
@@ -1057,6 +1059,8 @@ export const getCurrentRestaurantProfile = async (restaurantId) => {
                 'ifscCode',
                 'accountHolderName',
                 'accountType',
+                'bankName',
+                'branchName',
                 'upiId',
                 'upiQrImage',
                 'pureVegRestaurant',
@@ -1148,6 +1152,8 @@ export const updateRestaurantAcceptingOrders = async (restaurantId, isAcceptingO
                 'ifscCode',
                 'accountHolderName',
                 'accountType',
+                'bankName',
+                'branchName',
                 'upiId',
                 'upiQrImage',
                 'pureVegRestaurant',
@@ -1238,6 +1244,8 @@ export const updateCurrentRestaurantDiningSettings = async (restaurantId, body =
                 'ifscCode',
                 'accountHolderName',
                 'accountType',
+                'bankName',
+                'branchName',
                 'upiId',
                 'upiQrImage',
                 'pureVegRestaurant',
@@ -1386,6 +1394,12 @@ export const updateRestaurantProfile = async (restaurantId, body = {}) => {
     }
     if (body.accountType !== undefined) {
         update.accountType = String(body.accountType || '').trim();
+    }
+    if (body.bankName !== undefined) {
+        update.bankName = String(body.bankName || '').trim();
+    }
+    if (body.branchName !== undefined) {
+        update.branchName = String(body.branchName || '').trim();
     }
     if (body.upiId !== undefined) {
         update.upiId = String(body.upiId || '').trim();
@@ -1609,6 +1623,8 @@ export const updateRestaurantProfile = async (restaurantId, body = {}) => {
         'accountNumber',
         'ifscCode',
         'accountType',
+        'bankName',
+        'branchName',
         'upiId',
         'upiQrImage',
         'profileImage',
@@ -1683,6 +1699,8 @@ export const updateRestaurantProfile = async (restaurantId, body = {}) => {
                     'ifscCode',
                     'accountHolderName',
                     'accountType',
+                    'bankName',
+                    'branchName',
                     'upiId',
                     'upiQrImage',
                     'estimatedDeliveryTime',
